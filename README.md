@@ -17,36 +17,34 @@ On an iPad or phone, put the folder somewhere the device can reach (or
 host it anywhere static) and open `index.html`. **Add to Home Screen**
 gives it the whole screen, with Bonnie as the app's icon.
 
-There are no on-screen buttons. You play on the world itself:
+Play it **sideways**. Three big see-through buttons sit over the game,
+drawn in its own style: ◀ ▶ under your left thumb and one large JUMP
+under your right (the whole right half of the screen jumps, and holding
+jumps higher). There's no run button — hold a direction and Bonnie
+speeds up. With the Super Ball a throw button appears beside JUMP. The
+paper button top right pauses; sound is in the pause menu. Menus, the
+map and the sticker book are tapped. Held upright, a phone shows "turn me
+sideways" until it's turned. The buttons fade whenever Bonnie walks
+behind them.
 
-- **Left thumb, anywhere on the left:** a little stone dial appears under
-  it. Slide to walk, slide further to run, up to climb, down to duck.
-- **Right thumb, anywhere on the right:** tap to jump, hold to jump higher.
-  With the Super Ball, a throw bubble appears just above.
-- **Menus and the map:** tap things. Tap a level's medallion and Bonnie
-  walks there; tap it again (or PLAY) to start. The paper button in the
-  top corner pauses, and sound is in the pause menu.
-
-Held sideways, the game fills the screen and the dial only shows while a
-thumb is on it. Held upright, the level's own ground carries on below the
-picture, and the dial and a bouncy mushroom (jump) live there. The first
-time, both glow with a ghost thumb showing what to do.
+On an iPhone the sound plays even with the ring/silent switch on — it's
+a game, it should always have its music.
 
 ### Controls
 
 | | Keyboard | Touch | Gamepad |
 |---|---|---|---|
-| Move | ← → (or A / D) | slide the dial | D-pad / stick |
-| Jump (hold for higher) | Space, Z or ↑ | tap the right side | bottom / right button |
-| Run | ⌘ Command, Option, Shift or X | slide the dial further | left / top button |
-| Throw a ball | the run key | the throw bubble | left / top button |
-| Duck (when big) | ↓ | dial down | down |
+| Move | ← → (or A / D) | ◀ ▶ | D-pad / stick |
+| Jump (hold for higher) | Space, Z or ↑ | JUMP (or anywhere on the right) | bottom / right button |
+| Run | ⌘ Command, Option, Shift or X | hold ◀ or ▶ | left / top button |
+| Throw a ball | the run key | the throw button | left / top button |
+| Duck (when big) | ↓ | — | down |
 | Pause · start | Enter or Esc | the paper pause button | Start |
 | Sound on/off | M | in the pause menu | — |
 | Full screen | F | — | — |
 
 Every prompt in the game shows the controls you're actually using — the
-Space bar on a keyboard, the dial and the mushroom on a touch screen, the
+Space bar on a keyboard, the on-screen buttons on a touch screen, the
 face buttons on a gamepad — and switches the moment you do.
 
 Under the sea, tap jump to swim.
@@ -132,7 +130,7 @@ numbers in `POSES` in `js/art.js`.
 | `js/ui.js` | the game's stationery: paper cards with a running stitch, ribbon banners, Monsty's head as the menu pointer |
 | `js/voice.js` | grown-ups' recorded voices: recording (MediaRecorder), keeping them on the device, playing them in the game |
 | `js/game.js` | physics, Bonnie, enemies, items, the screens and the save |
-| `js/touch.js` | touch play: the left/right thumb zones, the dial and the mushroom, tapping menus, the ground under the screen held upright |
+| `js/touch.js` | touch play: the ◀ ▶ and JUMP buttons over the game, tapping menus, the "turn me sideways" card |
 | `manifest.webmanifest`, `icons/` | home-screen install; the icon is drawn from Bonnie's own sprite by `tools/icon.html` |
 | `ROADMAP.md` | the product review, scores and the plan to launch |
 

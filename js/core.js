@@ -29,30 +29,24 @@
   BB.cv = cv; BB.ctx = ctx;
 
   /* ---- fitting the window ---------------------------------------------------
-     The game is always 144px tall. Its scale is whatever fills the space it
-     has (or a 160px width, on a tall phone), and its width is however many
-     game pixels that space then has room for, between 160 and 320.
-     There is no console drawn round it: on a desktop, or a phone or tablet
-     held sideways, the game fills the screen and the thumbs play on the
-     world itself (touch.js). Held upright, the screen sits at the top and
-     the level's own ground carries on below it — the "deck", a second
-     canvas at the same pixel scale, where the thumbs go. */
+     The game is always 144px tall. Its scale is whatever fills the window
+     (or a 160px width, if the window is tall), and its width is however
+     many game pixels the window then has room for, between 160 and 320.
+     On a phone or tablet held sideways the game fills the screen and the
+     touch buttons sit over it (touch.js); held upright, touch.js asks for
+     it to be turned. The safe-area padding keeps it out of the notch. */
   var root = document.documentElement;
   // ?touch plays as a touch screen does, to check the phone and tablet layout on a desktop
   var touch = /[?&]touch\b/.test(location.search) || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
   BB.touch = touch;
   root.classList.toggle('touch', touch);
-  var deck = document.getElementById('deck'), dctx = deck ? deck.getContext('2d') : null;
-  BB.deck = { cv: deck, ctx: dctx, H: 0, on: false };
   BB.scale = 1;
   var fit = function () {
     var bs = getComputedStyle(document.body);
     var it = parseFloat(bs.paddingTop) || 0, ir = parseFloat(bs.paddingRight) || 0, ib = parseFloat(bs.paddingBottom) || 0, il = parseFloat(bs.paddingLeft) || 0;
     var vw = window.innerWidth - il - ir, vh = window.innerHeight - it - ib;
-    var portrait = touch && vh > vw * 1.05;
-    root.classList.toggle('portrait', portrait);
-    // upright, the screen takes the width, and the deck below keeps at least 40%
-    var s = portrait ? Math.min(vw / 160, vh * 0.6 / H) : Math.min(vh / H, vw / 160);
+    root.classList.toggle('portrait', touch && vh > vw * 1.05);
+    var s = Math.min(vh / H, vw / 160);
     var W = Math.floor(vw / s);
     W = Math.max(160, Math.min(320, W));
     W -= W % 2;
@@ -61,23 +55,12 @@
     BB.W = W; BB.scale = s;
     cv.style.width = Math.round(W * s) + 'px';
     cv.style.height = Math.round(H * s) + 'px';
-    if (deck) {
-      var dh = portrait ? Math.floor((vh - Math.round(H * s)) / s) : 0;
-      BB.deck.on = dh > 0; BB.deck.H = dh;
-      if (dh > 0 && (deck.width !== W * R || deck.height !== dh * R)) { deck.width = W * R; deck.height = dh * R; }
-      deck.style.width = Math.round(W * s) + 'px';
-      deck.style.height = Math.round(dh * s) + 'px';
-    }
   };
-  // where a finger is, in game pixels: on the screen, on the deck, or off both
+  // where a finger is, in game pixels
   BB.toGame = function (cx, cy) {
     var r = cv.getBoundingClientRect(), s = r.width / BB.W;
-    if (cy >= r.top && cy < r.bottom && cx >= r.left && cx < r.right) return { on: 'screen', x: (cx - r.left) / s, y: (cy - r.top) / s };
-    if (deck && BB.deck.on) {
-      var d = deck.getBoundingClientRect();
-      if (cy >= d.top && cy < d.bottom) return { on: 'deck', x: (cx - d.left) / s, y: (cy - d.top) / s };
-    }
-    return { on: null, x: (cx - r.left) / s, y: (cy - r.top) / s };
+    var on = cy >= r.top && cy < r.bottom && cx >= r.left && cx < r.right ? 'screen' : null;
+    return { on: on, x: (cx - r.left) / s, y: (cy - r.top) / s };
   };
   fit();
   window.addEventListener('resize', fit);
@@ -374,29 +357,24 @@
     if (hi === 'v' || !hi) { g.fillRect(x + 4.5, y + 1, 1, 1.5); g.fillRect(x + 4.5, y + 7.5, 1, 1.5); }
     return 10;
   };
-  // the touch glyphs, drawn small in the game's own style
-  var mushroom = function (g, x, y) {
-    disc(g, x + 5, y + 4.5, 5, '#3a2450');
-    g.fillStyle = '#3a2450'; g.fillRect(x - 0.5, y + 4.5, 11, 1.5); g.fillRect(x + 2.5, y + 5, 5, 5);
-    disc(g, x + 5, y + 4.5, 4.4, '#ef4a5a');
-    g.fillStyle = '#ef4a5a'; g.fillRect(x + 0.5, y + 4.5, 9, 1);
-    g.fillStyle = '#ff9aa4'; g.fillRect(x + 3, y + 1, 2, 0.5);
-    g.fillStyle = '#ffffff'; g.fillRect(x + 2, y + 2.5, 1.5, 1.5); g.fillRect(x + 6.5, y + 1.5, 1.5, 1.5); g.fillRect(x + 7.5, y + 4, 1, 1);
-    g.fillStyle = '#fff4dc'; g.fillRect(x + 3, y + 5.5, 4, 4);
-    g.fillStyle = '#3a2450'; g.fillRect(x + 4, y + 6.5, 0.5, 1); g.fillRect(x + 5.5, y + 6.5, 0.5, 1);
-    return 11;
+  // the touch glyphs: little copies of the buttons on the screen
+  var bubbleIcon = function (g, x, y) {
+    disc(g, x + 4.5, y + 4.5, 4.8, '#3a2450'); disc(g, x + 4.5, y + 4.5, 4.2, '#ffffff'); disc(g, x + 3.6, y + 3.4, 1.6, '#fffbf0');
   };
-  var dial = function (g, x, y, far) {
-    disc(g, x + 5, y + 5, 5, '#3a2450');
-    disc(g, x + 5, y + 5, 4.4, '#b8b0c8');
-    disc(g, x + 4.4, y + 4.4, 3.4, '#d8d2e4');
-    var kx = far > 1 ? x + 7 : x + 5;
-    disc(g, kx, y + 5, 2, '#3a2450'); disc(g, kx, y + 5, 1.5, '#fff4dc');
+  var arrowIcon = function (g, x, y, dir) {
+    bubbleIcon(g, x, y);
     g.fillStyle = '#3a2450';
-    if (far > 1) { g.fillRect(x + 11, y + 3.5, 2, 0.5); g.fillRect(x + 11.5, y + 5, 2, 0.5); g.fillRect(x + 11, y + 6.5, 2, 0.5); return 14; }
-    g.fillRect(x + 1, y + 5, 1, 0.5); g.fillRect(x + 1.5, y + 4.5, 0.5, 1.5); g.fillRect(x + 8, y + 5, 1, 0.5); g.fillRect(x + 8, y + 4.5, 0.5, 1.5);
+    for (var k = -2; k <= 2; k += 0.5) { var w = (2 - Math.abs(k)) * 1.2 + 0.5; g.fillRect(snap(x + 4.5 + (dir > 0 ? -1.2 : 1.2 - w)), snap(y + 4.5 + k - 0.25), snap(w), 0.5); }
     return 10;
   };
+  var jumpGlyph = function (g, x, y) {
+    bubbleIcon(g, x, y);
+    for (var k = 0; k <= 2.6; k += 0.5) { g.fillStyle = '#3a2450'; g.fillRect(snap(x + 4.5 - k - 0.5), snap(y + 2.4 + k), snap(k * 2 + 1), 0.5); if (k > 0.6 && k < 2.6) { g.fillStyle = '#ff6a7a'; g.fillRect(snap(x + 4.5 - k + 0.5), snap(y + 2.9 + k), snap(k * 2 - 1), 0.5); } }
+    g.fillStyle = '#3a2450'; g.fillRect(x + 2.5, y + 6.5, 4, 0.5);
+    return 10;
+  };
+  var moveGlyph = function (g, x, y) { arrowIcon(g, x, y, -1); arrowIcon(g, x + 10, y, 1); return 20; };
+  var runGlyph = function (g, x, y) { arrowIcon(g, x, y, 1); g.fillStyle = '#3a2450'; g.fillRect(x + 11, y + 3, 2, 0.5); g.fillRect(x + 11.5, y + 4.5, 2, 0.5); g.fillRect(x + 11, y + 6, 2, 0.5); return 14; };
   var finger = function (g, x, y) {
     g.fillStyle = '#3a2450';
     g.fillRect(x + 2.5, y, 3, 6); g.fillRect(x + 1, y + 4, 7, 5.5); g.fillRect(x + 1.5, y + 9.5, 6, 0.5);
@@ -411,7 +389,7 @@
     g.fillStyle = '#3a2450'; g.fillRect(x + 3, y + 3, 1.5, 4); g.fillRect(x + 5.5, y + 3, 1.5, 4);
     return 10;
   };
-  BB.icons = { mushroom: mushroom, dial: dial, finger: finger, pause: pauseIcon, disc: disc };
+  BB.icons = { finger: finger, pause: pauseIcon, disc: disc };
   var PADC = { a: ['#5ccf6a', '#2e8a3c'], b: ['#e2504a', '#9a2a2a'], x: ['#4a8aea', '#2a52a8'], y: ['#f0c040', '#a07a10'] };
   BB.glyph = function (g, action, x, y) {
     var m = BB.inputMode;
@@ -433,14 +411,13 @@
         case 'choose': return dpad(g, x, y, 'v');
       }
     } else {
-      // touch: the controls are the world's own — the dial under the left
-      // thumb, the bouncy mushroom under the right (touch.js)
+      // touch: little copies of the buttons on the screen (touch.js)
       switch (action) {
-        case 'jump': return mushroom(g, x, y);
+        case 'jump': return jumpGlyph(g, x, y);
         case 'ok': case 'back': return finger(g, x, y);
-        case 'run': return dial(g, x, y, 2);
+        case 'run': return runGlyph(g, x, y);
         case 'pause': return pauseIcon(g, x, y);
-        case 'move': return dial(g, x, y, 1);
+        case 'move': return moveGlyph(g, x, y);
         case 'choose': return finger(g, x, y);
       }
     }
@@ -585,7 +562,22 @@
      channels (12.5 / 25 / 50% duty), a soft triangle for bass and noise
      from a 15-bit and a 7-bit shift register. The browser only lets sound
      start after a key or a tap, so every input calls audio(). */
-  var AC = null, master = null, waves = {}, noiseBuf = {}, muted = false;
+  var AC = null, master = null, waves = {}, noiseBuf = {}, muted = false, unlocked = false;
+  /* Sound on iPhones and iPads (owner, 14 Oct: "the game should always
+     have sound and music"). Two things stop it there:
+       · the ring/silent switch mutes web audio unless the page asks to
+         play as media — so it asks (Safari's audioSession), and
+       · Safari only lets sound start from a finished tap (touchend /
+         click), not from a finger going down — so sound is woken on
+         those too, and a silent blip is played the first time, which is
+         what actually unlocks it. */
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  var unlock = function () {
+    var ac = audio();
+    if (!ac || unlocked) return;
+    try { var b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); src.buffer = b; src.connect(ac.destination); src.start(0); unlocked = true; } catch (e) {}
+  };
+  ['touchend', 'click', 'pointerup', 'keydown'].forEach(function (ev) { window.addEventListener(ev, unlock, { passive: true }); });
   try { muted = localStorage.getItem('bonnie-mute') === '1'; } catch (e) {}
   var audio = BB.audio = function () {
     if (!AC) {
@@ -594,7 +586,8 @@
       AC = new C();
       master = AC.createGain(); master.gain.value = 0.6; master.connect(AC.destination);
     }
-    if (AC.state === 'suspended') AC.resume().then(restartSong, function () {});
+    // 'interrupted' is iOS after a call or a trip to the home screen
+    if (AC.state !== 'running') AC.resume().then(restartSong, function () {});
     else restartSong();
     if (BB.onAny) { var f = BB.onAny; BB.onAny = null; f(); }
     return AC;
@@ -793,7 +786,6 @@
       ctx.setTransform(R, 0, 0, R, 0, 0);
       ctx.imageSmoothingEnabled = false;
       render(ctx);
-      if (BB.deck.on && BB.renderDeck) { dctx.setTransform(R, 0, 0, R, 0, 0); dctx.imageSmoothingEnabled = false; BB.renderDeck(dctx); }
     };
     var frame = function (now) {
       acc += Math.min(100, now - last); last = now;

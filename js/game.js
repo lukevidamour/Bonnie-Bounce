@@ -1388,6 +1388,8 @@
     // how long he's stood still, for his idle looks round (and shivers, in the snow)
     p.idleT = p.st === 'play' && p.ground && Math.abs(p.vx) < 0.05 && !BB.key('left') && !BB.key('right') && !BB.key('a') ? (p.idleT || 0) + 1 : 0;
     if (G.th.snowing && p.idleT > 90 && p.idleT % 70 === 0 && !reduce) fx('breath', p.x + p.w / 2 + p.face * 4, p.y + 6, { vx: p.face * 0.15, vy: -0.2, life: 40 });
+    // (he doesn't shiver or glance about: on a small screen any jiggle of
+    // the hero reads as a glitch — the breath in the cold says it all)
     updateFx();
     // a power change freezes the world for a beat, as the classic does
     if (G.freeze) {
@@ -1743,7 +1745,7 @@
     var dir = (BB.key('right') ? 1 : 0) - (BB.key('left') ? 1 : 0);
     if (p.st === 'dead') f = set.dead;
     else if (p.st === 'cheer') f = set.cheer;
-    else if (p.st === 'arch') f = p.ground ? (p.t % 30 < 15 ? set.cheer : set.idle) : set.jump;
+    else if (p.st === 'arch') f = p.ground ? set.cheer : set.jump;
     else if (p.st === 'walk') f = set[RUN_CYCLE[(p.anim | 0) % 4]];
     else if (p.crouch && big) f = set.crouch;
     // under the sea his arms go up on each stroke and out as he glides
@@ -1751,18 +1753,15 @@
     else if (!p.ground) f = set.jump;
     else if (p.throwT && big) f = set.throw;
     else if (Math.abs(p.vx) > 0.15 || (dir && p.st === 'play')) f = set[RUN_CYCLE[(p.anim | 0) % 4]];
-    else if (p.waveT && p.waveT % 24 < 14) f = set.cheer;
+    else if (p.waveT > 20) f = set.cheer;
     else f = !reduce && G.tick % 200 < 7 ? set.blink : set.idle;
     var flip = p.face < 0 && p.st !== 'dead';
-    // left standing a while, he looks one way, then the other
-    if (!reduce && p.idleT > 200 && p.st === 'play' && Math.floor((p.idleT - 200) / 55) % 2) flip = !flip;
     var v = p.star ? A.bonnie.rainbow[(G.tick >> (p.star < STAR_WARN ? 3 : 2)) % 4] : (p.power === 2 && big ? A.bonnie.red : outfit().v);
     if (G.flash && (G.flash >> 2) % 2) v = A.bonnie.rainbow[2];
     /* squash and stretch: taller and thinner as he leaps, wider and
        shorter as he lands — drawn from his feet, so they stay planted */
     var k = reduce || p.st !== 'play' ? 0 : (p.sq || 0) / 8, fw = f.w * (1 + k * 0.14), fh = f.h * (1 - k * 0.14);
     var sx = snap(p.x + p.w / 2 - fw / 2 - G.cam.x), sy = snap(p.y + p.h - fh - G.cam.y);
-    if (G.th.snowing && p.idleT > 90 && !reduce && G.tick % 50 < 12) sx += (G.tick >> 1) % 2 ? 0.5 : -0.5;
     if (p.st !== 'dead') shadowUnder(ctx, p.x + p.w / 2, p.y + p.h, 13);
     if (outfit().cape && p.st !== 'dead') drawCape(ctx, sx + fw / 2 + (flip ? 1 : -1), sy + fh * 0.36, fh, flip ? -1 : 1, p.vx, G.tick);
     ctx.drawImage(BB.canvasOf(f, flip, v), sx, sy, fw, fh);
@@ -1974,7 +1973,7 @@
     save.won = won;
     if (/[?&]debug\b/.test(qs)) save.unlocked = 10;
     store();
-    wipeTo(function () { go('story'); });
+    wipeTo(function () { go('story'); });  // …which goes straight on into Level 1
   };
   var drawTitle = function (ctx) {
     var W = BB.W;
@@ -2044,83 +2043,45 @@
     }
   };
 
-  /* ---- the story: a picture book -----------------------------------------------
-     Three pages a six-year-old can follow without reading a word — the
-     words are only for whoever is reading it to them:
-       1  Bonnie playing catch with Monsty in the garden, Bear watching
-       2  Grumble swoops down and flies off with Monsty; Bear bolts
-       3  Bonnie sets off for the castle — and Bear's tail pokes out of
-          a bush, because Bear is hiding (in every land, it turns out)
-     Each page moves; tap or press to turn it. */
-  // short enough for the narrowest screen (160 pixels: 26 letters)
-  var STORY = ['BONNIE, MONSTY & BEAR', 'GRUMBLE TOOK MONSTY!', 'BRING MONSTY HOME!'];
-  var storyPage = 0;
+  /* ---- the story: one quick scene, then straight in ------------------------------
+     Grumble swoops in and flies off with Monsty, Bear bolts for cover,
+     "OH NO!" — about three seconds, and a tap skips it. Then the first
+     level itself, not the map: playing comes first. */
+  var STORY_T = 210;
   var updateStory = function () {
     sceneT++;
-    if (sceneT > 30 && (BB.hit('a') || BB.hit('start') || BB.tap)) {
-      sfx('select');
-      if (storyPage < STORY.length - 1) { storyPage++; sceneT = 0; }
-      else { save.seenStory = true; store(); sfx('start'); storyPage = 0; wipeTo(function () { go('map'); mapEnter(); }); }
+    if (wipe) return;
+    if ((sceneT > 20 && (BB.hit('a') || BB.hit('start') || BB.tap)) || sceneT > STORY_T) {
+      save.seenStory = true; save.at = 1; store(); sfx('start'); cardCheck = false; bearWith = 0;
+      wipeTo(function () { go('card'); });
     }
   };
   var storyBg = null;
   var drawStory = function (ctx) {
-    var W = BB.W, t = reduce ? 200 : sceneT, k = storyPage;
+    var W = BB.W, t = reduce ? 90 : sceneT;
     if (!storyBg) storyBg = BB.backdrop('hills', A.themes.hills);
-    // the page: paper all round, the picture inset, the words beneath
-    UI.paper(ctx, 1, 1, W - 2, H - 2);
-    var ix = 7, iy = 7, iw = W - 14, ih = H - 32, gy = iy + ih - 12;
-    ctx.save(); ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
-    BB.drawBackdrop(ctx, storyBg, k === 2 ? t * 0.5 : 0, 0, H);
-    if (k === 1) { ctx.fillStyle = 'rgba(60,20,70,' + Math.min(0.3, t / 200) + ')'; ctx.fillRect(ix, iy, iw, ih); }
-    var g = theme('hills'), so = k === 2 && !reduce ? (t * 0.5) % 16 : 0;
-    for (var x = ix - 16; x < ix + iw + 16; x += 8) { BB.draw(ctx, g.top[((x + so) >> 3) & 1], x - so, gy); BB.draw(ctx, g.fill[((x + so) >> 3) & 1], x - so, gy + 8); }
-    var mid = Math.round(ix + iw / 2), B2 = A.bonnie.s, bear = E.bear;
-    if (k === 0) {
-      // the garden: a game of catch, Bear's tail swishing, hearts
-      BB.draw(ctx, A.deco.tree, ix + 2, gy - A.deco.tree.h);
-      var toss = Math.abs(Math.sin(t * 0.06)) * 18;
-      BB.draw(ctx, toss > 4 ? B2.cheer : B2.idle, mid - 22, gy - B2.idle.h);
-      BB.draw(ctx, A.monsty, mid - 20 + Math.sin(t * 0.03) * 2, gy - B2.idle.h - 10 - toss);
-      var bs = bear.sit[Math.floor(t / 24) % 2];
-      BB.draw(ctx, t % 150 > 142 ? bear.blink : bs, mid + 14, gy - bs.h, true);
-      if (!reduce && t % 90 < 50) { ctx.globalAlpha = 1 - (t % 90) / 50; BB.draw(ctx, A.heartSmall, mid + 20, gy - 18 - (t % 90) / 5); ctx.globalAlpha = 1; }
-    } else if (k === 1) {
-      // Grumble swoops in from the right with Monsty in the cage, and away
-      var fx2 = ix + iw + 30 - t * 1.1, fy = iy + 18 + Math.sin(t * 0.08) * 4;
-      var d = A.en.dragon.walk[Math.floor(t / 8) % 2], flap = Math.sin(t * 0.4);
-      ctx.fillStyle = '#3e9a40';
-      for (var wv = 0; wv < 9; wv += 0.5) { var wh = (9 - wv) * 0.7 * (0.5 + flap * 0.5); ctx.fillRect(snap(fx2 + 10 + wv), snap(fy - wh), 0.5, wh + 1); }
-      BB.draw(ctx, d, fx2, fy);
-      BB.draw(ctx, A.monsty, fx2 + 6, fy + d.h + 2);
-      BB.draw(ctx, A.cage, fx2 + 4, fy + d.h - 1);
-      // Bonnie reaching up; Bear running for it
-      BB.draw(ctx, t % 20 < 10 ? B2.up || B2.cheer : B2.jump, mid - 26, gy - B2.idle.h - (t % 20 < 10 ? 0 : 3));
-      var bx = mid + 6 - Math.max(0, t - 20) * 1.6;
-      if (bx > ix - 20) {
-        var bw2 = bear.walk[Math.floor(t / 4) % 2];
-        BB.draw(ctx, t < 20 ? bear.sit[0] : bw2, bx, gy - bw2.h, false);
-        if (t < 40) BB.text(ctx, '!', bx + 5, gy - bw2.h - 9, { color: '#ffe048', outline: '#2a1640' });
-      }
-    } else {
-      // off he goes, the castle far away; and that bush has a tail
-      var cs = A.deco.castle;
-      ctx.globalAlpha = 0.65; BB.draw(ctx, cs, ix + iw - cs.w - 6, gy - cs.h - 22); ctx.globalAlpha = 1;
-      BB.draw(ctx, B2[RUN_CYCLE[Math.floor(t / 6) % 4]], mid - 30, gy - B2.idle.h);
-      var bushX = ix + iw - 46 - ((t * 0.5) % (iw + 60)), bu = A.deco.bush;
-      if (bushX < ix - 40) bushX += iw + 60;
-      var tailUp = Math.sin(t * 0.15) > 0;
-      ctx.fillStyle = '#7a7892'; for (var ty2 = 0; ty2 < 6; ty2 += 0.5) ctx.fillRect(snap(bushX + bu.w - 3 + Math.sin(ty2 * 0.6 + (tailUp ? 0.6 : 0)) * 1.2), snap(gy - 6 - ty2), 1.5, 0.5);
-      BB.draw(ctx, bu, bushX, gy - bu.h);
-      if (t % 120 > 60) BB.draw(ctx, A.bearHead, bushX + bu.w / 2 - 4, gy - bu.h + 1);
+    BB.drawBackdrop(ctx, storyBg, 0, 0, H);
+    ctx.fillStyle = 'rgba(60,20,70,' + Math.min(0.28, t / 160) + ')'; ctx.fillRect(0, 0, W, H);
+    var g = theme('hills'), gy = 128;
+    for (var x = 0; x < W; x += 8) { BB.draw(ctx, g.top[(x >> 3) & 1], x, gy); BB.draw(ctx, g.fill[(x >> 3) & 1], x, gy + 8); }
+    var mid = Math.round(W / 2), S = A.bonnie.s, bear = E.bear;
+    // Grumble, with Monsty in the cage, swooping across from the right
+    var fx2 = W + 30 - t * 1.7, fy = 10 + Math.sin(t * 0.08) * 4;
+    var d = A.en.dragon.walk[Math.floor(t / 8) % 2], flap = Math.sin(t * 0.4);
+    ctx.fillStyle = '#3e9a40';
+    for (var wv = 0; wv < 9; wv += 0.5) { var wh = (9 - wv) * 0.7 * (0.5 + flap * 0.5); ctx.fillRect(snap(fx2 + 10 + wv), snap(fy - wh), 0.5, wh + 1); }
+    BB.draw(ctx, d, fx2, fy);
+    BB.draw(ctx, A.monsty, fx2 + 6, fy + d.h + 2);
+    BB.draw(ctx, A.cage, fx2 + 4, fy + d.h - 1);
+    // Bonnie reaching up after them; Bear running off to hide
+    BB.draw(ctx, t > 30 ? S.cheer : S.idle, mid - 30, gy - S.idle.h);
+    var bx = mid + 4 - Math.max(0, t - 24) * 1.8;
+    if (bx > -20) { var bw2 = t < 24 ? bear.sit[0] : bear.walk[Math.floor(t / 4) % 2]; BB.draw(ctx, bw2, bx, gy - bw2.h); }
+    // the words, big and few
+    if (t > 40) {
+      BB.text(ctx, 'OH NO!', W / 2, 70, { color: '#ffe048', outline: dark, align: 'center', scale: 2 });
+      BB.text(ctx, 'GRUMBLE TOOK MONSTY!', W / 2, 90, { color: '#ffffff', outline: dark, align: 'center' });
     }
-    ctx.restore();
-    // a thin ink frame round the picture
-    ctx.fillStyle = INK; ctx.fillRect(ix - 0.5, iy - 0.5, iw + 1, 0.5); ctx.fillRect(ix - 0.5, iy + ih, iw + 1, 0.5); ctx.fillRect(ix - 0.5, iy, 0.5, ih); ctx.fillRect(ix + iw, iy, 0.5, ih);
-    // the words, and which page this is
-    BB.text(ctx, STORY[k], W / 2, H - 21, { color: k === 1 ? PICK : INK, align: 'center' });
-    for (var dI = 0; dI < STORY.length; dI++) BB.icons.disc(ctx, W / 2 - 6 + dI * 6, H - 9, dI === k ? 1.6 : 1.1, dI === k ? INK : '#d8bc8c');
-    if (sceneT > 60 && blink()) BB.prompt(ctx, BB.inputMode === 'touch' ? [['g', 'ok']] : [['g', 'ok']], W - 12, H - 15, { align: 'right', color: INK, shadow: null });
   };
 
   /* ---- the map -----------------------------------------------------------------------
@@ -2438,7 +2399,7 @@
   var updateCard = function () {
     sceneT++;
     if (sceneT === 1) BB.music('');
-    if (!wipe && (sceneT > (cardQuick ? 60 : 150) || (sceneT > 25 && (BB.hit('a') || BB.hit('start') || BB.tap)))) { cardQuick = false; wipeTo(function () { startLevel(save.at, cardCheck); go('play'); }); }
+    if (!wipe && (sceneT > (cardQuick ? 60 : 110) || (sceneT > 25 && (BB.hit('a') || BB.hit('start') || BB.tap)))) { cardQuick = false; wipeTo(function () { startLevel(save.at, cardCheck); go('play'); }); }
   };
   var drawCard = function (ctx) {
     var W = BB.W, def = BB.LEVELS[save.at - 1], gfx = theme(def.theme), n = save.at;
@@ -2640,6 +2601,7 @@
   };
   var update = function () {
     tick++;
+    if (BB.needRotate && BB.needRotate()) return;
     if (wipe) {
       wipe.t++;
       if (wipe.dir === 'out') {
@@ -2665,6 +2627,7 @@
   };
   var render = function (ctx) {
     ctx.imageSmoothingEnabled = false;
+    if (BB.needRotate && BB.needRotate()) { BB.drawRotate(ctx); return; }
     switch (scene) {
       case 'title': drawTitle(ctx); break;
       case 'menu': drawMenu(ctx); break;
@@ -2689,17 +2652,6 @@
   var lv = /[?&]level=(\d+)/.exec(qs);
   if (lv) { save.at = Math.max(1, Math.min(10, +lv[1])); save.unlocked = Math.max(save.unlocked, save.at); go('card'); }
   BB.game = { save: function () { return save; }, G: function () { return G; }, scene: function () { return scene; }, go: go, startLevel: startLevel, theme: function (n) { return theme(n); } };
-  /* What the deck (the ground under the screen, held upright — touch.js)
-     should show: the level's own soil, scrolling with it; the sea under
-     the map; the hills under the title. */
-  var ROOTS = { hills: 1, park: 1, beach: 1, woods: 1 };
-  BB.game.deckInfo = function () {
-    if (scene === 'map') return { kind: 'sea' };
-    if ((scene === 'play' || scene === 'pause' || scene === 'clear') && G) { var th = BB.LEVELS[G.n - 1].theme; return { theme: th, camX: G.cam.x, roots: !!ROOTS[th] }; }
-    if (scene === 'card') { var th2 = BB.LEVELS[save.at - 1].theme; return { theme: th2, camX: 0, roots: !!ROOTS[th2] }; }
-    if (scene === 'story') return { theme: 'castle', camX: 0 };
-    return { theme: 'hills', camX: reduce ? 0 : tick * 0.4, roots: true };
-  };
   /* For tools/overview.html: the whole of level n drawn flat, in strips
      `seg` pixels wide, every enemy and item shown where it starts. */
   BB.game.overview = function (n, seg) {

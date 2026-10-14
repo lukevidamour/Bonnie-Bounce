@@ -98,14 +98,15 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
   level from its medallion, and back out to the map on a clear.
 
 ### 3. Touch devices (iPad and iPhone)
-- **Done** The pad was a debug overlay. A Game Boy shell was tried next
-  and dropped because it copied someone else's console rather than
-  belonging to this game. Now there are no buttons at all: the left
-  thumb lands anywhere and a stone dial appears under it (slide further
-  to run), and the right side jumps. Held upright, the level's own ground
-  carries on below the screen, with the dial and a bouncy mushroom
-  living in it. Menus and the map are tapped directly. The first time,
-  a ghost thumb shows what to do.
+- **Done** Touch controls, third version (14 Oct, after playing it on a
+  phone). A Game Boy shell, then "play on the world" (a floating dial and
+  a ground strip under the screen) were both tried and dropped: upright,
+  half the phone was controls; sideways, nothing showed where to press.
+  Now it's what the best mobile platformers do and the research on
+  children and touchscreens supports: three big see-through buttons over
+  the game (◀ ▶ lower left, JUMP lower right), always visible, generous
+  hit areas, lifted off the bottom edge, taps and holds only, running by
+  holding a direction. Held upright, "turn me sideways".
 - **P0** Real-device playtest of the new touch play with Bonnie: is the
   run threshold right for small thumbs, and does he find the throw
   bubble?
@@ -192,7 +193,7 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
 
 | Phase | Goal | Contents |
 |---|---|---|
-| **1 · Feels like a real game** *(done, 14 Oct)* | The moments between levels feel crafted, and every device feels native | Illustrated, animated, textured island map with tap-to-walk · circle transitions · input-aware prompts · teach-by-doing signposts · touch played on the world (dial, mushroom, ground below the screen) · the stitched-paper and ribbon UI on every screen · pause with sound · "start over?" safety · home-screen install with Bonnie's icon |
+| **1 · Feels like a real game** *(done, 14 Oct)* | The moments between levels feel crafted, and every device feels native | Illustrated, animated, textured island map with tap-to-walk · circle transitions · input-aware prompts · teach-by-doing signposts · touch buttons over the game (◀ ▶ and JUMP), "turn me sideways" upright · the stitched-paper and ribbon UI on every screen · pause with sound · "start over?" safety · home-screen install with Bonnie's icon |
 | **2 · Make it ours** *(done, 14 Oct)* | Nothing on screen is borrowed | Gift boxes, toy bricks, stumps and chimneys, the sunflower, the acorn, the balloon arch · repainted mountains · old props redrawn · the map's landmarks given the same care as the levels |
 | **3 · Juice & heart** *(done, 14 Oct)* | Every action has weight, and the story needs no reading | Hit-stop, baddies that pop into flowers, Bonnie's idle looks, wave and shiver · picture-book opening and reunion ending · grown-ups' recorded voices · (still to come: settings with volumes) |
 | **4 · Reasons to replay** *(mostly done, 14 Oct)* | A child wants to go back | Bear hidden in every land and following Bonnie home · sticker book (Bear, creatures, outfits) · outfits won with Bear · (still to come: the football kit, once we have its colours; bonus rooms; music second sections) |

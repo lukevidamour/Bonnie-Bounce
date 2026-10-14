@@ -181,7 +181,9 @@
   var add = function (def) { def.n = LEVELS.length + 1; LEVELS.push(def); };
 
   /* 1 — Sunny Hills. The first level: everything gets introduced on its
-     own, on flat ground, before it is combined with anything else. */
+     own, on flat ground, before it is combined with anything else. Only
+     three signposts (walk, jump, stomp): the rest is better found by
+     playing than by reading. */
   add({
     name: 'SUNNY HILLS', theme: 'hills', w: 200, seed: 11,
     build: function (L) {
@@ -189,7 +191,6 @@
       L.tip(5, 'move');
       L.tip(8, 'jump');
       L.row(10, R1, '?');
-      L.tip(13, 'block');
       L.row(16, R1, 'BPB?B');
       L.row(18, R2, '?');
       L.tip(21, 'stomp');
@@ -197,7 +198,6 @@
       L.e('grumbug', 24, undefined, { wait: 80 });
       L.pipe(28, 2);
       L.e('grumbug', 34);
-      L.tip(35, 'high');
       L.pipe(38, 3);
       L.e('grumbug', 42); L.e('grumbug', 44);
       L.pipe(48, 4);
@@ -216,7 +216,6 @@
       L.ground(90, 140);
       L.stairs(90, 4, -1);
       L.check(98);
-      L.tip(100, 'run');
       L.row(102, R1, 'B?B');
       L.row(108, R1, 'S');
       L.e('grumbug', 112); L.e('grumbug', 114); L.e('grumbug', 116);

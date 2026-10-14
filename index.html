@@ -15,11 +15,9 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <style>
-  /* No console drawn round the game: on a desktop, or a phone or tablet
-     held sideways, the screen fills the window, and touch plays on the
-     world itself (js/touch.js). Held upright, the level's ground carries
-     on below the screen — the deck, drawn by the game — and that's where
-     the thumbs go. The safe-area padding keeps it all out of the notch. */
+  /* The game fills the window. On a phone or tablet held sideways, the
+     touch buttons are drawn over it (js/touch.js); held upright, it asks
+     to be turned. The safe-area padding keeps it all out of the notch. */
   * { box-sizing: border-box; }
   html, body {
     margin: 0; height: 100%; background: #0c0814; overflow: hidden;
@@ -30,20 +28,18 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  html.portrait body { justify-content: flex-start; }
   canvas {
     display: block; flex: none;
     /* whole pixels, scaled with no smoothing: the screen is the art */
     image-rendering: pixelated; image-rendering: crisp-edges;
   }
   canvas#screen { background: #000; }
-  canvas#deck { display: none; }
-  html.portrait canvas#deck { display: block; }
+  /* held upright, the "turn me sideways" card fills the screen */
+  html.portrait, html.portrait body { background: #3a2a50; }
 </style>
 </head>
 <body>
   <canvas id="screen" width="240" height="144" aria-label="Bonnie Bounce game screen" role="img"></canvas>
-  <canvas id="deck" width="160" height="10" aria-hidden="true"></canvas>
 
   <script src="js/core.js"></script>
   <script src="js/art.js"></script>
