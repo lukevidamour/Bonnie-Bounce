@@ -1118,7 +1118,11 @@
     if (p.star) { p.star--; if (!p.star) BB.music(G.bossOn ? 'boss' : G.th.music); }
     if (p.throwT) p.throwT--;
     if (p.swimT) p.swimT--;
-    if (p.sq) p.sq += p.sq > 0 ? -1 : 1;
+    // ease the squash back to nothing — and stop there. (Stepping by a
+    // whole 1 from a landing's fractional value used to overshoot zero and
+    // flick between squashed and stretched every frame, for ever: the
+    // "vibrating Bonnie".)
+    if (p.sq) p.sq = p.sq > 0 ? Math.max(0, p.sq - 1) : Math.min(0, p.sq + 1);
     var dir = (BB.key('right') ? 1 : 0) - (BB.key('left') ? 1 : 0);
     var run = BB.key('b') || BB.touchRun;
     // crouching: big Bonnie only, on the ground
@@ -1762,6 +1766,15 @@
        shorter as he lands — drawn from his feet, so they stay planted */
     var k = reduce || p.st !== 'play' ? 0 : (p.sq || 0) / 8, fw = f.w * (1 + k * 0.14), fh = f.h * (1 - k * 0.14);
     var sx = snap(p.x + p.w / 2 - fw / 2 - G.cam.x), sy = snap(p.y + p.h - fh - G.cam.y);
+    /* Riding a moving platform: drawn from the platform's own position.
+       The platform glides in fractions of a pixel and Bonnie moves in whole
+       ones, so drawn separately he'd slip back and forth on it by a pixel
+       every few frames — a jiggle. Anchored to it, the two move as one. */
+    var on = p.on;
+    if (on && on.k === 'plat' && p.st === 'play') {
+      sx = snap(on.x - G.cam.x) + snap(p.x + (p.rx || 0) + p.w / 2 - fw / 2 - on.x);
+      sy = snap(snap(on.y - G.cam.y) - fh);
+    }
     if (p.st !== 'dead') shadowUnder(ctx, p.x + p.w / 2, p.y + p.h, 13);
     if (outfit().cape && p.st !== 'dead') drawCape(ctx, sx + fw / 2 + (flip ? 1 : -1), sy + fh * 0.36, fh, flip ? -1 : 1, p.vx, G.tick);
     ctx.drawImage(BB.canvasOf(f, flip, v), sx, sy, fw, fh);

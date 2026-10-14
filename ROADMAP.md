@@ -28,7 +28,7 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
 | | Category | 14 Oct (first) | 14 Oct (after phases 2–3) | What still holds it back |
 |---|---|---|---|---|
 | 1 | **Art & visual craft** | 72 | **82** | Presents, toy blocks, world columns, the sunflower, the balloon arch and real mountains replaced the borrowed pieces. Still to do: a few props in the first style (bench, swings, igloo, gears), plain stair blocks, the checkpoint flag. |
-| 2 | **Gameplay & game feel** | 74 | **80** | Hit-stop, baddies that pop into flowers, a camera kick, idle looks, a checkpoint wave, shivers in the snow. Still to do: anticipation frames, a difficulty pass on gaps with enemies beside them. |
+| 2 | **Gameplay & game feel** | 74 | **80** | Hit-stop, baddies that pop into flowers, a camera kick, a checkpoint wave, breath in the cold. Still to do: anticipation frames, a difficulty pass on gaps with enemies beside them. |
 | 3 | **Controls on every device** | 70 | **72** | Touch plays on the world itself. Still untested on a real iPhone or iPad; no assist mode or remapping. |
 | 4 | **Delight, character & heart** | 62 | **82** | Bear hiding in every land and following Bonnie home, a picture-book story, a real reunion, the sticker book, outfits, grown-ups' voices. Still to do: music second sections, more of Bonnie reacting to the world. |
 | 5 | **Polish & launch readiness** | 55 | **66** | The borrowed visuals are gone. Still to do: settings and save slots, a privacy note, device QA, store packaging. |
@@ -196,7 +196,7 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
 |---|---|---|
 | **1 · Feels like a real game** *(done, 14 Oct)* | The moments between levels feel crafted, and every device feels native | Illustrated, animated, textured island map with tap-to-walk · circle transitions · input-aware prompts · teach-by-doing signposts · touch buttons over the game (◀ ▶ and JUMP), a "turn sideways" note upright · the stitched-paper and ribbon UI on every screen · pause with sound · "start over?" safety · home-screen install with Bonnie's icon |
 | **2 · Make it ours** *(done, 14 Oct)* | Nothing on screen is borrowed | Gift boxes, toy bricks, stumps and chimneys, the sunflower, the acorn, the balloon arch · repainted mountains · old props redrawn · the map's landmarks given the same care as the levels |
-| **3 · Juice & heart** *(done, 14 Oct)* | Every action has weight, and the story needs no reading | Hit-stop, baddies that pop into flowers, Bonnie's idle looks, wave and shiver · picture-book opening and reunion ending · grown-ups' recorded voices · (still to come: settings with volumes) |
+| **3 · Juice & heart** *(done, 14 Oct)* | Every action has weight, and the story needs no reading | Hit-stop, baddies that pop into flowers, Bonnie's checkpoint wave · picture-book opening and reunion ending · grown-ups' recorded voices · (still to come: settings with volumes) |
 | **4 · Reasons to replay** *(mostly done, 14 Oct)* | A child wants to go back | Bear hidden in every land and following Bonnie home · sticker book (Bear, creatures, outfits) · outfits won with Bear · (still to come: the football kit, once we have its colours; bonus rooms; music second sections) |
 | **5 · For every child, ready to ship** | Nobody gets stuck; could be sold | Assist mode, two-player helper, remapping, save slots · privacy note · device QA matrix · store wrap · launch assets |
 
