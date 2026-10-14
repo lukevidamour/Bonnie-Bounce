@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bonnie Bounce — sprite sheet</title>
+<style>
+  body { margin: 0; background: #2a2440; color: #fff; font: 12px system-ui; padding: 12px; }
+  canvas#screen { display: none; }
+  #sheet { image-rendering: pixelated; }
+  h2 { font-size: 13px; margin: 14px 0 4px; opacity: .7; }
+</style>
+</head>
+<body>
+<!-- A dev tool: every sprite in js/art.js, magnified, so the art can be
+     checked and tuned without playing to it. Open via the preview server:
+     /tools/sheet.html  (?z=6 sets the zoom) -->
+<canvas id="screen" width="160" height="144"></canvas>
+<div id="pad" style="display:none"><div data-dpad></div></div>
+<canvas id="sheet"></canvas>
+<script src="../js/core.js"></script>
+<script src="../js/art.js"></script>
+<script src="../js/creatures.js"></script>
+<script>
+  var A = BB.ART, Z = +(/[?&]z=(\d+)/.exec(location.search) || [0, 5])[1];
+  var groups = [];
+  var add = function (name, list) { groups.push([name, list.filter(Boolean)]); };
+  var P = A.bonnie;
+  add('bonnie small', Object.keys(P.s).map(function (k) { return [k, P.s[k]]; }));
+  add('bonnie big', Object.keys(P.b).map(function (k) { return [k, P.b[k]]; }));
+  add('bonnie red / rainbow', [['red', P.b.idle, P.red], ['rb0', P.b.run1, P.rainbow[0]], ['rb1', P.s.idle, P.rainbow[1]]]);
+  add('items', [['star', A.star[0]], ['', A.star[1]], ['', A.star[2]], ['cupcake', A.cupcake], ['ball', A.superball[0]], ['', A.superball[1]], ['lolly', A.lolly], ['heart', A.heart], ['thrown', A.thrown[0]], ['monsty', A.monsty], ['cage', A.cage]]);
+  add('blocks', [['q', A.qblock[0]], ['used', A.used], ['pipe', A.pipeTop], ['spikes', A.spikes], ['spring', A.spring[0]], ['', A.spring[1]], ['shroom', A.shroom[0]], ['', A.shroom[1]], ['check', A.checkFlag[0]], ['', A.checkFlag[1]], ['goal', A.goalFlag]]);
+  var en = [];
+  Object.keys(A.en).forEach(function (k) {
+    var v = A.en[k];
+    if (Array.isArray(v)) v.forEach(function (s, i) { en.push([i ? '' : k, s]); });
+    else if (v.rows) en.push([k, v]);
+    else Object.keys(v).forEach(function (j) { var s = v[j]; if (Array.isArray(s)) s.forEach(function (t) { en.push([k + j, t]); }); else en.push([k + j, s]); });
+  });
+  add('enemies', en);
+  var de = [];
+  Object.keys(A.deco).forEach(function (k) { var v = A.deco[k]; (Array.isArray(v) ? v : [v]).forEach(function (s, i) { de.push([i ? '' : k, s]); }); });
+  add('deco', de);
+
+  var cv = document.getElementById('sheet'), g = cv.getContext('2d');
+  var W = +(/[?&]w=(\d+)/.exec(location.search) || [0, 300])[1], x = 0, y = 0, rowH = 0, plan = [];
+  groups.forEach(function (gr) {
+    if (x) { x = 0; y += rowH + 4; rowH = 0; }
+    plan.push(['h', gr[0], 0, y]); y += 10;
+    gr[1].forEach(function (it) {
+      var s = it[1];
+      if (x + s.w > W) { x = 0; y += rowH + 8; rowH = 0; }
+      plan.push(['s', it, x, y]);
+      x += s.w + 4; rowH = Math.max(rowH, s.h + 7);
+    });
+  });
+  cv.width = W * Z; cv.height = (y + rowH + 10) * Z;
+  cv.style.width = cv.width + 'px';
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = '#7fb8e8'; g.fillRect(0, 0, cv.width, cv.height);
+  plan.forEach(function (p) {
+    if (p[0] === 'h') { BB.text(g, p[1], p[2] * Z, p[3] * Z, { scale: 2, color: '#1c1428' }); return; }
+    var it = p[1];
+    BB.draw(g, it[1], p[2] * Z, p[3] * Z, false, it[2], Z);
+    if (it[0]) BB.text(g, it[0], p[2] * Z, (p[3] + it[1].h + 1) * Z, { scale: 1, color: '#1c1428' });
+  });
+</script>
+</body>
+</html>

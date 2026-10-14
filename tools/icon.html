@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bonnie Bounce — app icon</title>
+<style>
+  body { margin: 0; background: #2a2440; color: #fff; font: 13px system-ui; padding: 16px; }
+  canvas#screen { display: none; }
+  .row { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; }
+  figure { margin: 0; text-align: center; }
+  figure canvas { display: block; border-radius: 22%; box-shadow: 0 6px 20px rgba(0,0,0,.4); margin-bottom: 8px; }
+  a { color: #ffe048; }
+</style>
+</head>
+<body>
+<!-- A dev tool: draws the home-screen icon from the game's own Bonnie sprite,
+     so the icon always matches the game. Open via the preview server:
+     /tools/icon.html — then save each size into icons/ with its link
+     (icon-512.png, icon-192.png, icon-180.png). -->
+<canvas id="screen" width="160" height="144"></canvas>
+<div id="pad" style="display:none"><div data-dpad></div></div>
+<div class="row" id="out"></div>
+<script src="../js/core.js"></script>
+<script src="../js/art.js"></script>
+<script>
+  var A = BB.ART;
+  // one design, drawn on a 64-pixel grid and scaled up whole, so every size
+  // stays crisp pixel art: a summer sky, the sun, a hill, and Bonnie close
+  // up — an icon is seen at thumbnail size, so his face fills it
+  var paintIcon = function (size) {
+    var c = document.createElement('canvas'); c.width = c.height = size;
+    var g = c.getContext('2d'), u = size / 64;
+    g.imageSmoothingEnabled = false;
+    var px = function (x, y, w, h, col) { g.fillStyle = col; g.fillRect(Math.round(x * u), Math.round(y * u), Math.ceil(w * u), Math.ceil(h * u)); };
+    // sky, banded the way the game's skies are
+    px(0, 0, 64, 64, '#c2e8ff');
+    ['#4aaaf8', '#5ab4ff', '#6cc0ff', '#80caff', '#96d4ff', '#acdeff'].forEach(function (col, i) { px(0, i * 7, 64, 7, col); });
+    // the sun, with soft rings
+    var disc = function (cx, cy, r, col) { for (var y = -r; y < r; y++) { var hw = Math.round(Math.sqrt(r * r - (y + 0.5) * (y + 0.5))); px(cx - hw, cy + y, hw * 2, 1, col); } };
+    disc(51, 12, 12, 'rgba(255,255,255,0.16)'); disc(51, 12, 9, 'rgba(255,248,200,0.4)'); disc(51, 12, 6, '#fff1a0');
+    // a cloud
+    [[6, 14, 4], [11, 12, 5], [16, 14, 4]].forEach(function (q) { disc(q[0], q[1], q[2], '#ffffff'); });
+    // the hill behind him, with its grass lip
+    for (var x = 0; x < 64; x++) {
+      var top = 44 + Math.round(Math.sin(x * 0.1 + 0.4) * 3);
+      px(x, top, 1, 64 - top, '#4aa83c'); px(x, top, 1, 2, '#82d65a');
+      if (x % 4 === 1) px(x, top - 1, 1, 1, '#b4ec7c');
+    }
+    // Bonnie, cheering, from the game's own sprite: scaled so his head
+    // fills the icon, and his shoulders run off the bottom edge
+    var P = A.bonnie, s = P.b.cheer || P.b.idle, sc = 2.7;
+    var sp = BB.surface(s.w + 2, s.h + 2); BB.draw(sp.getContext('2d'), s, 1, 1);
+    var w = (s.w + 2) * sc, h = (s.h + 2) * sc;
+    g.drawImage(sp, Math.round((32 - w / 2 + 1) * u), Math.round(3 * u), Math.round(w * u), Math.round(h * u));
+    return c;
+  };
+  [512, 192, 180].forEach(function (n) {
+    var c = paintIcon(n), f = document.createElement('figure'), a = document.createElement('a');
+    c.style.width = Math.min(n, 256) + 'px';
+    a.href = c.toDataURL('image/png'); a.download = 'icon-' + n + '.png'; a.textContent = 'icon-' + n + '.png';
+    f.appendChild(c); f.appendChild(a); document.getElementById('out').appendChild(f);
+  });
+  window.iconData = function (n) { return paintIcon(n).toDataURL('image/png'); };
+</script>
+</body>
+</html>

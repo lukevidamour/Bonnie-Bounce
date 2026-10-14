@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0c0814">
+<title>Bonnie Bounce</title>
+<meta name="description" content="Bonnie Bounce — a ten-level platform adventure starring Bonnie.">
+<!-- added to a home screen it opens full screen, like an app, with Bonnie as its icon -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bonnie Bounce">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>
+  /* No console drawn round the game: on a desktop, or a phone or tablet
+     held sideways, the screen fills the window, and touch plays on the
+     world itself (js/touch.js). Held upright, the level's ground carries
+     on below the screen — the deck, drawn by the game — and that's where
+     the thumbs go. The safe-area padding keeps it all out of the notch. */
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: #0c0814; overflow: hidden;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  html.portrait body { justify-content: flex-start; }
+  canvas {
+    display: block; flex: none;
+    /* whole pixels, scaled with no smoothing: the screen is the art */
+    image-rendering: pixelated; image-rendering: crisp-edges;
+  }
+  canvas#screen { background: #000; }
+  canvas#deck { display: none; }
+  html.portrait canvas#deck { display: block; }
+</style>
+</head>
+<body>
+  <canvas id="screen" width="240" height="144" aria-label="Bonnie Bounce game screen" role="img"></canvas>
+  <canvas id="deck" width="160" height="10" aria-hidden="true"></canvas>
+
+  <script src="js/core.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/creatures.js"></script>
+  <script src="js/backdrop.js"></script>
+  <script src="js/light.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/music.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/voice.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/touch.js"></script>
+</body>
+</html>

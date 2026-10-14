@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bonnie Bounce — level overview</title>
+<style>
+  body { margin: 0; background: #111; color: #fff; font: 12px system-ui; padding: 10px; }
+  #screen, #pad { display: none; }
+  img, canvas.ov { image-rendering: pixelated; display: block; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<!-- A dev tool: each level drawn whole, in strips, so a layout can be
+     checked at a glance — gaps, heights, where the enemies start.
+     /tools/overview.html?level=3   (&z=2 to zoom, &seg=400 strip width) -->
+<canvas id="screen" width="160" height="144"></canvas>
+<div id="pad"><div data-dpad></div></div>
+<div id="out"></div>
+<script src="../js/core.js"></script>
+<script src="../js/art.js"></script>
+<script src="../js/creatures.js"></script>
+<script src="../js/backdrop.js"></script>
+<script src="../js/light.js"></script>
+<script src="../js/music.js"></script>
+<script src="../js/levels.js"></script>
+<script src="../js/game.js"></script>
+<script>
+  var q = location.search, n = +(/level=(\d+)/.exec(q) || [0, 1])[1], z = +(/z=(\d+)/.exec(q) || [0, 2])[1], seg = +(/seg=(\d+)/.exec(q) || [0, 400])[1];
+  // ?level=all draws every level, one after another
+  var list = /level=all/.test(q) ? BB.LEVELS.map(function (d) { return d.n; }) : [n];
+  list.forEach(function (k) {
+    var h = document.createElement('div');
+    h.textContent = k + ' — ' + BB.LEVELS[k - 1].name;
+    document.getElementById('out').appendChild(h);
+    var c = BB.game.overview(k, seg);
+    c.className = 'ov';
+    c.style.width = c.width * z + 'px';
+    document.getElementById('out').appendChild(c);
+  });
+  document.title = list.length > 1 ? 'All levels' : 'Level ' + n + ' — ' + BB.LEVELS[n - 1].name;
+</script>
+</body>
+</html>
