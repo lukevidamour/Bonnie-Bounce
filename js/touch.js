@@ -3,7 +3,7 @@
 
    Held sideways, the game fills the screen and three big see-through
    buttons sit over it, drawn in the game's own style: ◀ ▶ under the left
-   thumb, one large JUMP under the right. That's the whole scheme, the way
+   thumb, and for JUMP the big bouncy mushroom under the right. That's the whole scheme, the way
    the best mobile platformers (and the research on children and
    touchscreens) do it:
      · movement lower left, action lower right — where thumbs rest
@@ -37,7 +37,7 @@
   var layout = function () {
     var s = BB.scale || 3, W = BB.W, minDim = Math.min(window.innerWidth, window.innerHeight);
     // upright the picture is small, so the buttons are a little smaller too
-    var A = (portrait() ? Math.max(50, Math.min(64, minDim * 0.14)) : Math.max(62, Math.min(84, minDim * 0.17))) / s, J = A * 1.32;
+    var A = (portrait() ? Math.max(50, Math.min(64, minDim * 0.14)) : Math.max(62, Math.min(100, minDim * 0.17))) / s, J = A * 1.32;
     var side = 18 / s, lift = 20 / s, gap = 12 / s;
     var L = { x: side + A / 2, y: H - lift - A / 2, r: A / 2 };
     var R = { x: L.x + A + gap, y: L.y, r: A / 2 };
@@ -131,14 +131,30 @@
       }
     };
   };
-  // JUMP: a springy up-chevron with a little bounce line under it
-  var jumpIcon = function (g, x, y, s) {
-    for (var k = 0; k <= s * 1.2; k += 0.5) {
-      var hw = k * 0.9;
-      g.fillStyle = INK; g.fillRect(snap(x - hw - 1), snap(y - s * 0.8 + k), snap(hw * 2 + 2), 0.5);
-      if (hw > 0.8 && k < s * 1.2 - 1) { g.fillStyle = '#ff6a7a'; g.fillRect(snap(x - hw), snap(y - s * 0.8 + k + 0.5), snap(hw * 2), 0.5); }
-    }
-    g.fillStyle = INK; g.fillRect(snap(x - s * 0.8), snap(y + s * 0.75), snap(s * 1.6), 1);
+  /* JUMP is the bouncy mushroom (owner's favourite): a red cap with white
+     spots and a little face, see-through until it's pressed, when it
+     squashes down like the real thing. c is the button's circle. */
+  var mushroom = function (g, c, on, k) {
+    var sq = on ? 1 : 0, cw = c.r * (1.05 + sq * 0.12), ch = c.r * (0.78 - sq * 0.16), sw = c.r * 0.34, sh = c.r * (0.62 - sq * 0.12);
+    var base = c.y + c.r * 0.92, top = base - sh - ch + 1, x = c.x;
+    k = on ? 1 : (k === undefined ? 1 : k);
+    g.globalAlpha = (on ? 0.3 : 0.18) * k; ui.round(g, x - cw + 1, base - 1, cw * 2, 3, '#1c0e30', 1.5);
+    g.globalAlpha = (on ? 1 : 0.62) * k;
+    // stem, and its face
+    ui.round(g, x - sw, base - sh, sw * 2, sh, INK, 1.5);
+    ui.round(g, x - sw + 0.5, base - sh, sw * 2 - 1, sh - 0.5, '#fff4dc', 1.5);
+    var fy = base - sh + sh * 0.3;
+    g.fillStyle = INK;
+    if (on) { g.fillRect(snap(x - sw * 0.55), snap(fy + 0.5), 1.5, 0.5); g.fillRect(snap(x + sw * 0.55 - 1.5), snap(fy + 0.5), 1.5, 0.5); }
+    else { g.fillRect(snap(x - sw * 0.5), snap(fy), 1, 1.5); g.fillRect(snap(x + sw * 0.5 - 1), snap(fy), 1, 1.5); }
+    g.fillRect(snap(x - 1), snap(fy + 2.5), 2, 0.5);
+    g.fillStyle = '#ffb0b8'; g.fillRect(snap(x - sw * 0.85), snap(fy + 2), 1.5, 0.5); g.fillRect(snap(x + sw * 0.85 - 1.5), snap(fy + 2), 1.5, 0.5);
+    // the cap: a dome, outline first, then the red, then its spots
+    var capW = function (yy) { var q = yy / ch; return cw * Math.sqrt(Math.max(0, 1 - (1 - q) * (1 - q))); };
+    for (var yy = -0.5; yy <= ch + 0.5; yy += 0.5) { var ow = capW(Math.min(ch, Math.max(0, yy + 0.5))) + 0.5; g.fillStyle = INK; g.fillRect(snap(x - ow), snap(top + yy), snap(ow * 2), 0.5); }
+    for (yy = 0.5; yy <= ch; yy += 0.5) { var hw = capW(yy) - 0.5; if (hw > 0.5) { g.fillStyle = yy > ch - 2 ? '#c02840' : yy < 2.5 ? '#ff6a76' : '#ef4a5a'; g.fillRect(snap(x - hw), snap(top + yy), snap(hw * 2), 0.5); } }
+    [[-0.5, 0.3, 0.2], [0.08, 0.2, 0.17], [0.52, 0.48, 0.15], [-0.2, 0.62, 0.11]].forEach(function (sp) { I.disc(g, x + sp[0] * cw, top + sp[1] * ch, Math.max(1, sp[2] * cw), '#ffffff'); });
+    g.globalAlpha = 1;
   };
   var throwIcon = function (g, x, y, s) { I.disc(g, x, y, s * 1.1, INK); I.disc(g, x, y, s, '#ff7a2a'); I.disc(g, x - s * 0.3, y - s * 0.3, s * 0.55, '#ffd050'); };
 
@@ -154,7 +170,7 @@
       var b = layout();
       bubble(g, b.L, press.left, arrow(-1), behind(b.L));
       bubble(g, b.R, press.right, arrow(1), behind(b.R));
-      bubble(g, b.J, press.jump, jumpIcon, behind(b.J));
+      mushroom(g, b.J, press.jump, behind(b.J));
       if (BB.touchCanThrow) bubble(g, b.T, press.throw, throwIcon, behind(b.T));
     }
     puffs.forEach(function (p) {

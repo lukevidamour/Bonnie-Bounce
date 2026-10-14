@@ -18,8 +18,8 @@ host it anywhere static) and open `index.html`. **Add to Home Screen**
 gives it the whole screen, with Bonnie as the app's icon.
 
 Play it **sideways**. Three big see-through buttons sit over the game,
-drawn in its own style: ◀ ▶ under your left thumb and one large JUMP
-under your right (the whole right half of the screen jumps, and holding
+drawn in its own style: ◀ ▶ under your left thumb and the big bouncy
+mushroom (jump) under your right (the whole right half of the screen jumps, and holding
 jumps higher). There's no run button — hold a direction and Bonnie
 speeds up. With the Super Ball a throw button appears beside JUMP. The
 paper button top right pauses; sound is in the pause menu. Menus, the

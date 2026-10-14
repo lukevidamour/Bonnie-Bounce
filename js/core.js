@@ -368,10 +368,14 @@
     return 10;
   };
   var jumpGlyph = function (g, x, y) {
-    bubbleIcon(g, x, y);
-    for (var k = 0; k <= 2.6; k += 0.5) { g.fillStyle = '#3a2450'; g.fillRect(snap(x + 4.5 - k - 0.5), snap(y + 2.4 + k), snap(k * 2 + 1), 0.5); if (k > 0.6 && k < 2.6) { g.fillStyle = '#ff6a7a'; g.fillRect(snap(x + 4.5 - k + 0.5), snap(y + 2.9 + k), snap(k * 2 - 1), 0.5); } }
-    g.fillStyle = '#3a2450'; g.fillRect(x + 2.5, y + 6.5, 4, 0.5);
-    return 10;
+    disc(g, x + 5, y + 4.5, 5, '#3a2450');
+    g.fillStyle = '#3a2450'; g.fillRect(x - 0.5, y + 4.5, 11, 1.5); g.fillRect(x + 2.5, y + 5, 5, 5);
+    disc(g, x + 5, y + 4.5, 4.4, '#ef4a5a');
+    g.fillStyle = '#ef4a5a'; g.fillRect(x + 0.5, y + 4.5, 9, 1);
+    g.fillStyle = '#ffffff'; g.fillRect(x + 2, y + 2.5, 1.5, 1.5); g.fillRect(x + 6.5, y + 1.5, 1.5, 1.5); g.fillRect(x + 7.5, y + 4, 1, 1);
+    g.fillStyle = '#fff4dc'; g.fillRect(x + 3, y + 5.5, 4, 4);
+    g.fillStyle = '#3a2450'; g.fillRect(x + 4, y + 6.5, 0.5, 1); g.fillRect(x + 5.5, y + 6.5, 0.5, 1);
+    return 11;
   };
   var moveGlyph = function (g, x, y) { arrowIcon(g, x, y, -1); arrowIcon(g, x + 10, y, 1); return 20; };
   var runGlyph = function (g, x, y) { arrowIcon(g, x, y, 1); g.fillStyle = '#3a2450'; g.fillRect(x + 11, y + 3, 2, 0.5); g.fillRect(x + 11.5, y + 4.5, 2, 0.5); g.fillRect(x + 11, y + 6, 2, 0.5); return 14; };
