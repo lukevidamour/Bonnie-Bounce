@@ -15,9 +15,10 @@
    Running needs no button: hold a direction and Bonnie speeds up. With
    the fire power, a throw button appears beside JUMP.
 
-   Held upright, a phone shows a friendly "turn me sideways" card instead
-   (the game waits): the level needs the width, and half a screen of
-   controls is no way to play.
+   Held upright it still plays — the same buttons, a little smaller — and
+   a small note under the picture (index.html) suggests turning sideways
+   for the best view. It never blocks: plenty of phones have rotation
+   lock on. A thumb below the picture still counts, left half or right.
 
    Menus, the map and the sticker book are simply tapped.
    ========================================================================== */
@@ -29,14 +30,14 @@
   var press = { left: 0, right: 0, jump: 0, throw: 0 };
   var playing = function () { return BB.game && BB.game.scene() === 'play'; };
   var portrait = function () { return document.documentElement.classList.contains('portrait'); };
-  BB.needRotate = function () { return portrait(); };
 
   /* Where the buttons are, in game pixels: sized in real (CSS) pixels so
      they're the same comfortable size on a phone and a tablet, and placed
      from the screen's corners. */
   var layout = function () {
     var s = BB.scale || 3, W = BB.W, minDim = Math.min(window.innerWidth, window.innerHeight);
-    var A = Math.max(62, Math.min(84, minDim * 0.17)) / s, J = A * 1.32;
+    // upright the picture is small, so the buttons are a little smaller too
+    var A = (portrait() ? Math.max(50, Math.min(64, minDim * 0.14)) : Math.max(62, Math.min(84, minDim * 0.17))) / s, J = A * 1.32;
     var side = 18 / s, lift = 20 / s, gap = 12 / s;
     var L = { x: side + A / 2, y: H - lift - A / 2, r: A / 2 };
     var R = { x: L.x + A + gap, y: L.y, r: A / 2 };
@@ -70,9 +71,9 @@
     e.preventDefault();
     BB.audioKick(); BB.inputMode = 'touch';
     var g = BB.toGame(e.clientX, e.clientY);
-    if (!playing() || portrait()) {
+    if (!playing()) {
       BB.touchDown = true;
-      if (!portrait()) { BB.touchTap({ x: g.x, y: g.y, on: g.on }); puffs.push({ x: g.x, y: g.y, t: 0 }); }
+      BB.touchTap({ x: g.x, y: g.y, on: g.on }); puffs.push({ x: g.x, y: g.y, t: 0 });
       return;
     }
     if (BB.hud && BB.hud.pause && g.x >= BB.hud.pause.x && g.y < BB.hud.pause.y + BB.hud.pause.h + 6 && g.x < BB.hud.pause.x + BB.hud.pause.w + 6) { BB.touchPress('start'); return; }
@@ -164,28 +165,4 @@
     });
   };
 
-  /* Held upright: "turn me sideways", with a little phone turning round
-     and Bonnie waiting inside it. The game waits until it's turned. */
-  BB.drawRotate = function (g) {
-    var W = BB.W, cx = W / 2, cy = 58, k = (t % 160) / 160, ang = k < 0.35 ? 0 : k < 0.6 ? (k - 0.35) / 0.25 * Math.PI / 2 : Math.PI / 2;
-    ang = BB.reduce ? Math.PI / 2 : ang * (ang < Math.PI / 2 ? (1 - Math.cos(ang)) / (1 - Math.cos(Math.PI / 2)) : 1);
-    t++;
-    g.fillStyle = '#3a2a50'; g.fillRect(0, 0, W, H);
-    ui.paper(g, 4, 4, W - 8, H - 8);
-    g.save(); g.translate(cx, cy); g.rotate(-ang);
-    ui.round(g, -15, -24, 30, 48, INK, 4);
-    ui.round(g, -13, -21, 26, 42, '#8ccfff', 2);
-    g.fillStyle = '#5cb84a'; g.fillRect(-13, 12, 26, 9);
-    var f = BB.ART.bonnie.s.idle;
-    BB.draw(g, f, -f.w / 2, 12 - f.h);
-    g.restore();
-    // a curly arrow round it
-    g.fillStyle = PICKC;
-    for (var a = -0.4; a < 1.3; a += 0.06) g.fillRect(snap(cx + Math.cos(a) * 34), snap(cy - Math.sin(a) * 30), 1, 1);
-    for (var s = 0; s < 4; s += 0.5) { g.fillRect(snap(cx + Math.cos(1.3) * 34 - s), snap(cy - Math.sin(1.3) * 30 - 1 + s * 0.5), 1, 1); g.fillRect(snap(cx + Math.cos(1.3) * 34 + s * 0.4), snap(cy - Math.sin(1.3) * 30 + s), 1, 1); }
-    BB.text(g, 'TURN ME SIDEWAYS!', cx, 104, { color: INK, align: 'center' });
-    var m = BB.ART.monsty;
-    BB.draw(g, m, 14, H - 12 - m.h - (BB.reduce ? 0 : Math.abs(Math.sin(t * 0.08)) * 3));
-  };
-  var PICKC = ui.PICK;
 })();

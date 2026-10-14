@@ -23,9 +23,10 @@ under your right (the whole right half of the screen jumps, and holding
 jumps higher). There's no run button — hold a direction and Bonnie
 speeds up. With the Super Ball a throw button appears beside JUMP. The
 paper button top right pauses; sound is in the pause menu. Menus, the
-map and the sticker book are tapped. Held upright, a phone shows "turn me
-sideways" until it's turned. The buttons fade whenever Bonnie walks
-behind them.
+map and the sticker book are tapped. The buttons fade whenever Bonnie
+walks behind them. Held upright it still plays (handy with rotation
+lock on), with a small note under the picture suggesting turning
+sideways for the best view.
 
 On an iPhone the sound plays even with the ring/silent switch on — it's
 a game, it should always have its music.

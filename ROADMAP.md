@@ -106,7 +106,8 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
   children and touchscreens supports: three big see-through buttons over
   the game (◀ ▶ lower left, JUMP lower right), always visible, generous
   hit areas, lifted off the bottom edge, taps and holds only, running by
-  holding a direction. Held upright, "turn me sideways".
+  holding a direction. Held upright it still plays (rotation lock is
+  common), with a small "turn sideways for the best view" note below.
 - **P0** Real-device playtest of the new touch play with Bonnie: is the
   run threshold right for small thumbs, and does he find the throw
   bubble?
@@ -193,7 +194,7 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
 
 | Phase | Goal | Contents |
 |---|---|---|
-| **1 · Feels like a real game** *(done, 14 Oct)* | The moments between levels feel crafted, and every device feels native | Illustrated, animated, textured island map with tap-to-walk · circle transitions · input-aware prompts · teach-by-doing signposts · touch buttons over the game (◀ ▶ and JUMP), "turn me sideways" upright · the stitched-paper and ribbon UI on every screen · pause with sound · "start over?" safety · home-screen install with Bonnie's icon |
+| **1 · Feels like a real game** *(done, 14 Oct)* | The moments between levels feel crafted, and every device feels native | Illustrated, animated, textured island map with tap-to-walk · circle transitions · input-aware prompts · teach-by-doing signposts · touch buttons over the game (◀ ▶ and JUMP), a "turn sideways" note upright · the stitched-paper and ribbon UI on every screen · pause with sound · "start over?" safety · home-screen install with Bonnie's icon |
 | **2 · Make it ours** *(done, 14 Oct)* | Nothing on screen is borrowed | Gift boxes, toy bricks, stumps and chimneys, the sunflower, the acorn, the balloon arch · repainted mountains · old props redrawn · the map's landmarks given the same care as the levels |
 | **3 · Juice & heart** *(done, 14 Oct)* | Every action has weight, and the story needs no reading | Hit-stop, baddies that pop into flowers, Bonnie's idle looks, wave and shiver · picture-book opening and reunion ending · grown-ups' recorded voices · (still to come: settings with volumes) |
 | **4 · Reasons to replay** *(mostly done, 14 Oct)* | A child wants to go back | Bear hidden in every land and following Bonnie home · sticker book (Bear, creatures, outfits) · outfits won with Bear · (still to come: the football kit, once we have its colours; bonus rooms; music second sections) |

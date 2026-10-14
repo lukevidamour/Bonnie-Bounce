@@ -2601,7 +2601,6 @@
   };
   var update = function () {
     tick++;
-    if (BB.needRotate && BB.needRotate()) return;
     if (wipe) {
       wipe.t++;
       if (wipe.dir === 'out') {
@@ -2627,7 +2626,6 @@
   };
   var render = function (ctx) {
     ctx.imageSmoothingEnabled = false;
-    if (BB.needRotate && BB.needRotate()) { BB.drawRotate(ctx); return; }
     switch (scene) {
       case 'title': drawTitle(ctx); break;
       case 'menu': drawMenu(ctx); break;
