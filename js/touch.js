@@ -26,7 +26,7 @@
   'use strict';
   if (!BB.touch) return;
   var H = BB.H, snap = BB.snap, I = BB.icons, ui = BB.ui, INK = ui.INK;
-  var fingers = {}, puffs = [], t = 0, dirSince = 0, lastDir = 0;
+  var fingers = {}, puffs = [], t = 0, dirSince = 0, lastDir = 0, lastTouch = 0, hintT = 0;
   var press = { left: 0, right: 0, jump: 0, throw: 0 };
   var playing = function () { return BB.game && BB.game.scene() === 'play'; };
   var portrait = function () { return document.documentElement.classList.contains('portrait'); };
@@ -77,6 +77,7 @@
       return;
     }
     if (BB.hud && BB.hud.pause && g.x >= BB.hud.pause.x && g.y < BB.hud.pause.y + BB.hud.pause.h + 6 && g.x < BB.hud.pause.x + BB.hud.pause.w + 6) { BB.touchPress('start'); return; }
+    lastTouch = performance.now(); hintT = 0;
     var role = roleAt(g);
     if (!role) return;
     if (role === 'throw') { BB.touchPress('b'); press.throw = 8; return; }
@@ -158,20 +159,51 @@
   };
   var throwIcon = function (g, x, y, s) { I.disc(g, x, y, s * 1.1, INK); I.disc(g, x, y, s, '#ff7a2a'); I.disc(g, x - s * 0.3, y - s * 0.3, s * 0.55, '#ffd050'); };
 
+  /* If nobody's touched the screen for a while in a level, show how: the
+     buttons glow and a see-through finger slides onto ▶ and presses it,
+     then hops over and presses the mushroom — round and round until any
+     touch at all. Sooner in Level 1, where it's most likely needed. */
+  var IDLE_MS = function () { var G = BB.game.G(); return G && G.n === 1 ? 2500 : 5000; };
+  var ghost = function (g, b) {
+    var k = (hintT % 160) / 160, ease = function (q) { return q * q * (3 - 2 * q); };
+    var start = { x: BB.W / 2, y: H * 0.62 }, fx, fy, pr = null;
+    if (k < 0.18) { var q = ease(k / 0.18); fx = start.x + (b.R.x - start.x) * q; fy = start.y + (b.R.y - start.y) * q; }
+    else if (k < 0.45) { fx = b.R.x; fy = b.R.y; pr = 'right'; }
+    else if (k < 0.62) { var q2 = ease((k - 0.45) / 0.17); fx = b.R.x + (b.J.x - b.R.x) * q2; fy = b.R.y + (b.J.y - b.R.y) * q2 - Math.sin(q2 * Math.PI) * 18; }
+    else if (k < 0.85) { fx = b.J.x; fy = b.J.y; pr = (k * 160 | 0) % 24 < 14 ? 'jump' : null; }
+    else { fx = b.J.x; fy = b.J.y; }
+    var fade = k > 0.9 ? (1 - k) / 0.1 : Math.min(1, hintT / 20);
+    return { x: fx, y: fy, press: pr, a: fade };
+  };
+  var drawGhost = function (g, gh) {
+    var sc = 2, down = gh.press ? 1.5 : 0;
+    g.save(); g.globalAlpha = 0.85 * gh.a;
+    g.translate(gh.x - 4.5 * sc + 2, gh.y - 1 + down); g.scale(sc, sc);
+    I.finger(g, 0, 0);
+    g.restore(); g.globalAlpha = 1;
+    if (gh.press) { g.globalAlpha = 0.6 * gh.a; g.fillStyle = '#ffffff'; for (var a = 0; a < 6.28; a += 0.45) g.fillRect(snap(gh.x + Math.cos(a) * 9), snap(gh.y + Math.sin(a) * 9), 1, 1); g.globalAlpha = 1; }
+  };
+
   BB.drawTouch = function (g) {
     t++;
     puffs.forEach(function (p) { p.t++; }); puffs = puffs.filter(function (p) { return p.t < 14; });
     if (press.throw) press.throw--;
+    var now = performance.now();
     if (!playing()) {
       if (Object.keys(fingers).length) release();
+      lastTouch = now; hintT = 0;
     } else {
       // hold a direction and he breaks into a run
-      BB.touchRun = lastDir !== 0 && performance.now() - dirSince > 380;
-      var b = layout();
-      bubble(g, b.L, press.left, arrow(-1), behind(b.L));
-      bubble(g, b.R, press.right, arrow(1), behind(b.R));
-      mushroom(g, b.J, press.jump, behind(b.J));
+      BB.touchRun = lastDir !== 0 && now - dirSince > 380;
+      if (Object.keys(fingers).length) lastTouch = now;
+      var b = layout(), idle = BB.inputMode === 'touch' && now - lastTouch > IDLE_MS(), gh = null;
+      if (idle) { hintT++; gh = ghost(g, b); } else hintT = 0;
+      var glow = idle ? 1.4 + Math.sin(t * 0.12) * 0.25 : 1;
+      bubble(g, b.L, press.left, arrow(-1), behind(b.L) * glow);
+      bubble(g, b.R, press.right || (gh && gh.press === 'right'), arrow(1), behind(b.R) * glow);
+      mushroom(g, b.J, press.jump || (gh && gh.press === 'jump'), behind(b.J) * glow);
       if (BB.touchCanThrow) bubble(g, b.T, press.throw, throwIcon, behind(b.T));
+      if (gh) drawGhost(g, gh);
     }
     puffs.forEach(function (p) {
       g.globalAlpha = Math.max(0, 1 - p.t / 14); g.fillStyle = '#ffffff';

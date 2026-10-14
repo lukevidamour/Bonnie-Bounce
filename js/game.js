@@ -1950,8 +1950,28 @@
       }
     });
   };
+  /* No browser lets a page make a sound before it's been tapped (or a key
+     pressed), so the very first tap on the title only wakes the music —
+     the calm title tune starts, notes float up — and the prompt becomes
+     TAP TO PLAY. From then on, a tap plays. */
+  var soundWoke = false, notesT = 0;
+  // the title plays Level 1's tune (owner, 14 Oct: "a great start to the
+  // game"); the island map keeps its own gentler one
+  var TITLE_SONG = 'hills';
   var updateTitle = function () {
     bounceTitle();
+    if (notesT) notesT--;
+    var input = BB.hit('start') || BB.hit('a') || BB.tap || BB.anyHit();
+    if (!soundWoke && input) {
+      soundWoke = true; notesT = 90;
+      BB.music(TITLE_SONG);
+      sfx('select');
+      return;
+    }
+    // already awake (back from the ending) or switched off: one tap plays.
+    // Checked only with no tap this step — the tap that wakes the sound
+    // mustn't also start the game.
+    if (!soundWoke && (BB.soundAwake() || BB.muted())) soundWoke = true;
     if (BB.hit('start') || BB.hit('a') || BB.tap) {
       sfx('start');
       if (hasProgress()) { go('menu'); menuAt = 0; menuSure = false; }
@@ -2002,7 +2022,26 @@
     titleLight.render(ctx, { x: reduce ? 0 : tick * 0.4, y: 0 }, reduce);
     if (scene === 'title') {
       var mx = W > 220 ? W / 2 : W / 2 - 14;
-      if (blink()) BB.prompt(ctx, BB.inputMode === 'touch' ? [['t', 'TAP TO PLAY']] : [['t', 'PRESS'], ['g', 'ok'], ['t', 'TO PLAY']], mx, 68, { align: 'center', outline: dark, shadow: null });
+      if (!soundWoke) {
+        // before the first tap: a speaker with notes, inviting it
+        var sp = BB.inputMode === 'touch' ? [['t', 'TAP TO START']] : [['t', 'PRESS ANY KEY']];
+        if (blink()) BB.prompt(ctx, sp, mx + 7, 68, { align: 'center', outline: dark, shadow: null });
+        // a little speaker, its sound waves pulsing out
+        var sx = Math.round(mx - promptW(sp) / 2 - 10), sy = 68;
+        ctx.fillStyle = dark; ctx.fillRect(sx - 1, sy + 1.5, 4, 5); for (var c2 = 0; c2 < 4; c2 += 0.5) ctx.fillRect(sx + 2 + c2, sy + 1.5 - c2, 0.5, 5 + c2 * 2);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(sx - 0.5, sy + 2, 3, 4); for (c2 = 0.5; c2 < 3.5; c2 += 0.5) ctx.fillRect(sx + 2 + c2, sy + 2 - c2 + 0.5, 0.5, 4 + c2 * 2 - 1);
+        var wv = reduce ? 2 : Math.floor(tick / 12) % 3;
+        for (var a2 = -0.8; a2 <= 0.8; a2 += 0.2) for (var rr = 0; rr <= wv; rr++) { ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round((sx + 7 + Math.cos(a2) * (2 + rr * 2.5)) * 2) / 2, Math.round((sy + 4 + Math.sin(a2) * (2 + rr * 2.5)) * 2) / 2, 0.5, 0.5); }
+      } else if (blink()) BB.prompt(ctx, BB.inputMode === 'touch' ? [['t', 'TAP TO PLAY']] : [['t', 'PRESS'], ['g', 'ok'], ['t', 'TO PLAY']], mx, 68, { align: 'center', outline: dark, shadow: null });
+      // the music waking up: little notes floating up from the words
+      if (notesT && !reduce) for (var ni = 0; ni < 5; ni++) {
+        var age = 90 - notesT - ni * 10; if (age < 0) continue;
+        var nx = mx - 40 + ni * 20 + Math.sin(age * 0.1 + ni) * 3, ny = 64 - age * 0.45;
+        ctx.globalAlpha = Math.max(0, 1 - age / 60);
+        ctx.fillStyle = ['#ffe048', '#ff94cc', '#78d8ff', '#7ee058', '#ffffff'][ni];
+        ctx.fillRect(Math.round(nx), Math.round(ny), 2, 2); ctx.fillRect(Math.round(nx) + 1.5, Math.round(ny) - 4, 0.5, 4); ctx.fillRect(Math.round(nx) + 1.5, Math.round(ny) - 4, 2, 0.5);
+        ctx.globalAlpha = 1;
+      }
       BB.text(ctx, 'A GAME FOR BONNIE', W / 2, 134, { color: '#fff3a8', outline: dark, align: 'center' });
     }
   };
@@ -2148,7 +2187,7 @@
       else if (BB.hit('left') && save.at > 1) stepTo(save.at - 1);
       else if (BB.hit('right') || BB.hit('left')) sfx('bump');
       else if ((BB.hit('a') || BB.hit('start')) && sceneT > 10) playLevel();
-      else if (BB.hit('select')) wipeTo(function () { go('title'); BB.music('title'); });
+      else if (BB.hit('select')) wipeTo(function () { go('title'); BB.music(TITLE_SONG); });
     }
     var target = Math.max(0, Math.min(BB.Map.width - BB.W, mapX - BB.W / 2));
     mapCam += (target - mapCam) * 0.1;
@@ -2534,7 +2573,7 @@
     endFx.forEach(function (f) { f.t++; f.x += f.vx; f.y += f.vy; f.vy += 0.03; f.vx *= 0.98; });
     endFx = endFx.filter(function (f) { return f.t < 50; });
     var end = CREDITS.length * 11 + H + 20 + REUNION;
-    if (sceneT > 120 && (BB.hit('start') || ((sceneT * 0.3 > end || BB.tap) && (BB.hit('a') || BB.tap)))) wipeTo(function () { go('title'); BB.music('title'); });
+    if (sceneT > 120 && (BB.hit('start') || ((sceneT * 0.3 > end || BB.tap) && (BB.hit('a') || BB.tap)))) wipeTo(function () { go('title'); BB.music(TITLE_SONG); });
   };
   var drawEnding = function (ctx) {
     var W = BB.W, t = reduce ? REUNION + 60 : sceneT;
@@ -2645,7 +2684,7 @@
   };
 
   // the title's tune starts with the first key or tap (browsers insist)
-  BB.music('title');
+  BB.music(TITLE_SONG);
   // ?level=N goes straight into a level (for testing)
   var lv = /[?&]level=(\d+)/.exec(qs);
   if (lv) { save.at = Math.max(1, Math.min(10, +lv[1])); save.unlocked = Math.max(save.unlocked, save.at); go('card'); }

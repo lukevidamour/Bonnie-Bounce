@@ -606,6 +606,8 @@
   // for voice.js: the sound chip's context and output, once sound has started
   BB.audioOut = function () { return ready() ? { ac: AC, out: master } : null; };
   BB.audioCtx = function () { return AC; };
+  // has the sound woken up yet (browsers keep it asleep until the first tap or key)?
+  BB.soundAwake = function () { return !!AC && AC.state === 'running'; };
   var pulse = function (duty) {
     if (waves[duty]) return waves[duty];
     var n = 40, re = new Float32Array(n), im = new Float32Array(n);

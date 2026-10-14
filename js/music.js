@@ -23,16 +23,6 @@
   var DR = 'x . x . X . x . x . x . X . x x';
 
   BB.SONGS = {
-    title: {
-      step: 0.1,
-      tracks: [
-        { duty: 0.25, vol: 0.03, notes: j('G5 - B5 - D6 - - - B5 - D6 - G6 - - -', 'E6 - - - D6 - C6 - B5 - C6 - E6 - - -', 'D6 - C6 - B5 - A5 - F#5 - A5 - D6 - C6 -', 'B5 - G5 - D5 - G5 - B5 - - - . . . .',
-          'G5 - B5 - D6 - - - E6 - D6 - B5 - G5 -', 'A5 - - - C6 - B5 - A5 - G5 - E5 - G5 -', 'F#5 - A5 - D6 - F#6 - E6 - D6 - C6 - A5 -', 'G5 - - - - - - - G6 - - - . . . .') },
-        { duty: 0.125, vol: 0.012, notes: j(ar('B4', 'D5', 'G5'), ar('C5', 'E5', 'G5'), ar('A4', 'D5', 'F#5'), ar('B4', 'D5', 'G5'), ar('B4', 'D5', 'G5'), ar('C5', 'E5', 'A5'), ar('A4', 'D5', 'F#5'), ar('B4', 'D5', 'G5')) },
-        { wave: 'tri', vol: 0.09, notes: j(b8('G2', 'D3'), b8('C3', 'G3'), b8('D3', 'A3'), b8('G2', 'D3'), b8('G2', 'D3'), b8('A2', 'E3'), b8('D3', 'A3'), 'G2 . D3 . G2 . D3 . G2 . A2 . B2 . D3 .') },
-        { noise: 1, vol: 0.016, notes: r(DR, 8) }
-      ]
-    },
     map: {
       step: 0.13,
       tracks: [
