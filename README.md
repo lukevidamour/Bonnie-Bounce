@@ -34,6 +34,12 @@ a game, it should always have its music. Browsers keep a page silent
 until it's tapped, so the first tap on the title screen starts the
 music (Level 1's tune) and the next one plays.
 
+**It keeps itself up to date.** Every time it opens, it asks for the
+newest files first; if it's been sitting open on a home screen and a new
+version has been published, it reloads itself — on the title or the map,
+never in the middle of a level. It also keeps a copy, so once it's been
+opened it plays with no internet connection too.
+
 ### Controls
 
 | | Keyboard | Touch | Gamepad |
@@ -135,6 +141,7 @@ numbers in `POSES` in `js/art.js`.
 | `js/voice.js` | grown-ups' recorded voices: recording (MediaRecorder), keeping them on the device, playing them in the game |
 | `js/game.js` | physics, Bonnie, enemies, items, the screens and the save |
 | `js/touch.js` | touch play: the ◀ ▶ and JUMP buttons over the game, tapping menus (the "turn sideways" note is in index.html) |
+| `sw.js`, `js/fresh.js` | always the newest version: the service worker asks the server first (and keeps a copy for offline); fresh.js reloads a home-screen app that's fallen behind, at a calm moment |
 | `manifest.webmanifest`, `icons/` | home-screen install; the icon is drawn from Bonnie's own sprite by `tools/icon.html` |
 | `ROADMAP.md` | the product review, scores and the plan to launch |
 
