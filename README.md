@@ -131,7 +131,7 @@ numbers in `POSES` in `js/art.js`.
 | `js/ui.js` | the game's stationery: paper cards with a running stitch, ribbon banners, Monsty's head as the menu pointer |
 | `js/voice.js` | grown-ups' recorded voices: recording (MediaRecorder), keeping them on the device, playing them in the game |
 | `js/game.js` | physics, Bonnie, enemies, items, the screens and the save |
-| `js/touch.js` | touch play: the ◀ ▶ and JUMP buttons over the game, tapping menus, the "turn me sideways" card |
+| `js/touch.js` | touch play: the ◀ ▶ and JUMP buttons over the game, tapping menus (the "turn sideways" note is in index.html) |
 | `manifest.webmanifest`, `icons/` | home-screen install; the icon is drawn from Bonnie's own sprite by `tools/icon.html` |
 | `ROADMAP.md` | the product review, scores and the plan to launch |
 
