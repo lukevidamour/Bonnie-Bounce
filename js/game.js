@@ -21,14 +21,21 @@
      and a jump buffer forgive a press a few frames late or early. */
   var GRAV = 0.42, GRAV_HOLD = 0.17, FALL = 4.6;
   var WALK = 1.4, RUN = 2.25, ACC = 0.07, ACC_RUN = 0.09, AIR = 0.075, DEC = 0.1, SKID = 0.22;
-  var JUMP = 3.85, JUMP_RUN = 0.2;
-  var COYOTE = 6, BUFFER = 7, NUDGE = 4;
+  var JUMP = 3.95, JUMP_RUN = 0.2;
+  var COYOTE = 9, BUFFER = 10, NUDGE = 4;
   var STOMP = 3.6, STOMP_HELD = 4.6, SPRING = 5.6;
   // under the sea: slow sinking, a stroke on each press
   var W_GRAV = 0.05, W_FALL = 1.1, W_STROKE = 1.75, W_MAX = 1.15, W_ACC = 0.05;
   // on ice: slow to start, slower to stop
   var ICE_ACC = 0.035, ICE_DEC = 0.012, ICE_SKID = 0.07;
-  var INV = 120, STAR_T = 600, STAR_WARN = 120;
+  var INV = 150, STAR_T = 600, STAR_WARN = 120;
+  /* About 15% easier (owner, 15 Oct: "Bonnie said it's too hard"): every
+     baddie and hazard moves at SLOW of its old speed, one baddie in
+     seven is left out of each level (THIN), the jump is a touch higher,
+     coyote time and the jump buffer a few frames longer, the safe time
+     after a bump longer, his "ouch" box smaller and a stomp easier to
+     land. Change SLOW and THIN to make it harder or easier still. */
+  var SLOW = 0.85, THIN = 7;
   var PW = 10, SMALL_H = 15, BIG_H = 25;
   var RUN_CYCLE = ['run1', 'run2', 'run3', 'run2'];
   var COMBO = [100, 200, 400, 800, 1000, 2000, 4000, 8000];
@@ -85,21 +92,25 @@
   var overlap = function (a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; };
 
   var moveX = function (e, dx) {
+    if (!isFinite(dx)) return false;
+    if (!isFinite(e.rx)) e.rx = 0;
     e.rx += dx;
     var m = Math.round(e.rx);
     e.rx -= m;
-    var s = m > 0 ? 1 : -1;
-    while (m !== 0) {
+    var s = m > 0 ? 1 : -1, guard = 64;
+    while (m !== 0 && guard--) {
       if (!boxSolid(e.x + s, e.y, e.w, e.h)) { e.x += s; m -= s; } else { e.rx = 0; return true; }
     }
     return false;
   };
   var moveY = function (e, dy, semis) {
+    if (!isFinite(dy)) return false;
+    if (!isFinite(e.ry)) e.ry = 0;
     e.ry += dy;
     var m = Math.round(e.ry);
     e.ry -= m;
-    var s = m > 0 ? 1 : -1;
-    while (m !== 0) {
+    var s = m > 0 ? 1 : -1, guard = 64;
+    while (m !== 0 && guard--) {
       if (s > 0 && semis !== false && semiAt(e.x, e.w, e.y + e.h)) { e.ry = 0; return true; }
       if (!boxSolid(e.x, e.y + s, e.w, e.h)) { e.y += s; m -= s; } else { e.ry = 0; return true; }
     }
@@ -120,7 +131,12 @@
     // the sea, where the beach has a gap
     G.sea = new Uint8Array(G.w);
     if (th.sea) for (var x = 0; x < G.w; x++) G.sea[x] = tileAt(x, G.h - 1) === TL.EMPTY ? 1 : 0;
-    L.ents.forEach(function (sp) { var e = spawn(sp); if (e) G.ents.push(e); });
+    var nth = 0;
+    L.ents.forEach(function (sp) {
+      var K = KINDS[sp.k];
+      if (K && K.enemy && sp.k !== 'dragon' && !sp.wait && ++nth % THIN === 0) return;
+      var e = spawn(sp); if (e) G.ents.push(e);
+    });
     G.light = BB.lighting(th.light, G.w * T, def.seed);
     prepTerrain();
     var start = L.start, chk = null;
@@ -221,7 +237,7 @@
 
   // a walker: along the ground, turning at walls (and at ledges, if asked)
   var walk = function (e, speed, ledges) {
-    if (!e.vx) e.vx = -speed;
+    if (!e.vx) e.vx = -speed * SLOW;
     if (moveX(e, e.vx)) e.vx = -e.vx;
     e.vy = Math.min(FALL, e.vy + GRAV);
     if (moveY(e, e.vy)) e.vy = 0;
@@ -322,7 +338,7 @@
   };
   KINDS.gull = {
     w: 12, h: 7, enemy: true, stomp: true, fly: true,
-    init: function (e) { e.x0 = e.x; e.y0 = e.y; e.vx = -0.6; },
+    init: function (e) { e.x0 = e.x; e.y0 = e.y; e.vx = -0.6 * SLOW; },
     update: function (e) {
       e.x += e.vx;
       if (e.x < e.x0 - 80 || e.x > e.x0 + 24) e.vx = -e.vx;
@@ -335,19 +351,19 @@
     w: 10, h: 8, enemy: true, stomp: true, fly: true,
     init: function (e) { e.x0 = e.x; e.y0 = e.y; },
     update: function (e) {
-      e.y = e.y0 + Math.sin(e.t * 0.055) * 14;
-      e.x = e.x0 + Math.sin(e.t * 0.012) * 16;
+      e.y = e.y0 + Math.sin(e.t * 0.055 * SLOW) * 14;
+      e.x = e.x0 + Math.sin(e.t * 0.012 * SLOW) * 16;
       e.face = Math.cos(e.t * 0.012) > 0 ? 1 : -1;
     },
     draw: function (ctx, e) { drawE(ctx, e, E.bee[Math.floor(e.t / 3) % 2], e.face > 0); }
   };
   KINDS.fish = {
     w: 12, h: 7, enemy: true, stomp: false, fly: true,
-    init: function (e) { e.x0 = e.x; e.y0 = e.y; e.vx = -0.5; },
+    init: function (e) { e.x0 = e.x; e.y0 = e.y; e.vx = -0.5 * SLOW; },
     update: function (e) {
       e.x += e.vx;
       if (e.x < e.x0 - 72 || e.x > e.x0 + 32) e.vx = -e.vx;
-      e.y = e.y0 + Math.sin(e.t * 0.04) * 8;
+      e.y = e.y0 + Math.sin(e.t * 0.04 * SLOW) * 8;
       e.face = e.vx > 0 ? 1 : -1;
     },
     draw: function (ctx, e) { drawE(ctx, e, E.fish[Math.floor(e.t / 16) % 2], e.face > 0); }
@@ -374,7 +390,7 @@
       e.shy = looking;
       if (!looking) {
         var dx = p.x + p.w / 2 - (e.x + e.w / 2), dy = p.y + p.h / 2 - (e.y + e.h / 2), d = Math.sqrt(dx * dx + dy * dy) || 1;
-        e.x += dx / d * 0.42; e.y += dy / d * 0.42;
+        e.x += dx / d * 0.42 * SLOW; e.y += dy / d * 0.42 * SLOW;
         e.face = dx > 0 ? 1 : -1;
       }
     },
@@ -386,7 +402,7 @@
     update: function (e) {
       var p = G.p;
       if (e.st === 'hang') {
-        if (near(e, 52) && p.y > e.y) { e.st = 'swoop'; e.vx = towards(e) * 1.1; e.vy = 1.6; sfx('pop'); }
+        if (near(e, 52) && p.y > e.y) { e.st = 'swoop'; e.vx = towards(e) * 1.1 * SLOW; e.vy = 1.6 * SLOW; sfx('pop'); }
         return;
       }
       e.vy -= 0.035;
@@ -421,7 +437,7 @@
     if (e.st === 'wait') { if (e.y <= e.y0 && Math.abs(p.x + p.w / 2 - (e.x + e.w / 2)) < 22 && p.y > e.y) { e.st = 'shake'; e.t2 = 0; } }
     else if (e.st === 'shake') { if (++e.t2 > 12) { e.st = 'fall'; e.vy = 1; } }
     else if (e.st === 'fall') {
-      e.vy = Math.min(5, e.vy + 0.35);
+      e.vy = Math.min(5 * SLOW, e.vy + 0.35 * SLOW);
       if (moveY(e, e.vy, false)) {
         e.st = 'land'; e.t2 = 0; sfx('boom'); G.shake = 10;
         fx('puff', e.x - 2, e.y + e.h - 5); fx('puff', e.x + e.w - 4, e.y + e.h - 5);
@@ -442,7 +458,7 @@
       if (e.st === 'wait') { if (near(e, 26) && G.p.y > e.y) { e.st = 'shake'; e.t2 = 0; } }
       else if (e.st === 'shake') { if (++e.t2 > 24) e.st = 'fall'; }
       else {
-        e.vy = Math.min(5, e.vy + 0.3);
+        e.vy = Math.min(5 * SLOW, e.vy + 0.3 * SLOW);
         if (moveY(e, e.vy, false)) { e.alive = false; sfx('brick'); for (var i = 0; i < 4; i++) fx('chip', e.x + 3, e.y + 8, { vx: (i - 1.5) * 0.8, vy: -2 - (i % 2), life: 30 }); }
       }
     },
@@ -461,7 +477,7 @@
       }
       walk(e, 0.35);
       if (!e.cool && near(e, 96) && Math.abs(p.y + p.h - e.y - e.h) < 16 && e.vy === 0) {
-        e.st = 'slide'; e.t2 = 0; e.vx = towards(e) * 2.1; e.face = towards(e); e.h = 8; e.y += 5; e.cool = 1;
+        e.st = 'slide'; e.t2 = 0; e.vx = towards(e) * 2.1 * SLOW; e.face = towards(e); e.h = 8; e.y += 5; e.cool = 1;
       }
       if (e.cool && ++e.cool > 200) e.cool = 0;
     },
@@ -475,7 +491,7 @@
       if (moveY(e, e.vy)) e.vy = 0;
       if (e.t % 150 === 100 && near(e, 150)) {
         var d = G.p.x - e.x;
-        addEnt('snowball', e.x + 2, e.y + 2, { vx: Math.max(-1.6, Math.min(1.6, d / 70)), vy: -3.2 });
+        addEnt('snowball', e.x + 2, e.y + 2, { vx: Math.max(-1.6, Math.min(1.6, d / 70)) * SLOW, vy: -3.2 });
         e.throwT = 14;
       }
       if (e.throwT) e.throwT--;
@@ -537,7 +553,7 @@
     w: 0, h: 0, tough: true, enemy: false, fly: true,
     init: function (e) { e.cx = e.sp.x + 4; e.cy = e.sp.row * T + 4; e.a = 0; e.balls = []; },
     update: function (e) {
-      e.a += e.sp.speed || 0.025;
+      e.a += (e.sp.speed || 0.025) * SLOW;
       var p = G.p;
       for (var i = 1; i <= (e.sp.len || 4); i++) {
         var bx = e.cx + Math.cos(e.a) * i * 7, by = e.cy + Math.sin(e.a) * i * 7;
@@ -584,7 +600,11 @@
     var p = G.p;
     if (p.on !== e || p.st !== 'play') return;
     if (dx) moveX(p, dx);
-    if (dy) { p.y = Math.round(e.y) - p.h; if (dy < 0 && boxSolid(p.x, p.y, p.w, p.h)) { p.y = Math.round(e.y) - p.h + 1; } }
+    if (dy) {
+      var ny = Math.round(e.y) - p.h;
+      // rising into something solid: he stays where he is and the platform goes on without him
+      if (dy < 0 && boxSolid(p.x, ny, p.w, p.h)) p.on = null; else p.y = ny;
+    }
   };
   KINDS.spring = {
     w: 14, h: 10, top: true, topOff: 0,
@@ -882,8 +902,8 @@
         e.face = towards(e);
         if (e.t2 === 24) {
           var fx0 = e.face > 0 ? e.x + e.w : e.x - 8;
-          addEnt('dfire', fx0, e.y + 6, { vx: e.face * 1.7, y0: e.y + 6 });
-          if (e.hp <= 2) addEnt('dfire', fx0, e.y + 6, { vx: e.face * 1.7, y0: e.y - 10, t: 20 });
+          addEnt('dfire', fx0, e.y + 6, { vx: e.face * 1.7 * SLOW, y0: e.y + 6 });
+          if (e.hp <= 2) addEnt('dfire', fx0, e.y + 6, { vx: e.face * 1.7 * SLOW, y0: e.y - 10, t: 20 });
           sfx('fire');
         }
         if (e.t2 > 44) { e.st = 'walk'; e.t2 = 0; }
@@ -1131,7 +1151,9 @@
       if (crouch) { p.crouch = true; p.y += p.h - SMALL_H; p.h = SMALL_H; }
       else if (!boxSolid(p.x, p.y - (BIG_H - SMALL_H), p.w, BIG_H)) { p.crouch = false; p.y -= BIG_H - SMALL_H; p.h = BIG_H; }
     }
-    if (p.crouch && p.ground) dir = 0;
+    // ducking (holding down) he stays put; but crouched only because
+    // there's no room to stand, he can always walk out from under it
+    if (p.crouch && p.ground && BB.key('down')) dir = 0;
     var held = BB.key('a') || BB.key('up');
 
     if (G.water) {
@@ -1231,7 +1253,8 @@
   var touch = function () {
     var p = G.p;
     if (p.st !== 'play') return;
-    var box = { x: p.x + 1, y: p.y + 1, w: p.w - 2, h: p.h - 1 };
+    // a little smaller than he looks, so near misses are misses
+    var box = { x: p.x + 2, y: p.y + 3, w: p.w - 4, h: p.h - 3 };
     for (var i = 0; i < G.ents.length; i++) {
       var e = G.ents[i], K = e.K;
       if (!e.alive || e.dying || !e.active) continue;
@@ -1256,7 +1279,7 @@
         points(COMBO[Math.min(p.combo - 1, 7)], e.x, e.y);
         continue;
       }
-      var fromAbove = p.vy > 0 && p.y + p.h - p.vy <= e.y + 5;
+      var fromAbove = p.vy > 0 && p.y + p.h - p.vy <= e.y + 8;
       if (K.stomp === 'shell' && e.shell) {
         if (e.kickT) continue;
         if (fromAbove && e.vx) { e.vx = 0; e.combo = 0; bounce(p); sfx('stomp'); e.kickT = 8; continue; }
@@ -1425,10 +1448,29 @@
     }
     if (p.st === 'play') {
       updatePlayer();
-      if (p.st === 'play') { updateEnts(); touch(); goalCheck(); }
+      if (p.st === 'play') { updateEnts(); touch(); goalCheck(); unstick(); }
     } else { updateEnding(); updateEnts(); }
+    // walking home after the arch, he can never fall out of the world
+    if ((p.st === 'arch' || p.st === 'walk') && p.y > G.h * T) { p.y = (G.goal ? G.goal.base : G.gr * T) - p.h; p.vy = 0; }
     recordTrail();
     cameraFollow();
+  };
+  /* The safety net: if anything ever leaves Bonnie inside solid scenery
+     (a platform, a block appearing, a gate closing), every move would be
+     refused and he'd be stuck for good. So each step, if he's inside
+     something, he's moved to the nearest free spot — up first, then
+     sideways, then down. */
+  var unstick = function () {
+    var p = G.p;
+    if (p.st === 'dead' || !boxSolid(p.x, p.y, p.w, p.h)) return;
+    for (var d = 1; d <= 24; d++) {
+      var tries = [[0, -d], [-d, 0], [d, 0], [-d, -d], [d, -d], [0, d]];
+      for (var i = 0; i < tries.length; i++) {
+        if (!boxSolid(p.x + tries[i][0], p.y + tries[i][1], p.w, p.h)) { p.x += tries[i][0]; p.y += tries[i][1]; p.rx = p.ry = 0; p.vy = Math.min(p.vy, 0); return; }
+      }
+    }
+    // nowhere at all: small, he might fit
+    if (p.h > SMALL_H) { p.y += p.h - SMALL_H; p.h = SMALL_H; p.crouch = true; }
   };
   // where Bonnie's feet have been, for Bear to follow
   var recordTrail = function () {

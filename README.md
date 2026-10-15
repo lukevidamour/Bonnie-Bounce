@@ -154,6 +154,9 @@ Handy while editing:
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).
 - `tools/icon.html` redraws the home-screen icons; save each into `icons/`.
+- How hard it is: `SLOW` (how fast baddies and hazards move, 0.85 now)
+  and `THIN` (one baddie in THIN is left out) at the top of `js/game.js`,
+  next to the jump and forgiveness settings.
 - Level 1's signposts are `L.tip(x, 'jump')` and so on; the words and
   pictures for each are `TIPS` in `js/game.js`.
 

@@ -793,13 +793,21 @@
       ctx.imageSmoothingEnabled = false;
       render(ctx);
     };
+    /* The next frame is asked for first, and a step or a draw that goes
+       wrong is caught: one bad moment must never freeze the whole game. */
+    var errors = 0;
     var frame = function (now) {
+      requestAnimationFrame(frame);
       acc += Math.min(100, now - last); last = now;
       var n = 0;
-      while (acc >= STEP && n < 4) { BB.poll(); update(); acc -= STEP; n++; }
-      if (n === 4) acc = 0;
-      draw();
-      requestAnimationFrame(frame);
+      try {
+        while (acc >= STEP && n < 4) { BB.poll(); update(); acc -= STEP; n++; }
+        if (n === 4) acc = 0;
+        draw();
+      } catch (e) {
+        acc = 0;
+        if (errors++ < 5 && window.console) console.error(e);
+      }
     };
     requestAnimationFrame(frame);
   };

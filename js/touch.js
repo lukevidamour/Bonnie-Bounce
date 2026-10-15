@@ -66,38 +66,60 @@
   };
   var release = function () { fingers = {}; apply(); };
 
-  var down = function (e) {
-    if (e.pointerType === 'mouse') return;
+  /* Fingers are read from touch events, and every touch event carries the
+     list of fingers really on the glass right now (e.touches). That list
+     is the truth: any finger the game thinks is down but isn't in it is
+     let go. So a lost "finger lifted" (a system gesture, the page busy, a
+     thumb sliding off the edge) can never leave ◀ or ▶ held down with
+     Bonnie running off on his own. */
+  var sync = function (list) {
+    var live = {};
+    for (var i = 0; i < list.length; i++) live[list[i].identifier] = 1;
+    for (var id in fingers) if (!live[id]) delete fingers[id];
+    apply();
+  };
+  var start = function (e) {
     e.preventDefault();
     BB.audioKick(); BB.inputMode = 'touch';
-    var g = BB.toGame(e.clientX, e.clientY);
-    if (!playing()) {
-      BB.touchDown = true;
-      BB.touchTap({ x: g.x, y: g.y, on: g.on }); puffs.push({ x: g.x, y: g.y, t: 0 });
-      return;
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var tch = e.changedTouches[i], g = BB.toGame(tch.clientX, tch.clientY);
+      if (!playing()) {
+        BB.touchDown = true;
+        BB.touchTap({ x: g.x, y: g.y, on: g.on }); puffs.push({ x: g.x, y: g.y, t: 0 });
+        continue;
+      }
+      if (BB.hud && BB.hud.pause && g.x >= BB.hud.pause.x && g.y < BB.hud.pause.y + BB.hud.pause.h + 6 && g.x < BB.hud.pause.x + BB.hud.pause.w + 6) { BB.touchPress('start'); continue; }
+      lastTouch = performance.now(); hintT = 0;
+      var role = roleAt(g);
+      if (!role) continue;
+      if (role === 'throw') { BB.touchPress('b'); press.throw = 8; continue; }
+      fingers[tch.identifier] = { role: role };
+      if (navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) try { navigator.vibrate(6); } catch (x) {}
     }
-    if (BB.hud && BB.hud.pause && g.x >= BB.hud.pause.x && g.y < BB.hud.pause.y + BB.hud.pause.h + 6 && g.x < BB.hud.pause.x + BB.hud.pause.w + 6) { BB.touchPress('start'); return; }
-    lastTouch = performance.now(); hintT = 0;
-    var role = roleAt(g);
-    if (!role) return;
-    if (role === 'throw') { BB.touchPress('b'); press.throw = 8; return; }
-    fingers[e.pointerId] = { role: role };
-    if (navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) try { navigator.vibrate(6); } catch (x) {}
-    apply();
+    sync(e.touches);
   };
   var move = function (e) {
-    var f = fingers[e.pointerId];
-    if (!f || f.role === 'jump') return;
-    // a thumb on ◀ can roll onto ▶ and back; it never wanders into a jump
-    var g = BB.toGame(e.clientX, e.clientY), b = layout();
-    f.role = g.x < (b.L.x + b.R.x) / 2 ? 'left' : 'right';
-    apply();
+    e.preventDefault();
+    var b = layout();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var tch = e.changedTouches[i], f = fingers[tch.identifier];
+      if (!f || f.role === 'jump') continue;
+      // a thumb on ◀ can roll onto ▶ and back; it never wanders into a jump
+      var g = BB.toGame(tch.clientX, tch.clientY);
+      f.role = g.x < (b.L.x + b.R.x) / 2 ? 'left' : 'right';
+    }
+    sync(e.touches);
   };
-  var up = function (e) { BB.touchDown = false; if (fingers[e.pointerId]) { delete fingers[e.pointerId]; apply(); } };
-  window.addEventListener('pointerdown', down, { passive: false });
-  window.addEventListener('pointermove', move, { passive: false });
-  window.addEventListener('pointerup', up);
-  window.addEventListener('pointercancel', up);
+  var end = function (e) { if (!e.touches.length) BB.touchDown = false; sync(e.touches); };
+  window.addEventListener('touchstart', start, { passive: false });
+  window.addEventListener('touchmove', move, { passive: false });
+  window.addEventListener('touchend', end);
+  window.addEventListener('touchcancel', end);
+  // the app put away, or a call coming in: let go of everything
+  var letGo = function () { BB.touchDown = false; release(); };
+  window.addEventListener('blur', letGo);
+  window.addEventListener('pagehide', letGo);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) letGo(); });
   window.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
   /* ---- drawing them: soft paper bubbles with a chunky ink icon ---- */
