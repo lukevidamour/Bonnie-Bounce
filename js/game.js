@@ -49,7 +49,7 @@
   var store = function () { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
   var hasProgress = function () { return save.unlocked > 1 || save.cleared.length > 0 || save.score > 0; };
   var qs = location.search;
-  if (/[?&]debug\b/.test(qs)) save.unlocked = 10;
+  if (/[?&]debug\b/.test(qs)) { save.unlocked = BB.LEVELS.length; save.won = true; }
 
   var scene = 'title', sceneT = 0, G = null, tick = 0;
   var go = function (s) { scene = s; sceneT = 0; };
@@ -126,7 +126,8 @@
       map: new Uint8Array(L.map), cont: new Uint8Array(L.cont), bt: new Uint8Array(L.w * L.h), bumps: [], multi: {},
       ents: [], fx: [], cam: { x: 0, y: 0 }, tick: 0, freeze: 0, shake: 0,
       water: !!def.water, ice: !!def.ice || !!th.ice, check: !!fromCheck, bossOn: false, bossDone: false,
-      ambient: [], gfx: theme(def.theme), deco: L.deco, blooms: [], hitstop: 0, kick: 0
+      ambient: [], gfx: theme(def.theme), deco: L.deco, blooms: [], hitstop: 0, kick: 0,
+      hp: HP_MAX, hpGlow: 0, starHeal: 0, safe: null
     };
     // the sea, where the beach has a gap
     G.sea = new Uint8Array(G.w);
@@ -134,7 +135,8 @@
     var nth = 0;
     L.ents.forEach(function (sp) {
       var K = KINDS[sp.k];
-      if (K && K.enemy && sp.k !== 'dragon' && !sp.wait && ++nth % THIN === 0) return;
+      // (never a boss: thinning one out would leave a level that can't be won)
+      if (K && K.enemy && sp.k !== 'dragon' && sp.k !== 'captain' && !sp.wait && ++nth % THIN === 0) return;
       var e = spawn(sp); if (e) G.ents.push(e);
     });
     G.light = BB.lighting(th.light, G.w * T, def.seed);
@@ -147,6 +149,7 @@
       crouch: false, on: null, combo: 0, swimT: 0, power: save.power, landed: 0
     };
     p.y = (chk ? chk.sp.row : start.row) * T - p.h;
+    G.safe = { x: p.x, y: p.y };
     // Bear: if he was found in this level before a fall, he's here with Bonnie
     G.trail = [];
     G.ents.forEach(function (e) { if (e.k === 'house') G.house = e; });
@@ -226,6 +229,7 @@
   var addStars = function (n) {
     save.stars += n;
     if (G) G.got = (G.got || 0) + n;
+    if (G && G.p) { G.starHeal += n; while (G.starHeal >= 10) { G.starHeal -= 10; heal(1, G.p.x + G.p.w / 2 - 3, G.p.y - 6); } }
     while (save.stars >= 100) { save.stars -= 100; oneUp(G.p.x, G.p.y - 10); }
   };
   // with lives unlimited, a heart (or a hundred stars) is a burst of points
@@ -574,7 +578,7 @@
     init: function (e, sp) {
       e.w = (sp.w || 3) * T; e.y = sp.row * T; e.x0 = e.x; e.y0 = e.y; e.off = 0; e.dir = 1;
       e.range = ((sp.dx || sp.dy || 0) * T); e.axis = sp.dy ? 'y' : 'x'; e.sgn = (sp.dx || sp.dy || 0) < 0 ? -1 : 1;
-      e.range = Math.abs(e.range); e.fall = !!sp.fall; e.speed = sp.speed || 0.5;
+      e.range = Math.abs(e.range); e.fall = !!sp.fall; e.speed = sp.speed || 0.5; e.bob = !!sp.bob; e.by0 = e.y;
     },
     update: function (e) {
       var ox = e.x, oy = e.y, p = G.p;
@@ -588,6 +592,8 @@
         if (e.off <= 0) { e.off = 0; e.dir = 1; }
         if (e.axis === 'x') e.x = e.x0 + e.off * e.sgn; else e.y = e.y0 + e.off * e.sgn;
       }
+      // a boat on the waves rocks gently up and down as well
+      if (e.bob) e.y = e.by0 + Math.sin(G.tick * 0.035 + e.x0 * 0.13) * 2.5;
       carry(e, e.x - ox, e.y - oy);
     },
     draw: function (ctx, e) {
@@ -611,7 +617,7 @@
     init: function (e) { e.x += 1; e.y += 0; },
     update: function (e) { if (e.squash) e.squash--; },
     draw: function (ctx, e) {
-      var s = G.def.theme === 'woods' ? A.shroom : A.spring;
+      var s = G.def.theme === 'woods' || G.def.theme === 'glow' ? A.shroom : A.spring;
       var f = s[e.squash ? 1 : 0];
       BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h - G.cam.y));
     }
@@ -690,8 +696,8 @@
         G.bossOn = true;
         for (var y = 2; y < G.gr; y++) G.map[y * G.w + (e.x >> 3)] = TL.HARD;
         sfx('boom'); G.shake = 12;
-        BB.music('boss');
-        G.ents.forEach(function (d) { if (d.k === 'dragon') { d.st = 'roar'; d.t2 = 0; sfx('roar'); } });
+        BB.music(G.n > 10 ? 'boss2' : 'boss');
+        G.ents.forEach(function (d) { if (d.k === 'dragon') { d.st = 'roar'; d.t2 = 0; sfx('roar'); } if (d.k === 'captain') { d.st = 'rise'; d.t2 = 0; d.active = true; sfx('pop'); } });
       }
     },
     draw: function () {}
@@ -800,7 +806,9 @@
     { id: 'school', name: 'SCHOOL', need: 0, v: null },
     { id: 'pyjamas', name: 'PYJAMAS', need: 3, v: BB.variant('pyjamas', { b: '#8ac4ff', B: '#4a7ad8', k: '#8ac4ff', K: '#4a7ad8', y: '#ffffff', Y: '#c8d8f0' }) },
     { id: 'super', name: 'SUPER', need: 6, v: BB.variant('super', { b: '#f24848', B: '#a42032', y: '#ffe048', Y: '#c98a12', k: '#3a6cf4', K: '#1f40a8' }), cape: true },
-    { id: 'monsty', name: 'MONSTY', need: 10, v: BB.variant('monstysuit', { b: '#8a44dc', B: '#5a2aa8', y: '#ffb444', Y: '#e0821c', k: '#8a44dc', K: '#5a2aa8' }) }
+    { id: 'monsty', name: 'MONSTY', need: 10, v: BB.variant('monstysuit', { b: '#8a44dc', B: '#5a2aa8', y: '#ffb444', Y: '#e0821c', k: '#8a44dc', K: '#5a2aa8' }) },
+    { id: 'pirate', name: 'PIRATE', need: 15, v: BB.variant('pirate', { b: '#f4f0e8', B: '#c8c0b0', y: '#e83a4a', Y: '#a42032', k: '#3a3a58', K: '#24243a' }) },
+    { id: 'golden', name: 'GOLDEN', need: 20, v: BB.variant('golden', { b: '#ffd23e', B: '#d09a10', y: '#ffffff', Y: '#e0e0f0', k: '#ffd23e', K: '#d09a10' }) }
   ];
   var outfit = function () { for (var i = 0; i < OUTFITS.length; i++) if (OUTFITS[i].id === save.outfit) return OUTFITS[i]; return OUTFITS[0]; };
   // a cape, flowing out behind him the faster he goes
@@ -874,6 +882,161 @@
     }
   };
 
+  /* ==========================================================================
+     THE SECOND LAND'S CREATURES — Magpie Isles
+     Their art is in creatures.js; until a sprite exists, a cousin from
+     the first land stands in for it, so nothing ever fails to draw.
+     ========================================================================== */
+  var art = function (name, alt) { var a = E[name]; return a || E[alt]; };
+  var frameOf = function (list, i) { return Array.isArray(list) ? list[i % list.length] : list; };
+  // the Captain's crew: magpies that flit to and fro
+  KINDS.magpie = {
+    w: 12, h: 8, enemy: true, stomp: true, fly: true,
+    init: function (e) { e.x0 = e.x; e.y0 = e.y; e.vx = -0.65 * SLOW; },
+    update: function (e) {
+      e.x += e.vx;
+      if (e.x < e.x0 - 88 || e.x > e.x0 + 28) e.vx = -e.vx;
+      e.y = e.y0 + Math.sin(e.t * 0.06) * 12;
+      e.face = e.vx > 0 ? 1 : -1;
+    },
+    draw: function (ctx, e) { drawE(ctx, e, frameOf(art('magpie', 'gull'), Math.floor(e.t / 10)), e.face > 0); }
+  };
+  // scorpions: scuttle, stop, scuttle, like the crabs
+  KINDS.scorpion = {
+    w: 13, h: 9, enemy: true, stomp: true,
+    update: function (e) {
+      var on = (e.t % 100) < 64;
+      if (on) walk(e, 0.8, true); else { e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy)) e.vy = 0; }
+    },
+    draw: function (ctx, e) { drawE(ctx, e, frameOf(art('scorpion', 'crab'), (e.t % 100) < 64 ? Math.floor(e.t / 6) : 0), e.face > 0); }
+  };
+  // gummy bears: waddle along like the bugs
+  KINDS.gummy = {
+    w: 11, h: 11, enemy: true, stomp: true,
+    update: function (e) { walk(e, 0.42); },
+    draw: function (ctx, e) { drawE(ctx, e, frameOf(art('gummy', 'grumbug'), Math.floor(e.t / 9)), e.face > 0); }
+  };
+  // tumbleweeds bowl along, hopping now and then
+  KINDS.tumble = {
+    w: 10, h: 10, enemy: true, stomp: true,
+    update: function (e) {
+      walk(e, 1.05);
+      if (e.vy === 0 && onGround(e) && e.t % 46 === 0) e.vy = -2.2;
+    },
+    draw: function (ctx, e) { drawE(ctx, e, frameOf(art('tumble', 'snowball'), Math.floor(e.t / 5)), e.vx > 0); }
+  };
+  // monkeys sit on the ruins and lob coconuts in an arc
+  KINDS.monkey = {
+    w: 12, h: 13, enemy: true, stomp: true,
+    update: function (e) {
+      e.face = towards(e);
+      e.vy = Math.min(FALL, e.vy + GRAV);
+      if (moveY(e, e.vy)) e.vy = 0;
+      if (e.t % 160 === 110 && near(e, 150)) {
+        var d = G.p.x - e.x;
+        addEnt('coconut', e.x + 3, e.y + 1, { vx: Math.max(-1.5, Math.min(1.5, d / 70)) * SLOW, vy: -3.3 });
+        e.throwT = 14;
+      }
+      if (e.throwT) e.throwT--;
+    },
+    draw: function (ctx, e) { drawE(ctx, e, frameOf(art('monkey', 'snowman'), e.throwT ? 1 : 0), e.face > 0); }
+  };
+  KINDS.coconut = {
+    w: 6, h: 6, enemy: true, stomp: false, tough: true, shot: true,
+    update: function (e) {
+      e.vy = Math.min(FALL, e.vy + 0.15);
+      e.x += e.vx; e.y += e.vy;
+      if (boxSolid(e.x, e.y, e.w, e.h) || e.t > 240) { e.alive = false; fx('puff', e.x - 1, e.y - 1); }
+    },
+    draw: function (ctx, e) { drawE(ctx, e, E.coconut || E.snowball, false); }
+  };
+  // the Captain's eggs: dropped from above, they splat on the deck
+  KINDS.egg = {
+    w: 6, h: 7, enemy: true, stomp: false, tough: true, shot: true,
+    update: function (e) {
+      e.vy = Math.min(3 * SLOW, e.vy + 0.08);
+      e.y += e.vy;
+      if (boxSolid(e.x, e.y, e.w, e.h) || e.t > 300) { e.alive = false; sfx('splash'); fx('puff', e.x - 1, e.y - 2); for (var i = 0; i < 4; i++) fx('chip', e.x + 3, e.y, { vx: (i - 1.5) * 0.6, vy: -1.4, life: 24, col: '#fff4dc' }); }
+    },
+    draw: function (ctx, e) {
+      var x = snap(e.x + 3 - G.cam.x), y = snap(e.y + 3.5 - G.cam.y);
+      BB.icons.disc(ctx, x, y, 3.4, '#2a1640'); BB.icons.disc(ctx, x, y + 0.2, 2.9, '#fff4dc');
+      BB.icons.disc(ctx, x - 0.9, y - 1, 1, '#ffffff'); ctx.fillStyle = '#9ac8e8'; ctx.fillRect(x + 0.5, y + 1, 1, 0.5); ctx.fillRect(x - 1.5, y + 0.5, 0.5, 0.5);
+    }
+  };
+
+  /* Captain Magpie. Asleep on the stern until the gate closes behind
+     Bonnie; then he flies to and fro over the deck dropping eggs, and
+     every so often swoops down and lands to catch his breath — that's
+     the moment to stomp him. Three stomps and he sits down, dizzy, and
+     the sack of presents bursts open. */
+  KINDS.captain = {
+    w: 22, h: 20, enemy: true, stomp: 'boss', tough: true,
+    init: function (e) { e.hp = 6; e.st = 'sleep'; e.face = -1; e.hx = e.x; e.hy = e.y; e.t2 = 0; },
+    update: function (e) {
+      var p = G.p, ax0 = (e.sp.ax0 || 0) * T || e.hx - 100, ax1 = (e.sp.ax1 || 0) * T || e.hx + 60, mid = (ax0 + ax1) / 2, half = (ax1 - ax0) / 2;
+      if (e.hurtT) e.hurtT--;
+      if (e.st === 'sleep') return;
+      if (e.st === 'dizzy') { e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy)) e.vy = 0; return; }
+      e.t2++;
+      if (e.st === 'fly') {
+        var nx = mid + Math.cos(e.t2 * 0.022 * SLOW) * half, ny = e.hy - 14 + Math.sin(e.t2 * 0.05) * 8;
+        e.face = nx > e.x ? 1 : -1; e.x += (nx - e.x) * 0.08; e.y += (ny - e.y) * 0.08;
+        if (e.t2 % 80 === 40) { addEnt('egg', e.x + e.w / 2 - 3, e.y + e.h, { vy: 0.4 }); sfx('pop'); }
+        if (e.t2 > 330) {
+          // down to land near Bonnie — on the deck, or on the crates if that's where he is
+          e.st = 'dive'; e.t2 = 0; e.lx = Math.max(ax0, Math.min(ax1 - e.w, p.x - 4));
+          var fl = floorBelow(e.lx + e.w / 2, e.y + e.h, 200); e.ly = (fl === null ? G.gr * T : fl) - e.h;
+        }
+      } else if (e.st === 'dive') {
+        var dx = e.lx - e.x, dy = e.ly - e.y, d = Math.hypot(dx, dy) || 1, sp = 1.6 * SLOW;
+        if (d <= sp) { e.x = e.lx; e.y = e.ly; e.st = 'land'; e.t2 = 0; G.shake = 6; sfx('stomp'); }
+        else { e.x += dx / d * sp; e.y += dy / d * sp; e.face = dx > 0 ? 1 : -1; }
+      } else if (e.st === 'land') {
+        e.face = towards(e);
+        if (e.t2 > 150) { e.st = 'rise'; e.t2 = 0; }
+      } else if (e.st === 'rise') {
+        e.y -= 1.2 * SLOW;
+        if (e.y <= e.hy - 14) { e.st = 'fly'; e.t2 = 0; }
+      }
+    },
+    draw: function (ctx, e) {
+      var C = E.captain, s;
+      if (C) s = e.hurtT && e.hurtT % 8 < 4 ? C.hurt : e.st === 'dizzy' ? C.hurt : e.st === 'land' || e.st === 'sleep' ? C.land : C.fly[Math.floor(e.t / 8) % 2];
+      else s = E.dragon.walk[Math.floor(e.t / 14) % 2];
+      drawE(ctx, e, s, e.face > 0);
+      if (e.st === 'sleep' && !reduce && e.t % 80 < 50) BB.text(ctx, 'Z', snap(e.x + e.w - G.cam.x), snap(e.y - 8 - (e.t % 80) / 10 - G.cam.y), { color: '#ffffff', outline: '#2a1640' });
+      if (e.st === 'dizzy' && !reduce) for (var i = 0; i < 3; i++) { var a = e.t * 0.12 + i * 2.1; BB.draw(ctx, A.starSmall, snap(e.x + e.w / 2 + Math.cos(a) * 9 - 3 - G.cam.x), snap(e.y - 4 + Math.sin(a) * 3 - G.cam.y)); }
+    }
+  };
+  /* The sack of presents. Once the Captain's beaten it bursts: presents
+     tumble out, and when Bonnie reaches them, the land is saved. */
+  KINDS.sack = {
+    w: 18, h: 18,
+    init: function (e) { e.y = e.sp.row * T - e.h; },
+    update: function (e) {
+      if (G.bossDone && !e.open) {
+        e.open = 1; sfx('brick');
+        for (var i = 0; i < 6; i++) addEnt('present', e.x + 4 + i * 2, e.y - 2, { vy: -2.5 - (i % 3) * 0.6, vx: (i - 2.5) * 0.5, i: i });
+      }
+    },
+    draw: function (ctx, e) {
+      var x = snap(e.x - G.cam.x), y = snap(e.y - G.cam.y), D = '#2a1640';
+      if (!e.open) { BB.draw(ctx, A.qblock[0], x + 2, y - 4); BB.draw(ctx, A.qblock[1], x + 9, y - 6); }
+      BB.icons.disc(ctx, x + 9, y + 11, 9, D); BB.icons.disc(ctx, x + 9, y + 11, 8.3, '#c89a5c'); BB.icons.disc(ctx, x + 7, y + 9, 4, '#e0b878');
+      ctx.fillStyle = D; ctx.fillRect(x + 5, y + 2, 8, 1.5); ctx.fillStyle = '#e83a4a'; ctx.fillRect(x + 6, y + 2.5, 6, 0.5);
+    }
+  };
+  KINDS.present = {
+    w: 8, h: 8,
+    update: function (e) {
+      e.vy = Math.min(FALL, e.vy + GRAV); e.x += e.vx || 0; e.vx = (e.vx || 0) * 0.97;
+      if (moveY(e, e.vy)) { e.vy = e.saved ? -1.6 : 0; }
+      if (!e.saved && G.p.st === 'play' && overlap(G.p, e)) { G.ents.forEach(function (q) { if (q.k === 'present') q.saved = true; }); rescue(); }
+    },
+    draw: function (ctx, e) { BB.draw(ctx, A.qblock[(e.i || 0) % 3], snap(e.x - G.cam.x), snap(e.y - G.cam.y)); }
+  };
+
   /* ---- Grumble, the dragon ---------------------------------------------------- */
   KINDS.dragon = {
     w: 24, h: 24, enemy: true, stomp: 'boss', tough: true,
@@ -931,6 +1094,13 @@
     e.hurtT = 70;
     sfx('roar');
     G.shake = 8;
+    if (e.k === 'captain') {
+      // after a stomp he's off again at once
+      if (e.hp > 0) { e.st = 'rise'; e.t2 = 0; return true; }
+      e.st = 'dizzy'; e.enemy = false; e.vy = 0; G.bossDone = true;
+      sfx('boom'); points(5000, e.x, e.y); BB.music('');
+      return true;
+    }
     if (e.hp <= 0) {
       e.st = 'dead'; e.dying = 'flip'; e.vy = -3; e.vx = 0;
       G.bossDone = true;
@@ -1031,15 +1201,48 @@
     if (was === 0) { p.st = 'grow'; p.t = 0; G.freeze = 48; sfx('grow'); }
     else { G.flash = 30; sfx('power'); }
   };
+  /* ---- hearts ------------------------------------------------------------------------
+     Three hearts (owner, 16 Oct): a bump costs one and Bonnie carries on;
+     every 10 stars gives half a heart back, and a heart from a present a
+     whole one. Falling in a pit or the lava costs one too, and he pops
+     back up in a bubble on the last safe ground he stood on. Only with
+     the last heart gone does he go back to the checkpoint — with all
+     three again, and as many tries as he likes. Kept in half-hearts. */
+  var HP_MAX = 6;
+  var heal = function (half, x, y) {
+    if (G.hp >= HP_MAX) return false;
+    G.hp = Math.min(HP_MAX, G.hp + half); G.hpGlow = 40;
+    sfx('heal');
+    fx('heart', x, y, { vx: 0, vy: -0.6, life: 46 });
+    return true;
+  };
   var hurt = function () {
     var p = G.p;
-    if (p.inv || p.star || p.st !== 'play') return;
+    if (p.inv || p.star || p.st !== 'play' || p.bubble) return;
     if (p.power > 0) {
       p.power = p.power === 2 ? 1 : 0; save.power = p.power;
       if (p.power === 0) { p.st = 'shrink'; p.t = 0; G.freeze = 40; }
       p.inv = INV;
       sfx('shrink');
-    } else die();
+      return;
+    }
+    G.hp -= 2;
+    if (G.hp <= 0) { G.hp = 0; die(); return; }
+    // ouch — a little hop back, a moment to recover, and on he goes
+    p.inv = INV; p.vy = -2.6; p.vx = -p.face * 1.1; p.ground = false; G.shake = 6; G.hpGlow = 40;
+    sfx('hurt');
+    for (var i = 0; i < 4; i++) fx('spark', p.x + p.w / 2, p.y + 4, { vx: (i - 1.5) * 0.7, vy: -1.2, life: 26, col: '#ff6a8a' });
+  };
+  // into a pit or the lava: a heart, and back up in a bubble on safe ground
+  var fallOut = function () {
+    var p = G.p;
+    if (p.st !== 'play') return;
+    if (G.hp <= 2 || !G.safe) { G.hp = 0; die(); return; }
+    G.hp -= 2; G.hpGlow = 40;
+    p.x = G.safe.x; p.y = G.safe.y; p.vx = p.vy = p.rx = p.ry = 0; p.inv = INV; p.bubble = 40; p.on = null;
+    G.trail = [];
+    G.ents.forEach(function (b) { if (b.k === 'bear' && b.mode === 'follow') { b.x = p.x - 12; b.y = p.y + p.h - b.h; } });
+    sfx('swim');
   };
   var die = function () {
     var p = G.p;
@@ -1135,7 +1338,7 @@
     var p = G.p;
     p.t++;
     if (p.inv) p.inv--;
-    if (p.star) { p.star--; if (!p.star) BB.music(G.bossOn ? 'boss' : G.th.music); }
+    if (p.star) { p.star--; if (!p.star) BB.music(G.bossOn ? (G.n > 10 ? 'boss2' : 'boss') : G.th.music); }
     if (p.throwT) p.throwT--;
     if (p.swimT) p.swimT--;
     // ease the squash back to nothing — and stop there. (Stepping by a
@@ -1143,6 +1346,7 @@
     // flick between squashed and stretched every frame, for ever: the
     // "vibrating Bonnie".)
     if (p.sq) p.sq = p.sq > 0 ? Math.max(0, p.sq - 1) : Math.min(0, p.sq + 1);
+    if (p.bubble) { p.bubble--; p.vx = 0; p.vy = 0; return; }
     var dir = (BB.key('right') ? 1 : 0) - (BB.key('left') ? 1 : 0);
     var run = BB.key('b') || BB.touchRun;
     // crouching: big Bonnie only, on the ground
@@ -1189,7 +1393,11 @@
       }
       var g = p.vy < 0 && (held || p.holdT > 0) ? GRAV_HOLD : GRAV;
       if (p.holdT) p.holdT--;
-      p.vy = Math.min(FALL, p.vy + g);
+      // on the Moon everything falls slower: long, floaty jumps
+      if (G.def.lowgrav) g *= 0.58;
+      p.vy = Math.min(G.def.lowgrav ? FALL * 0.7 : FALL, p.vy + g);
+      // and on the clifftops the wind gives him a push
+      if (G.wind) { p.vx += G.wind * 0.045; var cap = RUN + 0.5; if (p.vx > cap) p.vx = cap; if (p.vx < -cap) p.vx = -cap; }
     }
     // the ball power: B throws (two in the air at most)
     if (p.power === 2 && BB.hit('b') && !p.crouch) {
@@ -1223,6 +1431,11 @@
       if (!wasGround && fallV > 1.5) p.sq = Math.min(8, 3 + fallV * 1.2);
       if (!wasGround && fallV > 4.2) G.kick = 4;
     }
+    if (p.ground && !p.on && !p.bubble) {
+      var fy = Math.floor((p.y + p.h) / T), lx = Math.floor((p.x + 1) / T), rx2 = Math.floor((p.x + p.w - 2) / T);
+      var tl = tileAt(lx, fy), tr = tileAt(rx2, fy);
+      if (SOLID[tl] && SOLID[tr] && tl !== TL.SPIKE && tr !== TL.SPIKE) G.safe = { x: p.x, y: p.y };
+    }
     var moving = Math.abs(p.vx) > 0.15;
     p.anim = p.ground && moving ? p.anim + Math.abs(p.vx) * 0.12 : p.ground ? 0 : p.anim;
 
@@ -1230,8 +1443,8 @@
     collectCoins(p);
     var feetT = tileAt(Math.floor((p.x + p.w / 2) / T), Math.floor((p.y + p.h) / T));
     if (p.ground && feetT === TL.SPIKE) hurt();
-    if (lavaTouch(p)) die();
-    if (p.y > G.h * T + 8) die();
+    if (lavaTouch(p)) fallOut();
+    if (p.y > G.h * T + 8) fallOut();
   };
   var collectCoins = function (p) {
     var tx0 = Math.floor(p.x / T), tx1 = Math.floor((p.x + p.w - 1) / T), ty0 = Math.floor(p.y / T), ty1 = Math.floor((p.y + p.h - 1) / T);
@@ -1263,7 +1476,7 @@
         e.alive = false;
         if (e.k === 'cupcake') power(Math.max(1, p.power === 2 ? 2 : 1));
         else if (e.k === 'sball') power(2);
-        else if (e.k === 'heart') oneUp(e.x, e.y);
+        else if (e.k === 'heart') { if (!heal(2, e.x, e.y - 4)) oneUp(e.x, e.y); else fx('text', e.x - 4, e.y - 10, { s: 'YAY!', vy: -0.6, life: 50, col: '#ff94cc' }); }
         else if (e.k === 'lolly') { p.star = STAR_T; BB.music('star'); sfx('power'); points(1000, e.x, e.y); }
         continue;
       }
@@ -1297,7 +1510,10 @@
         else if (K.stomp === 'robot') {
           if (e.stun) { squash(e); e.dying = 'flip'; e.vy = -2; }
           else { e.stun = 200; e.vx = 0; sfx('stomp'); }
-        } else if (K.stomp === 'boss') { bossHit(e, 'stomp'); p.vy = -4.8; p.holdT = 0; continue; }
+        } else if (K.stomp === 'boss') {
+          if (e.k === 'captain' && e.st !== 'land') { hurt(); continue; }
+          bossHit(e, 'stomp'); p.vy = -4.8; p.holdT = 0; continue;
+        }
         else squash(e);
         bounce(p);
         continue;
@@ -1370,11 +1586,12 @@
       if (G.clearDone && p.t > 100) {
         save.best = save.best || {};
         save.best[G.n] = Math.max(save.best[G.n] || 0, G.got || 0);
-        save.unlocked = Math.max(save.unlocked, Math.min(10, G.n + 1));
+        var landEnd = G.n <= 10 ? 10 : 20;
+        save.unlocked = Math.max(save.unlocked, Math.min(landEnd, G.n + 1));
         if (save.cleared.indexOf(G.n) < 0) save.cleared.push(G.n);
         G.bearHome = bearWith === G.n;
         if (G.bearHome) save.bears[G.n] = 1;
-        save.at = Math.min(10, G.n + 1);
+        save.at = Math.min(landEnd, G.n + 1);
         store();
         go('clear');
       }
@@ -1389,13 +1606,17 @@
       fx('spark', x, y, { vx: Math.cos(a) * 1.6, vy: Math.sin(a) * 1.6, life: 40, col: c });
     }
   };
+  // the end of a land: Monsty rescued (10), or the presents won back (20)
+  var endLand = 1;
   var rescue = function () {
-    var p = G.p;
+    var p = G.p, n = G.n;
     p.st = 'cheer'; p.t = 0; p.vx = 0;
     BB.music('clear', function () { G.clearDone = true; });
-    save.won = true;
-    save.cleared.indexOf(10) < 0 && save.cleared.push(10);
-    if (bearWith === 10) save.bears[10] = 1;
+    if (save.cleared.indexOf(n) < 0) save.cleared.push(n);
+    if (bearWith === n) save.bears[n] = 1;
+    if (n === 10) { save.won = true; save.unlocked = Math.max(save.unlocked, 11); }
+    if (n === 20) save.won2 = true;
+    endLand = n === 20 ? 2 : 1;
     store();
   };
 
@@ -1408,9 +1629,16 @@
     BB.touchCanThrow = p.power === 2;
     if (BB.hit('start') && p.st === 'play') { go('pause'); pauseAt = 0; sfx('pause'); return; }
     if (G.hitstop) { G.hitstop--; return; }
+    /* The wind on the cliffs: calm, then a gust one way, calm, then the
+       other way — eased in and out, with the leaves showing it coming. */
+    if (G.def.wind) {
+      var wt = G.tick % 600, want = wt < 160 ? 0 : wt < 300 ? 1 : wt < 420 ? 0 : -1;
+      G.wind = (G.wind || 0) + (want - (G.wind || 0)) * 0.03;
+    }
     if (G.shake) G.shake--;
     if (G.flash) G.flash--;
     if (G.kick) G.kick--;
+    if (G.hpGlow) G.hpGlow--;
     if (p.waveT) p.waveT--;
     // how long he's stood still, for his idle looks round (and shivers, in the snow)
     p.idleT = p.st === 'play' && p.ground && Math.abs(p.vx) < 0.05 && !BB.key('left') && !BB.key('right') && !BB.key('a') ? (p.idleT || 0) + 1 : 0;
@@ -1490,7 +1718,8 @@
       // a waiting enemy (levels.js: { wait: px }) stands still until Bonnie
       // is that close, so it can't walk into a lesson while it's being read
       if (e.sp.wait && !e.woke) { if (Math.abs(G.p.x - e.x) > e.sp.wait) continue; e.woke = true; }
-      if (!inView && e.enemy && !e.dying && e.k !== 'dragon') {
+      // (bosses, and the Captain's eggs, keep going off screen: the fight goes on wherever the camera is)
+      if (!inView && e.enemy && !e.dying && e.k !== 'dragon' && e.k !== 'captain' && e.k !== 'egg') {
         // things that wander far off screen are gone (a shell, a swooping bat)
         if (e.vx && Math.abs(e.x - (cx + W / 2)) > W * 1.5) e.alive = false;
         continue;
@@ -1753,7 +1982,22 @@
       }
     }
   };
+  // in the second land Bonnie's travelling: each level ends at his tent
+  var drawTent = function (ctx, e) {
+    var x = snap(e.x - G.cam.x), y = snap(e.y - G.cam.y), D = '#2a1640';
+    if (x > BB.W || x + 48 < 0) return;
+    for (var r = 0; r < 26; r++) {
+      var hw = r * 0.85, yy = y + 14 + r;
+      ctx.fillStyle = D; ctx.fillRect(x + 20 - hw - 1, yy, hw * 2 + 2, 1);
+      for (var c = -hw; c < hw; c += 4) { ctx.fillStyle = Math.floor((c + 40) / 4) % 2 ? '#f4f0e0' : '#e8504a'; ctx.fillRect(x + 20 + c, yy, Math.min(4, hw - c), 1); }
+    }
+    // the door flap, lit warm once he's inside
+    for (var r2 = 0; r2 < 14; r2++) { ctx.fillStyle = D; ctx.fillRect(x + 20 - r2 * 0.4 - 0.5, y + 26 + r2, r2 * 0.8 + 1, 1); ctx.fillStyle = e.flag ? '#ffd860' : '#5a2a2a'; ctx.fillRect(x + 20 - r2 * 0.4, y + 26 + r2, r2 * 0.8, 1); }
+    ctx.fillStyle = D; ctx.fillRect(x + 19.5, y + 4, 1, 11);
+    if (e.flag) BB.draw(ctx, A.checkFlag[1], x + 20.5, Math.round(y + 4 - e.flag * 0.4));
+  };
   var drawHouse = function (ctx, e) {
+    if (G.n > 10) { drawTent(ctx, e); return; }
     var x = snap(e.x - G.cam.x), y = snap(e.y - G.cam.y);
     if (x > BB.W || x + 48 < 0) return;
     // walls
@@ -1818,6 +2062,12 @@
       sy = snap(snap(on.y - G.cam.y) - fh);
     }
     if (p.st !== 'dead') shadowUnder(ctx, p.x + p.w / 2, p.y + p.h, 13);
+    if (p.bubble) {
+      var bcx = p.x + p.w / 2 - G.cam.x, bcy = p.y + p.h / 2 - G.cam.y - (reduce ? 0 : Math.sin(p.bubble * 0.2)), br = Math.max(p.w, p.h) * 0.75;
+      ctx.globalAlpha = 0.25; ctx.fillStyle = '#c8f4ff'; ctx.beginPath(); ctx.arc(bcx, bcy, br, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.8; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.arc(bcx, bcy, br, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(snap(bcx - br * 0.55), snap(bcy - br * 0.6), 1.5, 1); ctx.globalAlpha = 1;
+    }
     if (outfit().cape && p.st !== 'dead') drawCape(ctx, sx + fw / 2 + (flip ? 1 : -1), sy + fh * 0.36, fh, flip ? -1 : 1, p.vx, G.tick);
     ctx.drawImage(BB.canvasOf(f, flip, v), sx, sy, fw, fh);
     // the light he is standing in catches his edge
@@ -1867,11 +2117,20 @@
   var ambient = function (ctx) {
     if (reduce) return;
     var th = G.th, a = G.ambient, W = BB.W;
-    var want = th.snowing ? 40 : G.def.theme === 'woods' ? 14 : th.water ? 10 : th.lava ? 14 : G.def.theme === 'cave' ? 10 : 0;
+    var want = th.snowing ? 40 : G.def.theme === 'woods' ? 14 : th.water ? 10 : th.lava ? 14 : G.def.theme === 'cave' ? 10 : G.def.wind ? 22 : G.def.theme === 'glow' ? 16 : G.def.lowgrav ? 18 : 0;
     while (a.length < want) a.push({ x: Math.random() * W, y: Math.random() * H, s: Math.random(), t: Math.random() * 100 });
     a.forEach(function (q) {
       q.t++;
-      if (th.snowing) { q.y += 0.3 + q.s * 0.5; q.x += Math.sin(q.t * 0.03) * 0.3 - 0.1; ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(q.x), Math.round(q.y), q.s > 0.6 ? 2 : 1, q.s > 0.6 ? 2 : 1); }
+      if (G.def.wind) {
+        var wv = G.wind || 0;
+        q.x += wv * (2.2 + q.s * 1.6) + 0.05; q.y += 0.15 + Math.sin(q.t * 0.1 + q.s * 9) * 0.4;
+        if (Math.abs(wv) > 0.3) {
+          if (q.s > 0.55) { ctx.fillStyle = q.s > 0.8 ? '#7ed858' : '#ffd84a'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1.5, 1); }
+          else { ctx.globalAlpha = 0.5 * Math.abs(wv); ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 6 + q.s * 8, 0.5); ctx.globalAlpha = 1; }
+        }
+      } else if (G.def.theme === 'glow') { q.x += Math.sin(q.t * 0.02) * 0.3; q.y += Math.cos(q.t * 0.017) * 0.25; if (Math.sin(q.t * 0.05 + q.s * 6) > 0) { ctx.fillStyle = q.s > 0.5 ? '#a8ffe8' : '#ffb0f0'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1, 1); } }
+      else if (G.def.lowgrav) { q.y -= 0.12 + q.s * 0.1; q.x += Math.sin(q.t * 0.02 + q.s * 5) * 0.15; ctx.globalAlpha = 0.6; ctx.fillStyle = '#e8e0ff'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1, 1); ctx.globalAlpha = 1; }
+      else if (th.snowing) { q.y += 0.3 + q.s * 0.5; q.x += Math.sin(q.t * 0.03) * 0.3 - 0.1; ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(q.x), Math.round(q.y), q.s > 0.6 ? 2 : 1, q.s > 0.6 ? 2 : 1); }
       else if (G.def.theme === 'woods') { q.x += Math.sin(q.t * 0.02) * 0.3; q.y += Math.cos(q.t * 0.017) * 0.25; if (Math.sin(q.t * 0.05 + q.s * 6) > 0) { ctx.fillStyle = '#e8ff70'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1, 1); } }
       else if (th.water) { q.y -= 0.25 + q.s * 0.3; q.x += Math.sin(q.t * 0.05) * 0.2; BB.draw(ctx, A.bubble[q.s > 0.5 ? 0 : 1], q.x, q.y); }
       else if (th.lava) { q.y -= 0.2 + q.s * 0.4; q.x += Math.sin(q.t * 0.04) * 0.2; ctx.fillStyle = q.s > 0.5 ? '#ffd23c' : '#fa9c38'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1, 1); }
@@ -1927,15 +2186,36 @@
     ctx.fillRect(x + 1.5, y, w - 3, h); ctx.fillRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.fillRect(x, y + 1.5, w, h - 3);
   };
   var HUDINK = '#2a1640';
-  var LEVEL_COL = ['#46a83e', '#5cb43a', '#e89a28', '#22a8bc', '#8450d0', '#8a6ac0', '#4a96dc', '#e86aa4', '#e07a28', '#d03848'];
+  var LEVEL_COL = ['#46a83e', '#5cb43a', '#e89a28', '#22a8bc', '#8450d0', '#8a6ac0', '#4a96dc', '#e86aa4', '#e07a28', '#d03848',
+    '#e8704a', '#e86aa4', '#3a9ae0', '#3a9a48', '#2a9aa0', '#1e7a94', '#d8a028', '#7458c8', '#b07830', '#c8503a'];
   BB.hud = { pause: null };
+  // a heart for the HUD: full, half or empty (fill 2, 1, 0)
+  var heartIcon = function (ctx, x, y, fill, glow) {
+    var D = HUDINK, lobe = function (cx, r, col) { BB.icons.disc(ctx, cx, y + 2.6, r, col); };
+    var shape = function (col, inset) {
+      lobe(x + 2.2, 2.3 - inset, col); lobe(x + 5.8, 2.3 - inset, col);
+      for (var k = 0; k < 4.6 - inset; k += 0.5) { var hw = (4.6 - inset - k) * 0.95; ctx.fillStyle = col; ctx.fillRect(snap(x + 4 - hw), snap(y + 3 + k), snap(hw * 2), 0.5); }
+    };
+    shape(D, 0);
+    shape(fill ? '#5a3a6a' : '#5a4a70', 0.6);
+    if (fill) {
+      ctx.save();
+      if (fill === 1) { ctx.beginPath(); ctx.rect(x - 1, y - 1, 5, 10); ctx.clip(); }
+      shape(glow ? '#ff9ab0' : '#ff4a6a', 0.6);
+      lobe(x + 2.1, 0.9, '#ffc0cc');
+      ctx.restore();
+    }
+  };
   var drawHud = function (ctx) {
     var W = BB.W, o = { color: '#ffffff', outline: HUDINK };
-    BB.draw(ctx, A.heartSmall, 5, 5.5);
-    BB.text(ctx, '\u221e', 12, 4, o);
-    BB.draw(ctx, A.starSmall, 25, 4.5);
-    BB.text(ctx, pad(save.stars, 2), 34, 4, { color: '#ffe048', outline: HUDINK });
-    if (bearWith === G.n) BB.draw(ctx, A.bearHead, 48, 4);
+    // three hearts; the last one left beats gently
+    for (var hi = 0; hi < 3; hi++) {
+      var f = Math.max(0, Math.min(2, G.hp - hi * 2)), beat = G.hp <= 2 && f && !reduce ? (Math.floor(tick / 16) % 2 ? -0.5 : 0) : 0;
+      heartIcon(ctx, 3 + hi * 9, 3 + beat, f, G.hpGlow > 0 && G.hpGlow % 10 < 5);
+    }
+    BB.draw(ctx, A.starSmall, 31, 4.5);
+    BB.text(ctx, pad(save.stars, 2), 40, 4, { color: '#ffe048', outline: HUDINK });
+    if (bearWith === G.n) BB.draw(ctx, A.bearHead, 55, 4);
     BB.text(ctx, pad(save.score, 6), W / 2, 4, { color: '#ffffff', outline: HUDINK, align: 'center' });
     var right = W - 2;
     if (BB.inputMode === 'touch') { BB.hud.pause = { on: 'screen', x: W - 18, y: 0, w: 18, h: 16 }; BB.icons.pause(ctx, W - 13, 2.5); right = W - 16; }
@@ -2046,7 +2326,7 @@
     var won = save.won;
     save = fresh();
     save.won = won;
-    if (/[?&]debug\b/.test(qs)) save.unlocked = 10;
+    if (/[?&]debug\b/.test(qs)) { save.unlocked = BB.LEVELS.length; save.won = true; }
     store();
     wipeTo(function () { go('story'); });  // …which goes straight on into Level 1
   };
@@ -2178,19 +2458,71 @@
     }
   };
 
+  /* ---- the second story: Monsty's birthday party, and Captain Magpie --------------
+     Everyone's at the party — Bonnie, Monsty, Bear, Grumble (friends now)
+     — with a pile of presents, until Captain Magpie swoops in, grabs the
+     sack and flies off over the sea. Three seconds or so, a tap skips
+     it, and then the first level of the new land. */
+  var updateStory2 = function () {
+    sceneT++;
+    if (wipe) return;
+    if ((sceneT > 20 && (BB.hit('a') || BB.hit('start') || BB.tap)) || sceneT > 230) {
+      save.seenStory2 = true; save.at = 11; save.unlocked = Math.max(save.unlocked, 11); store(); sfx('start'); cardCheck = false; bearWith = 0;
+      wipeTo(function () { go('card'); });
+    }
+  };
+  var drawStory2 = function (ctx) {
+    var W = BB.W, t = reduce ? 120 : sceneT, gy = 128, mid = Math.round(W / 2);
+    if (!storyBg) storyBg = BB.backdrop('hills', A.themes.hills);
+    BB.drawBackdrop(ctx, storyBg, 0, 0, H);
+    var g = theme('hills');
+    for (var x = 0; x < W; x += 8) { BB.draw(ctx, g.top[(x >> 3) & 1], x, gy); BB.draw(ctx, g.fill[(x >> 3) & 1], x, gy + 8); }
+    // bunting and balloons: it's a party
+    for (var bx = 0; bx < W; bx += 6) { var by = 22 + Math.sin(bx * 0.05) * 4; ctx.fillStyle = BALLOON[(bx / 6) % 6 | 0]; for (var k = 0; k < 3; k += 0.5) ctx.fillRect(snap(bx + k * 0.5), snap(by + k), snap(3 - k), 0.5); }
+    [[12, 70], [W - 22, 62], [30, 56]].forEach(function (b, i) { BB.icons.disc(ctx, b[0], b[1] + Math.sin(t * 0.05 + i) * 2, 4, '#2a1640'); BB.icons.disc(ctx, b[0], b[1] + Math.sin(t * 0.05 + i) * 2, 3.4, BALLOON[i * 2]); ctx.fillStyle = '#2a1640'; ctx.fillRect(b[0], b[1] + 4 + Math.sin(t * 0.05 + i) * 2, 0.5, 12); });
+    // everyone at the party
+    var S = A.bonnie.s, d = A.en.dragon.walk[0];
+    BB.draw(ctx, d, mid - 70, gy - d.h);
+    BB.draw(ctx, t > 60 ? S.cheer : S.idle, mid - 34, gy - S.idle.h);
+    BB.draw(ctx, A.monsty, mid - 16, gy - A.monsty.h - (reduce ? 0 : Math.abs(Math.sin(t * 0.1)) * 3));
+    var bs = E.bear.sit[Math.floor(t / 24) % 2]; BB.draw(ctx, bs, mid + 2, gy - bs.h, true);
+    // the presents — until the Captain swoops in and takes the sack
+    /* he swoops in from the right, straight down onto the presents
+       (wherever they are on this width of screen), and off up to the left */
+    var C = E.captain, cf = C ? C.fly[Math.floor(t / 8) % 2] : A.en.dragon.walk[0];
+    var gx0 = mid + 30 - cf.w / 2, gy0 = gy - 16 - cf.h + 6, cx, cy;
+    if (t < 72) { var sk = Math.max(0, (t - 20) / 52), se = sk * sk * (3 - 2 * sk); cx = W + 10 + (gx0 - W - 10) * se; cy = 18 + (gy0 - 18) * se * se; }
+    else if (t < 84) { cx = gx0; cy = gy0 - (t - 72) * 0.3; }
+    else { cx = gx0 - (t - 84) * 2.6; cy = gy0 - 4 - (t - 84) * 1.3; }
+    var grabbed = t >= 74;
+    if (!grabbed) { BB.draw(ctx, A.qblock[0], mid + 22, gy - 8); BB.draw(ctx, A.qblock[1], mid + 30, gy - 8); BB.draw(ctx, A.qblock[2], mid + 26, gy - 16); }
+    if (t > 20) {
+      BB.draw(ctx, cf, cx, cy, false);
+      if (grabbed) { BB.draw(ctx, A.qblock[0], cx + cf.w / 2 - 8, cy + cf.h - 2); BB.draw(ctx, A.qblock[2], cx + cf.w / 2, cy + cf.h - 4); }
+    }
+    if (t > 100) {
+      BB.text(ctx, 'OH NO!', W / 2, 74, { color: '#ffe048', outline: dark, align: 'center', scale: 2 });
+      BB.text(ctx, 'CAPTAIN MAGPIE TOOK', W / 2, 92, { color: '#ffffff', outline: dark, align: 'center' });
+      BB.text(ctx, 'THE PRESENTS!', W / 2, 102, { color: '#ffffff', outline: dark, align: 'center' });
+    }
+  };
+
   /* ---- the map -----------------------------------------------------------------------
      Bonnie's island (map.js draws it). He walks the path between the
      levels he has opened; choosing one closes a circle onto its medallion
      and opens on the level's card. */
   var mapX = 0, mapY = 0, mapCam = 0, mapWalk = null, mapFace = 1, mapGoal = 0;
   var nodePos = function (i) { return BB.Map.node(i); };
+  // each island has its own calm tune; it changes as the boat lands
+  var mapSong = function () { return save.at > 10 ? 'map2' : 'map'; };
   var mapEnter = function (walkFrom) {
-    var at = Math.max(1, Math.min(save.unlocked, save.at || 1));
+    // (the second island is only on the map once the first land is won)
+    var at = Math.max(1, Math.min(save.won ? save.unlocked : Math.min(10, save.unlocked), save.at || 1));
     save.at = at;
-    var p = nodePos(at - 1); mapX = p.x; mapY = p.y; mapGoal = 0;
+    var p = nodePos(at - 1); mapX = p.x; mapY = p.y; mapGoal = 0; mapWalk = null;
     if (walkFrom && walkFrom !== at) { var q = nodePos(walkFrom - 1); mapX = q.x; mapY = q.y; mapWalk = { from: walkFrom, to: at, t: 0 }; mapFace = at > walkFrom ? 1 : -1; }
-    mapCam = Math.max(0, Math.min(BB.Map.width - BB.W, mapX - BB.W / 2));
-    BB.music('map');
+    mapCam = Math.max(0, Math.min(BB.Map.widthFor(save.won) - BB.W, mapX - BB.W / 2));
+    BB.music(mapSong());
   };
   // how many stars a level holds (stars, star blocks, and the bricks that pay out eight)
   var totals = {};
@@ -2220,7 +2552,7 @@
       mapX = a.x + (b.x - a.x) * k;
       mapY = a.y + (b.y - a.y) * k - Math.sin(k * Math.PI) * 4;
       if (mapWalk.t % 12 === 1) sfx('step');
-      if (k >= 1) { mapWalk = null; if (!mapGoal || mapGoal === save.at) { mapGoal = 0; sfx('select'); } }
+      if (k >= 1) { mapWalk = null; BB.music(mapSong()); if (!mapGoal || mapGoal === save.at) { mapGoal = 0; sfx('select'); } }
     } else if (mapGoal && mapGoal !== save.at) {
       // a tapped level further along: he walks there a stop at a time, along the path
       stepTo(save.at + (mapGoal > save.at ? 1 : -1));
@@ -2228,7 +2560,7 @@
       // a tap on a level's medallion walks him there; on his own, or on PLAY, it starts
       var tp = BB.tap, tappedNode = 0;
       if (tp && tp.on === 'screen' && sceneT > 10) {
-        for (var i = 0; i < 10; i++) { var q = nodePos(i); if (Math.hypot(tp.x + mapCam - q.x, tp.y - q.y) < 11) tappedNode = i + 1; }
+        for (var i = 0; i < BB.LEVELS.length; i++) { var q = nodePos(i); if (Math.hypot(tp.x + mapCam - q.x, tp.y - q.y) < 11) tappedNode = i + 1; }
         if (Math.hypot(tp.x + mapCam - mapX, tp.y - (mapY - 10)) < 10) tappedNode = save.at;
       }
       var pb = playBtn(), bb = bookBtn();
@@ -2244,13 +2576,13 @@
       else if ((BB.hit('a') || BB.hit('start')) && sceneT > 10) playLevel();
       else if (BB.hit('select')) wipeTo(function () { go('title'); BB.music(TITLE_SONG); });
     }
-    var target = Math.max(0, Math.min(BB.Map.width - BB.W, mapX - BB.W / 2));
+    var target = Math.max(0, Math.min(BB.Map.widthFor(save.won) - BB.W, mapX - BB.W / 2));
     mapCam += (target - mapCam) * 0.1;
   };
   var drawMap = function (ctx) {
     var W = BB.W, def = BB.LEVELS[save.at - 1], n = save.at;
     BB.Map.draw(ctx, {
-      t: sceneT, reduce: reduce, camX: mapCam, at: n, unlocked: save.unlocked, cleared: save.cleared, won: save.won,
+      t: sceneT, reduce: reduce, camX: mapCam, at: n, unlocked: save.unlocked, cleared: save.cleared, won: save.won, won2: save.won2,
       bonnie: { x: mapX, y: mapY }, walking: !!mapWalk, facing: mapFace, power: save.power, v: outfit().v
     });
     // the world's name on a ribbon in its colour, and a paper tag under it
@@ -2373,7 +2705,10 @@
     jelly: function () { return E.jelly[0]; }, ghost: function () { return E.ghost[0]; }, bat: function () { return E.bat[0]; },
     hog: function () { return E.hog[0]; }, rock: function () { return E.rock[0]; }, penguin: function () { return E.penguin[0]; },
     snowman: function () { return E.snowman[0]; }, robot: function () { return E.robot[0]; }, plant: function () { return E.plant[0]; },
-    bubble: function () { return E.bubble[0]; }, dragon: function () { return E.dragon.walk[0]; }
+    bubble: function () { return E.bubble[0]; }, dragon: function () { return E.dragon.walk[0]; },
+    magpie: function () { return frameOf(art('magpie', 'gull'), 0); }, scorpion: function () { return frameOf(art('scorpion', 'crab'), 0); },
+    gummy: function () { return frameOf(art('gummy', 'grumbug'), 0); }, tumble: function () { return frameOf(art('tumble', 'snowball'), 0); },
+    monkey: function () { return frameOf(art('monkey', 'snowman'), 0); }, captain: function () { return E.captain ? E.captain.land : E.dragon.walk[0]; }
   };
   var STICKER_ORDER = Object.keys(STICKERS);
   var stickerCache = {};
@@ -2405,17 +2740,19 @@
     ctx.drawImage(st.c, snap(cx - w / 2), snap(by - h), w, h);
     ctx.imageSmoothingEnabled = false;
   };
-  var BOOK = ['FRIENDS', 'CREATURES', 'OUTFITS'], BOOK_COL = ['#e86aa4', '#46a83e', '#4a96dc'];
+  // Bear has a page for each island he hides on, once there's a second one
+  var bookPages = function () { return save.won ? ['bear1', 'bear2', 'creatures', 'outfits'] : ['bear1', 'creatures', 'outfits']; };
+  var PAGE_NAME = { bear1: 'FRIENDS', bear2: 'FRIENDS', creatures: 'CREATURES', outfits: 'OUTFITS' };
+  var PAGE_COL = { bear1: '#e86aa4', bear2: '#e8704a', creatures: '#46a83e', outfits: '#4a96dc' };
   var bookPage = 0, outfitAt = 0;
   // on a narrow screen the tab is just the book, so it clears the level's ribbon
   var bookBtn = function () { return { x: 3, y: 3, w: BB.W > 200 ? 36 : 15, h: 14 }; };
-  var openBook = function () { sfx('select'); bookPage = 0; outfitAt = 0; OUTFITS.forEach(function (o, i) { if (o.id === save.outfit) outfitAt = i; }); wipeTo(function () { go('book'); }); };
-  // four across on a wide screen; two by two on a narrow one, so the names fit
+  // it opens on Bear's page for the island Bonnie's on
+  var openBook = function () { sfx('select'); bookPage = save.won && save.at > 10 ? 1 : 0; outfitAt = 0; OUTFITS.forEach(function (o, i) { if (o.id === save.outfit) outfitAt = i; }); wipeTo(function () { go('book'); }); };
+  // three across, two rows: fits every screen with the names clear
   var outfitCells = function () {
-    var W = BB.W;
-    if (W >= 200) { var cw = Math.min(56, (W - 24) / 4); return OUTFITS.map(function (o, i) { return { x: W / 2 - cw * 2 + i * cw, y: 28, w: cw, h: 92, big: true }; }); }
-    var cw2 = (W - 24) / 2;
-    return OUTFITS.map(function (o, i) { return { x: 12 + (i % 2) * cw2, y: 26 + Math.floor(i / 2) * 52, w: cw2, h: 50 }; });
+    var W = BB.W, cw = Math.min(70, (W - 24) / 3), x0 = W / 2 - cw * 1.5;
+    return OUTFITS.map(function (o, i) { return { x: x0 + (i % 3) * cw, y: 26 + Math.floor(i / 3) * 52, w: cw, h: 50 }; });
   };
   var wearOutfit = function (i) {
     var o = OUTFITS[i];
@@ -2424,13 +2761,13 @@
   };
   var updateBook = function () {
     sceneT++;
-    var W = BB.W, n = BOOK.length;
+    var W = BB.W, pages = bookPages(), n = pages.length;
     var turn = function (d) { var np = bookPage + d; if (np < 0 || np >= n) { sfx('bump'); return; } bookPage = np; sceneT = 0; sfx('select'); };
     var close = function () { store(); sfx('select'); wipeTo(function () { go('map'); mapEnter(); }); };
     if (BB.hit('start') || BB.hit('b') || (BB.tap && tapIn(W - 18, 0, 18, 18))) { close(); return; }
     if (BB.tap && tapIn(0, 40, 20, 70)) { turn(-1); return; }
     if (BB.tap && tapIn(W - 20, 40, 20, 70)) { turn(1); return; }
-    if (bookPage === 2) {
+    if (pages[bookPage] === 'outfits') {
       outfitCells().forEach(function (c, i) { if (tapIn(c.x, c.y, c.w, c.h)) { outfitAt = i; wearOutfit(i); } });
       if (BB.hit('left')) { if (outfitAt > 0) { outfitAt--; sfx('select'); } else turn(-1); }
       if (BB.hit('right') && outfitAt < OUTFITS.length - 1) { outfitAt++; sfx('select'); }
@@ -2441,24 +2778,25 @@
     }
   };
   var drawBook = function (ctx) {
-    var W = BB.W, k = bookPage;
+    var W = BB.W, k = bookPage, pages = bookPages(), pg = pages[k];
     ctx.fillStyle = '#5a3a6a'; ctx.fillRect(0, 0, W, H);
     UI.paper(ctx, 2, 4, W - 4, H - 8);
     // the spine down the middle of the open book
     ctx.fillStyle = 'rgba(160,120,80,0.25)'; ctx.fillRect(W / 2 - 0.5, 8, 1, H - 20);
-    UI.ribbon(ctx, W / 2, 1, BOOK[k], BOOK_COL[k]);
+    UI.ribbon(ctx, W / 2, 1, PAGE_NAME[pg], PAGE_COL[pg]);
     var nb = bearsHome();
-    if (k === 0) {
-      // Bear, from every land he came home from
-      var cw = (W - 24) / 5;
+    if (pg === 'bear1' || pg === 'bear2') {
+      // Bear, from every land on this island he came home from
+      var lo = pg === 'bear2' ? 10 : 0, cw = (W - 24) / 5, here = 0;
       for (var i = 0; i < 10; i++) {
-        var cx = 12 + cw * (i % 5) + cw / 2, by = i < 5 ? 58 : 104, found = !!save.bears[i + 1];
+        var cx = 12 + cw * (i % 5) + cw / 2, by = i < 5 ? 58 : 104, found = !!save.bears[lo + i + 1];
+        if (found) here++;
         drawSticker(ctx, E.bear.sit[0], found, cx, by, Math.min(cw - 4, 34));
-        BB.text(ctx, String(i + 1), cx, by + 3, { color: found ? INK : UI.SOFT, align: 'center' });
+        BB.text(ctx, String(lo + i + 1), cx, by + 3, { color: found ? INK : UI.SOFT, align: 'center' });
         if (!found) BB.text(ctx, '?', cx, by - 13, { color: '#c8a878', align: 'center' });
       }
-      BB.text(ctx, 'BEAR CAME HOME: ' + nb + '/10', W / 2, 18, { color: INK, align: 'center' });
-    } else if (k === 1) {
+      BB.text(ctx, 'BEAR CAME HOME: ' + here + '/10', W / 2, 18, { color: INK, align: 'center' });
+    } else if (pg === 'creatures') {
       var met = 0, cols = W > 200 ? 9 : 6, cw2 = (W - 24) / cols, rowsN = Math.ceil(STICKER_ORDER.length / cols), rh = Math.min(30, 94 / rowsN);
       STICKER_ORDER.forEach(function (key, i) {
         var f = !!save.met[key]; if (f) met++;
@@ -2483,8 +2821,8 @@
     }
     // turning the page: arrows at the edges, dots at the foot
     if (k > 0) BB.text(ctx, '←', 6, 76, { color: INK });
-    if (k < BOOK.length - 1) BB.text(ctx, '→', W - 12, 76, { color: INK });
-    for (var d = 0; d < BOOK.length; d++) BB.icons.disc(ctx, W / 2 - 6 + d * 6, H - 9, d === k ? 1.6 : 1.1, d === k ? INK : '#d8bc8c');
+    if (k < pages.length - 1) BB.text(ctx, '→', W - 12, 76, { color: INK });
+    for (var d = 0; d < pages.length; d++) BB.icons.disc(ctx, W / 2 - (pages.length - 1) * 3 + d * 6, H - 9, d === k ? 1.6 : 1.1, d === k ? INK : '#d8bc8c');
     // close
     BB.text(ctx, 'X', W - 11, 6, { color: INK });
   };
@@ -2530,7 +2868,10 @@
   var HINTS = [
     [['t', 'HOLD'], ['g', 'jump'], ['t', 'TO JUMP HIGHER']], [['t', 'BOUNCE ON THE TRAMPOLINES']], [['t', 'WATCH OUT FOR THE SEA']],
     [['t', 'TAP'], ['g', 'jump'], ['t', 'TO SWIM']], [['t', 'TURN AND FACE THE GHOSTS']], [['t', 'ROCKS DROP FROM THE ROOF']],
-    [['t', 'THE ICE IS SLIPPERY']], [['t', 'CLIMB UP THE CLOUDS']], [['t', 'TWO STOMPS FOR A ROBOT']], [['t', 'SAVE MONSTY!']]
+    [['t', 'THE ICE IS SLIPPERY']], [['t', 'CLIMB UP THE CLOUDS']], [['t', 'TWO STOMPS FOR A ROBOT']], [['t', 'SAVE MONSTY!']],
+    [['t', 'HOP ACROSS THE BOATS']], [['t', 'BOUNCE ON THE JELLY']], [['t', 'THE WIND WILL PUSH YOU']], [['t', 'SOME STONES CRUMBLE']],
+    [['t', 'BOUNCE ON THE MUSHROOMS']], [['t', 'TAP'], ['g', 'jump'], ['t', 'TO SWIM']], [['t', 'SINKING SAND!']], [['t', 'JUMPS ARE FLOATY HERE']],
+    [['t', 'CLIMB THE TOWER']], [['t', 'STOMP CAPTAIN MAGPIE!']]
   ];
 
   /* ---- pause ---- */
@@ -2611,6 +2952,11 @@
     ['GRUMBLE THE DRAGON', '#7ee058'], ['WILL BE NICER NOW', '#9098b0'], ['', ''], ['', ''], ['MADE WITH LOVE', '#ffffff'], ['FOR BONNIE', '#ff94cc'], ['', ''], ['', ''], ['THE END', bright]
   ];
   var endFx = [], endBg = null;
+  var CREDITS2 = [
+    ['HOORAY!', bright], ['THE PRESENTS ARE BACK!', '#ffffff'], ['', ''], ['HAPPY BIRTHDAY, MONSTY!', '#ff94cc'], ['', ''], ['', ''],
+    ['BONNIE BOUNCE', bright], ['', ''], ['STARRING', '#9098b0'], ['BONNIE', '#ffffff'], ['', ''], ['AND MONSTY', '#ab86f3'], ['AND BEAR THE CAT', '#c9c7da'], ['', ''],
+    ['CAPTAIN MAGPIE', '#78d8ff'], ['SAYS SORRY', '#9098b0'], ['', ''], ['', ''], ['MADE WITH LOVE', '#ffffff'], ['FOR BONNIE', '#ff94cc'], ['', ''], ['', ''], ['THE END', bright]
+  ];
   /* The ending opens on the reunion before any words: Monsty bounds in
      from one side, Bonnie runs in from the other, they meet in a burst of
      hearts — and Bear, if he's come home from anywhere, trots in to join
@@ -2628,7 +2974,11 @@
     endFx.forEach(function (f) { f.t++; f.x += f.vx; f.y += f.vy; f.vy += 0.03; f.vx *= 0.98; });
     endFx = endFx.filter(function (f) { return f.t < 50; });
     var end = CREDITS.length * 11 + H + 20 + REUNION;
-    if (sceneT > 120 && (BB.hit('start') || ((sceneT * 0.3 > end || BB.tap) && (BB.hit('a') || BB.tap)))) wipeTo(function () { go('title'); BB.music(TITLE_SONG); });
+    if (sceneT > 120 && (BB.hit('start') || ((sceneT * 0.3 > end || BB.tap) && (BB.hit('a') || BB.tap)))) {
+      if (endLand === 1 && !save.seenStory2) wipeTo(function () { go('story2'); BB.music('map2'); });
+      else if (endLand === 1) wipeTo(function () { go('map'); mapEnter(); });
+      else wipeTo(function () { go('title'); BB.music(TITLE_SONG); });
+    }
   };
   var drawEnding = function (ctx) {
     var W = BB.W, t = reduce ? REUNION + 60 : sceneT;
@@ -2655,15 +3005,22 @@
       var bfr = kb < 1 ? E.bear.walk[Math.floor(t / 5) % 2] : (t % 160 > 150 ? E.bear.happy : E.bear.sit[Math.floor(t / 24) % 2]);
       BB.draw(ctx, bfr, bearX, 128 - bfr.h, true);
     }
+    if (endLand === 2) {
+      BB.draw(ctx, A.en.dragon.walk[Math.floor(t / 20) % 2], mid + 30, 128 - A.en.dragon.walk[0].h);
+      var Cp = E.captain; if (Cp) BB.draw(ctx, Cp.land, mid - 64, 128 - Cp.land.h, true);
+      if (!reduce) for (var pi = 0; pi < 6; pi++) { var py = (t * 0.6 + pi * 37) % 140 - 20; BB.draw(ctx, A.qblock[pi % 3], (pi * 53 + 17) % (W - 8), py); }
+    }
     // the words roll up, once they've had their moment
     if (t < REUNION) {
-      if (t > meet + 20) BB.text(ctx, 'MONSTY!', mid, 70, { color: '#ffe048', outline: dark, align: 'center', scale: 2 });
+      if (t > meet + 20) BB.text(ctx, endLand === 2 ? 'PARTY TIME!' : 'MONSTY!', mid, 70, { color: '#ffe048', outline: dark, align: 'center', scale: 2 });
       return;
     }
     var y0 = reduce ? 10 : H - (sceneT - REUNION) * 0.3;
-    var lines = CREDITS.slice();
+    var lines = (endLand === 2 ? CREDITS2 : CREDITS).slice();
     // just after Bear's name: how many lands he came home from (short enough for 160px)
-    lines.splice(13, 0, [nb === 10 ? 'FOUND IN EVERY LAND!' : 'FOUND IN ' + nb + ' OF 10 LANDS', '#9098b0']);
+    var lands = endLand === 2 ? 20 : 10;
+    if (endLand === 1) { nb = 0; for (var bi = 1; bi <= 10; bi++) if (save.bears[bi]) nb++; }
+    lines.splice(13, 0, [nb === lands ? 'FOUND IN EVERY LAND!' : 'FOUND IN ' + nb + ' OF ' + lands + ' LANDS', '#9098b0']);
     lines.forEach(function (c, i) {
       var y = Math.round(y0 + i * 11);
       if (reduce) y = 8 + (i % 9) * 11;
@@ -2714,6 +3071,7 @@
       case 'clear': updateClear(); break;
       case 'over': updateOver(); break;
       case 'ending': updateEnding2(); break;
+      case 'story2': updateStory2(); break;
       case 'book': updateBook(); break;
       case 'grownups': updateGrownups(); break;
     }
@@ -2731,6 +3089,7 @@
       case 'clear': drawClear(ctx); break;
       case 'over': drawOver(ctx); break;
       case 'ending': drawEnding(ctx); break;
+      case 'story2': drawStory2(ctx); break;
       case 'book': drawBook(ctx); break;
       case 'grownups': drawGrownups(ctx); break;
     }
@@ -2742,8 +3101,8 @@
   BB.music(TITLE_SONG);
   // ?level=N goes straight into a level (for testing)
   var lv = /[?&]level=(\d+)/.exec(qs);
-  if (lv) { save.at = Math.max(1, Math.min(10, +lv[1])); save.unlocked = Math.max(save.unlocked, save.at); go('card'); }
-  BB.game = { save: function () { return save; }, G: function () { return G; }, scene: function () { return scene; }, go: go, startLevel: startLevel, theme: function (n) { return theme(n); } };
+  if (lv) { save.at = Math.max(1, Math.min(BB.LEVELS.length, +lv[1])); save.unlocked = Math.max(save.unlocked, save.at); go('card'); }
+  BB.game = { save: function () { return save; }, G: function () { return G; }, scene: function () { return scene; }, go: go, startLevel: startLevel, mapEnter: function (from) { mapEnter(from); }, theme: function (n) { return theme(n); } };
   /* For tools/overview.html: the whole of level n drawn flat, in strips
      `seg` pixels wide, every enemy and item shown where it starts. */
   BB.game.overview = function (n, seg) {

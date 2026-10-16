@@ -474,4 +474,439 @@
     });
     return parts;
   })());
+
+  /* ==========================================================================
+     MAGPIE ISLES — the second land, levels 11–20. Captain Magpie has
+     pinched Monsty's birthday presents and flown off with them; his crew,
+     the islands' locals and their scenery, in the same hand as the rest.
+     ========================================================================== */
+  // four more ramps, deep to shine: a magpie's blue-green gloss (the glowing
+  // mushrooms share it), the Captain's coat, a raspberry jelly (its deep
+  // borrowed from the reds, its shine kept back for stamped glints) and a
+  // moon-rock lilac
+  PAL['@'] = '#0c3c58'; PAL['+'] = '#14708c'; PAL['='] = '#20a8c0'; PAL['-'] = '#5ce0e0'; PAL[':'] = '#d4fff8';
+  PAL[';'] = '#1a2262'; PAL['_'] = '#2a3c9a'; PAL['|'] = '#3c5cd4'; PAL['?'] = '#6e8ef2'; PAL['/'] = '#bccfff';
+  PAL['0'] = '#c0204c'; PAL['9'] = '#ee4068'; PAL['K'] = '#ff88a4';
+  PAL['`'] = '#b4a6e6';
+  var TEAL = '@+=-:', COAT = ';_|?/', RASP = 'u099K', MOON = 'ij`ew';
+  var INK = 'fghij', SNOW = '21WwR', RED = 'uvxyz', GOLD = 'ABCDF', WOOD = 'STUVX', IRON = 'NOPQR', CACT = '[]{}~', PINK = 'pqrst';
+  var both = function (a, b) { return function (x, y) { return a(x, y) && b(x, y); }; };
+  var but = function (a, b) { return function (x, y) { return a(x, y) && !b(x, y); }; };
+  // a tone k steps lighter (or darker, k < 0) along its ramp
+  var step = function (t, ch, k) { var i = t.indexOf(ch); return i < 0 ? ch : t.charAt(Math.max(0, Math.min(t.length - 1, i + k))); };
+  // a shape (or a texture) turned by a about a pivot
+  var turned = function (f, px, py, a) {
+    var c = Math.cos(a), s = Math.sin(a);
+    return function (x, y) { var dx = x - px, dy = y - py; return f(px + dx * c + dy * s, py - dx * s + dy * c); };
+  };
+  var bloom = function (cx, cy, n, d, rx, ry, a0) {
+    var ps = [];
+    for (var i = 0; i < n; i++) ps.push(petal(cx, cy, a0 + i / n * Math.PI * 2, d, rx, ry));
+    return or.apply(null, ps);
+  };
+  var EYE_L = ['.###.', '#www#', '#Eww#', '#EEw#', '#EEE#', '.###.'];
+
+  /* A magpie's wing, from the shoulder (sx, sy) out along angle a, `len`
+     long and `wid` wide: a smooth leading edge and a trailing edge scalloped
+     into feather tips. Glossy blue-black along the front and by the
+     shoulder, the white flash in the middle, black at the tips and along
+     the scallops. `back` (+1 or -1) says which side the trailing edge is
+     on; `far` dims it, for the wing on the far side. */
+  var magWing = function (sx, sy, a, len, wid, back, far) {
+    var ca = Math.cos(a), sa = Math.sin(a);
+    var uv = function (x, y) { var dx = x - sx, dy = y - sy; return [(dx * ca + dy * sa) / len, (-dx * sa + dy * ca) * back / wid]; };
+    var half = function (u) { return Math.sqrt(Math.max(0, 1 - (2 * u - 1) * (2 * u - 1))); };
+    var R = { flash: far ? '1122W' : SNOW, tip: far ? 'ffggh' : INK, sheen: far ? 'ff@@+' : 'fg@+=' };
+    var cx = sx + ca * len * 0.45 - len * 0.15, cy = sy + sa * len * 0.45 - len * 0.15;
+    var lit = function (t) { return orb(cx, cy, len * 0.75, len * 0.75, t); };
+    var tone = { flash: lit(R.flash), tip: lit(R.tip), sheen: lit(R.sheen) };
+    return [P('W', function (x, y) {
+      var q = uv(x, y), u = q[0], v = q[1];
+      if (u < 0 || u > 1) return false;
+      return v > -half(u) * 0.8 && v < half(u) + 0.4 * u * Math.abs(Math.sin(u * Math.PI * 3.5));
+    }, function (x, y) {
+      var q = uv(x + 0.5, y + 0.5), u = q[0], v = q[1], h = half(u);
+      var band = v < -h * 0.4 || u < 0.36 ? 'sheen' : u > 0.84 || v > h * 0.8 ? 'tip' : 'flash', t = tone[band](x, y);
+      // the long feathers' edges, a tone down
+      return band === 'flash' && v > -h * 0.2 && Math.abs(((u * 3.5 + 0.25) % 1) - 0.5) < 0.09 ? step(R.flash, t, -1) : t;
+    }, 'f')];
+  };
+
+  // Magpie: one of the Captain's crew, a cheeky black-and-white flier in a
+  // spotty red bandana; the long tail and the wings have that blue-green gloss
+  var BANDANA_DOTS = [[5, 4], [9, 4], [7, 6], [11, 6]];
+  E.magpie = [0, 1].map(function (f) {
+    var b = f ? 0 : 1;
+    var wing = f ? magWing(15.5, 12, 1.15, 10.5, 3.6, -1) : magWing(16, 11 + b, -1.05, 11.5, 3.8, 1);
+    return build(28, 22, [
+      P('+', or(cap(18.5, 12.5 + b, 25.2, 9.4 + b, 1.8), ell(25.2, 9.4 + b, 2.6, 2.1)), orb(22, 10 + b, 6.5, 3, '@@+=-'), '@'),
+      O(14.4, 12.4 + b, 6.8, 5.6, INK),
+      P('W', both(ell(14.4, 12.4 + b, 6.8, 5.6), ell(12.8, 16 + b, 6, 3.8)), orb(12.5, 12 + b, 7.2, 5.4, SNOW))
+    ].concat(wing).concat([
+      O(7.5, 9 + b, 5.8, 5.5, INK, 'f'),
+      P('O', tri(0.3, 10.6 + b, 3.8, 8.8 + b, 3.8, 12.2 + b), orb(2, 10 + b, 3.2, 2.4, IRON), 'N'),
+      P('x', or(petal(12.4, 6 + b, 0.05, 2, 2.4, 1.5), petal(12.4, 6.8 + b, 0.85, 1.8, 2.2, 1.4)), orb(13.4, 5.6 + b, 3.4, 2.6, RED), 'u'),
+      P('x', both(ell(7.5, 9 + b, 6.2, 5.9), function (x, y) { return y < 7 + b + (x - 7.5) * 0.25; }),
+        function (x, y) { return BANDANA_DOTS.some(function (d) { return d[0] === x && d[1] + b === y; }) ? 'z' : orb(8, 4 + b, 7, 4, RED)(x, y); }, 'u')
+    ]), [[3, 7 + b, EYE]]);
+  });
+
+  // Scorpion: a sandy little desert scorpion, pincers up, tail curled over
+  // and ending in a soft round bobble (no sting)
+  E.scorpion = [0, 1].map(function (f) {
+    var k = f ? 1.3 : -1.3, sw = f ? 0.6 : 0, op = f ? 0.6 : 0;
+    var legs = [10, 13.5, 17, 20.5].map(function (x, i) { return P('l', cap(x, 15, x + (i % 2 ? k : -k), 19.3, 0.9)); });
+    var tail = [[20, 11.2, 2.9], [22.8 + sw * 0.5, 8.2, 2.6], [23.8 + sw, 5.2, 2.35], [22.8 + sw, 2.7, 2.1]].map(function (s) { return O(s[0], s[1], s[2], s[2], 'klmno', 'k'); });
+    // a pincer: a round mitten with a nick cut in its front
+    var claw = function (x, y) { return but(ell(x, y, 2.9, 2.4), tri(x - 3.6, y - 1 - op, x - 0.2, y + 0.2, x - 3.6, y + 1.2 + op)); };
+    return build(26, 20, legs.concat(tail).concat([
+      O(19.8 + sw, 2.7, 2.5, 2.4, 'lmnoo', 'k'),
+      P('m', cap(6.5, 10.5, 4, 7.6, 1.2), null, 'k'), P('m', claw(3.2, 6.6), orb(3, 6, 3.4, 3, 'klmno'), 'k'),
+      P('m', ell(15, 12.6, 7.6, 4.6), function (x, y) { return (x === 13 || x === 16 || x === 19) && y > 8 ? 'l' : orb(14, 11, 8, 5, 'klmno')(x, y); }, 'k'),
+      O(7.5, 12, 5.4, 5, 'klmno', 'k'),
+      P('m', cap(7, 15.4, 4, 15.4, 1.2), null, 'k'), P('m', claw(3, 15), orb(3, 14, 3.4, 3, 'klmno'), 'k')
+    ]), [[2, 9, EYE], [6, 9, EYE], [5, 14, ['.#.', '#.#']]]);
+  });
+
+  // Tumbleweed: a ball of twigs bowling along (the twigs turn, the face
+  // doesn't), two eyes peeking out of the dark inside it
+  var PEEK = ['.ww.', 'wEww', 'wEEw', '.ww.'];
+  E.tumble = [0, 1].map(function (f) {
+    var th = f * Math.PI / 5, cx = 10, cy = 10.8, lit = orb(cx, cy, 9, 9, 'TUVXY'), arcs = [], holes = [];
+    var hollow = ell(10.2, 10.6, 5.4, 3.2);
+    for (var k = 0; k < 5; k++) { var a = k * Math.PI * 2 / 5 - th; arcs.push([cx + Math.cos(a) * 4.4, cy + Math.sin(a) * 4.4, 5.2 + (k % 2)]); }
+    // gaps between the twigs, round the top and bottom (never over the eyes)
+    [-2, -1, 1, 2].forEach(function (b) { var a = b - th; holes.push(ell(cx + Math.cos(a) * 6.6, cy + Math.sin(a) * 6.6, 1.1, 1.1)); });
+    return build(20, 20, [
+      P('V', function (x, y) {
+        var dx = x - cx, dy = y - cy, a = Math.atan2(dy, dx) + th, r = Math.sqrt(dx * dx + dy * dy);
+        if (r > 8.1 + Math.sin(a * 5) * 0.5 + Math.pow(Math.max(0, Math.sin(a * 9)), 10) * 1.2) return false;
+        return !holes.some(function (h) { return h(x, y); });
+      }, function (x, y) {
+        if (hollow(x + 0.5, y + 0.5)) return y < 10 ? 'T' : 'S';
+        var t = lit(x, y), hit = 0;
+        arcs.forEach(function (c) {
+          var ex = x + 0.5 - c[0], ey = y + 0.5 - c[1], d = Math.sqrt(ex * ex + ey * ey) - c[2];
+          if (Math.abs(d) < 0.5) hit = 2; else if (!hit && d > 0.5 && d < 1.3) hit = 1;
+        });
+        // each twig is a dark stroke with a lit edge beside it
+        return hit === 2 ? (t === 'T' || t === 'U' ? 'S' : 'T') : hit === 1 ? step('TUVXY', t, 1) : t;
+      }, 'T')
+    ], [[5, 9, PEEK], [11, 9, PEEK]]);
+  });
+
+  // Gummy bear: a raspberry jelly sweet, see-through and wobbly, waddling
+  var gummyLit = function (cx, cy, rx, ry) {
+    var o = orb(cx, cy, rx, ry, RASP);
+    return function (x, y) {
+      var dx = (x + 0.5 - cx) / rx - 0.28, dy = (y + 0.5 - cy) / ry - 0.34, d = dx * dx + dy * dy, t = o(x, y);
+      // light shining through gathers low on the far side, as it does in jelly
+      if (d < 0.12) return t === 'u' || t === '0' ? '9' : 'K';
+      if (d < 0.3 && t === 'u') return '0';
+      return t;
+    };
+  };
+  E.gummy = [0, 1].map(function (f) {
+    var s = f, l = f ? 0 : 1, r = f ? 1 : 0;
+    return build(22, 22, [
+      P('9', or(ell(5.4 + s, 3.4, 2.5, 2.4), ell(15.6 + s, 3.4, 2.5, 2.4)), gummyLit(10.5 + s, 3.4, 7, 2.6), '0'),
+      P('9', ell(11, 15.8, 6.2, 5.4), gummyLit(11, 15.8, 6.2, 5.4), '0'),
+      P('9', ell(10.5 + s, 8, 6.8, 5.6), gummyLit(10.5 + s, 8, 6.8, 5.6), '0'),
+      P('9', ell(4.8, 14.4 - l * 0.8, 2.2, 3), gummyLit(4.8, 14.4 - l, 2.2, 3), '0'),
+      P('9', ell(17.2, 14.4 - r * 0.8, 2.2, 3), gummyLit(17.2, 14.4 - r, 2.2, 3), '0'),
+      P('9', ell(7.4, 20.2 - l, 3, 1.8), gummyLit(7.4, 20 - l, 3, 2), '0'),
+      P('9', ell(14.6, 20.2 - r, 3, 1.8), gummyLit(14.6, 20 - r, 3, 2), '0'),
+      P('9', ell(9.4 + s, 10.9, 3, 2.1), gummyLit(9.4 + s, 10.6, 3, 2.1), '0')
+    ], [[4 + s, 5, EYE], [10 + s, 5, EYE], [8 + s, 9, ['uu']], [8 + s, 11, ['u..u', '.uu.']], [6 + s, 3, ['zz', 'z.']], [7, 13, ['z', 'z']]]);
+  });
+
+  // Monkey: a cheeky little monkey who sits up in the trees and lobs
+  // coconuts; [0] sitting ready, [1] his arm up to throw
+  var MFUR = 'SSTUV', MFACE = 'ZZYYw';
+  E.monkey = [0, 1].map(function (f) {
+    var parts = [P('T', limb([[18.5, 22], [23, 21.6], [24.6, 18], [23.4, 14.8], [21.2, 15.4]], 1.2), orb(22, 18, 4, 5, MFUR), 'S')];
+    if (f) parts.push(P('T', limb([[17, 15.5], [20.6, 11], [19.8, 5.4]], 1.6), orb(19, 10, 3, 6, MFUR), 'S'), O(19.6, 4, 2.2, 2.1, MFACE, 'Z'));
+    parts = parts.concat([
+      O(14.5, 18.5, 7, 6.6, MFUR, 'S'),
+      P('Y', both(ell(14.5, 18.5, 7, 6.6), ell(12.5, 19.6, 4.2, 4.6)), orb(12, 18, 5, 6, MFACE)),
+      O(10, 21.8, 3, 2.6, MFUR, 'S'), O(17, 22, 3, 2.6, MFUR, 'S'),
+      O(8.6, 24.2, 3, 1.7, MFACE, 'Z'), O(16, 24.4, 3, 1.7, MFACE, 'Z'),
+      P('T', limb([[10.5, 15.5], [7.6, 18], [7.4, 21]], 1.5), orb(8, 17, 3, 5, MFUR), 'S'), O(7.4, 21.4, 1.9, 1.7, MFACE, 'Z'),
+      O(3.6, 10.2, 2.3, 2.6, MFUR, 'S'), O(16.8, 9.6, 2.4, 2.7, MFUR, 'S'), P('Z', or(ell(3.6, 10.4, 1.2, 1.5), ell(17, 9.8, 1.3, 1.6))),
+      P('T', or(tri(8.6, 5.5, 10.4, 1.6, 12, 5.5), tri(11, 5.5, 13.8, 2.6, 13.6, 6)), orb(11, 4, 3, 3, MFUR), 'S'),
+      O(10.5, 10.5, 6.8, 6.3, MFUR, 'S'),
+      P('Y', or(ell(8, 9.6, 3.2, 3.2), ell(12.2, 9.6, 2.9, 3.1), ell(9.8, 13, 4.6, 3)), orb(9.6, 10.5, 6, 6, MFACE), 'Z')
+    ]);
+    // a cheeky grin while he waits; a hoot and a cocked brow as he throws
+    return build(26, 26, parts, [[6, 7, EYE], [11, 7, EYE], [9, 12, ['S.S']]].concat(f ? [[7, 14, ['.###.', '#xxx#', '.###.']], [5, 6, ['.##.']]] : [[7, 14, ['#...#', '.###.']]]));
+  });
+  E.coconut = build(10, 10, [P('U', ell(5, 5, 4.9, 4.7), function (x, y) {
+    var t = orb(5, 5, 4.9, 4.7, WOOD)(x, y);
+    return (x * 2 + y * 3) % 5 === 0 ? step(WOOD, t, -1) : t;
+  })], [[3, 2, ['G.G', '.G.']]]);
+
+  /* Captain Magpie, the sky-pirate who pinched Monsty's presents: a big
+     round magpie in a red captain's hat with a gold plume and a gold star,
+     a blue coat with gold buttons over his white front, and bushy white
+     brows set in a scowl. Flying (wings up, wings down), landed with his
+     wings folded (the moment to bounce on him), and bumped: eyes squeezed
+     shut, feathers ruffled, hat knocked askew. */
+  var captain = function (mode) {
+    var hurt = mode === 'hurt', landed = mode === 'land' || hurt;
+    var hx = 19, hy = 12, tilt = hurt ? 0.26 : 0, lift = hurt ? -1 : 0;
+    // the hat is drawn in its own frame, so a bump can knock it askew. A
+    // bicorne side on: a dome with both brims turned up into points, gold
+    // piping along the top edge
+    var hat = function (f) { return turned(function (x, y) { return f(x, y - lift); }, hx, hy + lift, tilt); };
+    var hatBot = function (x) { return 13 - 0.032 * (x - 19) * (x - 19); };
+    var hatTop = function (x) { var u = (x - 19) / 15; return hatBot(x) - 10 * Math.pow(Math.max(0, 1 - u * u), 0.8) - 0.8; };
+    var hatF = function (x, y) { return Math.abs(x - 19) < 15 && y < hatBot(x) && y > hatTop(x); };
+    var plume = or(cap(23, 4.6, 28.5, 2, 2.5), cap(28.5, 2, 34, 2.6, 2.2), cap(34, 2.6, 38.4, 6, 1.8), ell(39, 7, 1.5, 1.8));
+    var body = ell(31, 34, 16, 14.5), belly = ell(23, 36, 7.6, 10.5);
+    var wings = {
+      up: [magWing(38, 25, -0.7, 21, 6.4, 1, true), magWing(32, 27, -0.95, 26, 7.6, 1)],
+      down: [magWing(38, 29, 0.85, 18, 6, -1, true), magWing(32, 30, 1.1, 22, 7.2, -1)],
+      land: [[], magWing(27, 27, 0.66, 22, 6, -1)],
+      hurt: [magWing(38, 25, -1, 20, 6.2, 1, true), magWing(31, 27, -1.3, 24, 7.4, 1)]
+    }[mode];
+    var parts = [
+      P('+', cap(42, 38, 55, 31, 2.6), orb(48, 32, 9, 6, '@@+=-'), '@'),
+      P('+', cap(42, 35, 54.5, 25.5, 2.4), orb(48, 28, 9, 6, '@@+=-'), '@')
+    ].concat(wings[0]);
+    if (hurt) parts.push(P('g', or(tri(44, 26, 51, 21, 47, 31), tri(17, 45, 12, 50, 21, 47.6), tri(46, 40, 52, 44, 45, 45)), orb(40, 30, 14, 14, INK), 'f'));
+    parts.push(
+      landed ? P('O', or(cap(26, 45, 25, 50.4, 1.2), cap(35, 45, 36, 50.4, 1.2), cap(25, 50.6, 20.6, 51, 1.1), cap(25.4, 50.6, 28.4, 51.2, 0.9), cap(36, 50.6, 31.6, 51, 1.1), cap(36.4, 50.6, 39.4, 51.2, 0.9)), orb(30, 48, 8, 4, IRON), 'N')
+        : P('O', or(ell(25, 48.2, 2.6, 1.6), ell(33, 48.6, 2.6, 1.6)), orb(29, 47, 6, 3, IRON), 'N'),
+      P('|', body, function (x, y) { return ell(23, 36, 8.8, 11.7)(x + 0.5, y + 0.5) ? orb(21, 30, 10, 12, GOLD)(x, y) : orb(26, 27, 18, 16, COAT)(x, y); }, ';'),
+      P('W', both(body, belly), orb(21, 31, 9, 12, SNOW), '2'),
+      P('g', both(body, function (x, y) { return y > 40.5 && y < 44.5; }), orb(30, 41, 16, 4, 'fgghi'), 'f'),
+      P('C', rrect(19.5, 39.5, 25.5, 45.5, 1.2), function (x, y) { return rrect(21.4, 41.4, 23.6, 43.6, 0.4)(x + 0.5, y + 0.5) ? 'g' : orb(21, 41, 4, 4, GOLD)(x, y); }, 'A')
+    );
+    parts = parts.concat(wings[1]);
+    if (hurt) parts.push(P('g', or(tri(9, 15, 3.5, 12, 8, 19), tri(10, 25, 4.5, 30, 12, 28.5)), orb(14, 20, 10, 10, INK), 'f'));
+    parts.push(
+      O(19, 21, 11.5, 10.8, INK, 'f'),
+      P('O', or(tri(0.8, 26, 10, 21.4, 10.5, 29.6), ell(8.4, 25.4, 3.2, 3.8)), function (x, y) {
+        return Math.abs(y + 0.5 - (26.2 + (x - 1) * 0.04)) < 0.5 && x < 9 ? 'N' : orb(5, 24, 7, 4.5, IRON)(x, y);
+      }, 'N'),
+      P('C', hat(plume), hat(function (x, y) { return Math.floor(x * 0.9 - y + 40) % 3 === 0 ? 'B' : orb(30, 1, 10, 6, GOLD)(x, y); }), 'A'),
+      P('x', hat(hatF), hat(function (x, y) {
+        var t = hatTop(x + 0.5);
+        if (y + 0.5 < t + 1.6) return orb(17, 4, 16, 8, GOLD)(x, y);
+        return y + 0.5 > hatBot(x + 0.5) - 1.6 ? 'v' : orb(15, 4, 14, 10, RED)(x, y);
+      }), 'u')
+    );
+    // the star on his hat goes wherever the hat goes
+    var c = Math.cos(tilt), s = Math.sin(tilt), sx = 12, sy = 4;
+    var st = [[Math.round(hx + (sx - hx) * c - (sy - hy) * s), Math.round(hy + lift + (sx - hx) * s + (sy - hy) * c), ['...D...', '..DDC..', 'DDDDCCB', '.DDCCB.', '.DC.CB.', '.D...B.']]];
+    st = st.concat(hurt
+      ? [[10, 17, ['w....', '.ww..', '...ww', '.ww..', 'w....']], [17, 17, ['....w', '..ww.', 'ww...', '..ww.', '....w']], [9, 14, ['...WW', 'WWW..']], [17, 14, ['WW...', '..WWW']]]
+      : [[10, 16, EYE_L], [17, 16, EYE_L], [9, 14, ['WWW..', '...WW']], [17, 14, ['..WWW', 'WW...']]]);
+    st.push([31, 27, ['DC', 'CB']], [33, 32, ['DC', 'CB']], [33, 37, ['DC', 'CB']]);
+    return build(56, 52, parts, st);
+  };
+  E.captain = { fly: [captain('up'), captain('down')], land: captain('land'), hurt: captain('hurt') };
+
+  /* ---- the islands' scenery ---- */
+  // Desert: a tall cactus with a pink flower on its head and a little round
+  // one; ribbed, with pale prickles kept politely short
+  var ribbed = function (cx, cy, rx, ry, every) {
+    var o = orb(cx, cy, rx, ry, CACT);
+    return function (x, y) {
+      var c = o(x, y);
+      if ((Math.floor(x + 0.5 - cx + 100) % every) === 0) return step(CACT, c, -1);
+      return (x * 7 + y * 11) % 19 === 0 ? 'o' : c;
+    };
+  };
+  D.cactus = build(22, 34, [
+    P('{', limb([[7.5, 22], [3.3, 21.6], [3.3, 14]], 2.6), ribbed(3, 16, 4, 9, 3), '['),
+    P('{', limb([[14.5, 18.5], [18.7, 18], [18.7, 11]], 2.6), ribbed(18, 13, 4, 9, 3), '['),
+    P('{', or(cap(11, 9, 11, 30, 5.4), rrect(5.6, 24, 16.4, 34, 2)), ribbed(10, 16, 7, 18, 3), '['),
+    P('r', bloom(11, 3.4, 5, 1.9, 2, 1.5, -Math.PI / 2), orb(10, 2.6, 3.4, 3.2, PINK), 'p')
+  ], [[10, 3, ['DC', 'CB']]]);
+  var barrelRibs = function (cx, cy, rx, ry) {
+    var o = orb(cx, cy, rx, ry, CACT);
+    return function (x, y) {
+      var c = o(x, y), dy = (y + 0.5 - cy) / ry, w = Math.sqrt(Math.max(0.04, 1 - dy * dy)), u = (x + 0.5 - cx) / (rx * w);
+      if (Math.abs(((u * 2.2 + 10.5) % 1) - 0.5) < 0.16) return step(CACT, c, -1);
+      return (x * 5 + y * 7) % 17 === 0 ? 'o' : c;
+    };
+  };
+  D.cactusS = build(16, 20, [
+    P('{', or(ell(8, 12.2, 7.4, 7.6), rrect(1.4, 14, 14.6, 20, 2.5)), barrelRibs(8, 12.2, 7.4, 7.6), '['),
+    P('r', bloom(8, 4.4, 5, 1.7, 1.8, 1.4, -Math.PI / 2), orb(7, 3.6, 3, 3, PINK), 'p')
+  ], [[7, 4, ['DC', 'CB']]]);
+
+  // Candy: a swirly lollipop on a paper stick with a bow, and a stripy cane
+  D.lollipop = build(18, 40, [
+    P('W', rrect(7.2, 15, 10.8, 40, 1.2), orb(8.4, 27, 2.4, 14, SNOW), '2'),
+    P('r', ell(9, 8.6, 8.4, 8.2), function (x, y) {
+      var dx = x + 0.5 - 9, dy = y + 0.5 - 8.6, r = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx) / (Math.PI * 2);
+      return orb(9, 8.6, 8.4, 8.2, ((2 * a + r / 4.4) % 1 + 1) % 1 < 0.5 ? 'ppqrs' : SNOW)(x, y);
+    }, 'p'),
+    P('x', or(tri(9, 18.4, 3.6, 15.2, 4.2, 21.6), tri(9, 18.4, 14.4, 15.2, 13.8, 21.6)), orb(7, 16, 6, 4, RED), 'u'),
+    O(9, 18.4, 1.9, 1.8, RED, 'u')
+  ]);
+  D.candycane = build(14, 36, (function () {
+    var pts = [[9.5, 35.6], [9.5, 8]];
+    for (var k = 1; k <= 8; k++) { var a = -k / 8 * (Math.PI + 0.55); pts.push([6 + Math.cos(a) * 3.5, 8 + Math.sin(a) * 3.5]); }
+    return [P('w', limb(pts, 2.3), function (x, y) {
+      var hook = y < 8.5, band = hook ? Math.floor((Math.atan2(y + 0.5 - 8, x + 0.5 - 6) + 4) / 0.62) % 2 : Math.floor((y - x * 0.8 + 40) / 2.8) % 2;
+      return (hook ? orb(6, 7, 6, 6, band ? RED : SNOW) : orb(9.5, 20, 2.6, 30, band ? RED : SNOW))(x, y);
+    })];
+  })());
+
+  // Pirate bits: an anchor, a barrel, a life ring
+  D.anchor = build(20, 22, [
+    P('P', or(
+      but(ell(10, 4.4, 3.4, 3.4), ell(10, 4.4, 1.3, 1.3)),
+      rrect(8.4, 7, 11.6, 21.6, 1.2),
+      rrect(3.6, 8.8, 16.4, 11.8, 1.4),
+      function (x, y) { var dx = x - 10, dy = y - 13.6, d = Math.sqrt(dx * dx + dy * dy); return y > 13.6 && Math.abs(d - 7.2) < 1.7; },
+      tri(0.2, 11, 5.8, 15.4, 0.6, 17.6), tri(19.8, 11, 14.2, 15.4, 19.4, 17.6)
+    ), orb(7, 8, 13, 15, IRON), 'N')
+  ]);
+  D.barrel = build(18, 20, [
+    P('U', function (x, y) { var dy = (y - 10.5) / 9.5; return y > 0.6 && y < 20 && Math.abs(x - 9) < 8.4 - dy * dy * 2; }, function (x, y) {
+      var dy = (y + 0.5 - 10.5) / 9.5, hw = 8.4 - dy * dy * 2, u = (x + 0.5 - 9) / hw * 8.4;
+      if ((y >= 4 && y <= 5) || (y >= 15 && y <= 16)) return orb(7, 6, 11, 14, IRON)(x, y);
+      if (y < 2) return 'X';
+      return Math.floor(u + 100) % 4 === 1 ? 'T' : orb(7, 7, 11, 13, WOOD)(x, y);
+    }, 'S')
+  ]);
+  D.buoy = build(16, 16, (function () {
+    var c = Math.cos(-0.3), s = Math.sin(-0.3);
+    var loc = function (x, y) { var dx = x - 8, dy = y - 8.1; return [dx * c + dy * s, -dx * s + dy * c]; };
+    var ring = function (x, y) { var p = loc(x, y), ox = p[0] / 6.6, oy = p[1] / 7.8, ix = p[0] / 2.4, iy = p[1] / 3.1; return ox * ox + oy * oy <= 1 && ix * ix + iy * iy > 1; };
+    return [P('x', ring, function (x, y) {
+      var p = loc(x + 0.5, y + 0.5), q = (Math.atan2(p[1], p[0]) + Math.PI / 4) / (Math.PI / 2) + 8, fr = q % 1;
+      // rope bound round it where the colours meet
+      if (fr < 0.1 || fr > 0.9) return Math.floor(x + y) % 2 ? 'V' : 'U';
+      return orb(6.5, 6.5, 8, 8.6, Math.floor(q) % 2 ? SNOW : RED)(x, y);
+    }, 'u')];
+  })());
+
+  // Jungle: a friendly old stone head, mossy on top, smiling in its sleep,
+  // and a big fern
+  var SAND = 'TUVXY';
+  D.totem = build(22, 30, [
+    P('V', or(rrect(0.4, 13, 4.2, 22, 1.6), rrect(17.8, 13, 21.6, 22, 1.6)), function (x, y) { return y === 17 ? 'T' : orb(6, 14, 16, 9, SAND)(x, y); }, 'T'),
+    P('V', or(ell(11, 13, 9, 8), rrect(2.4, 12, 19.6, 30, 4), rrect(1.6, 24, 20.4, 30, 1.6)), function (x, y) {
+      // carved bands: a ridge for the brow, a zigzag along the chin
+      if (y === 10) return 'X';
+      if (y === 11) return 'T';
+      if (y >= 26 && y <= 28) { var z = (x + (y - 26) * 2) % 6; return z < 2 ? 'T' : z === 2 ? 'X' : orb(8, 12, 15, 18, SAND)(x, y); }
+      return orb(8, 11, 15, 18, SAND)(x, y);
+    }, 'T'),
+    P('X', rrect(8.4, 13, 13.6, 21.4, 2.2), orb(9.6, 14, 4, 6, SAND), 'T')
+  ].concat(clump([[5.4, 6.4, 3.8], [11, 4.6, 4.6], [16.6, 6.4, 3.6], [2.8, 10, 2.2], [19.4, 9.6, 1.8]])), [
+    [3, 14, ['.TTT.', 'T...T']], [14, 14, ['.TTT.', 'T...T']], [4, 15, ['XXX']], [15, 15, ['XXX']],
+    [5, 22, ['T..........T', '.TTTTTTTTTT.', '..XXXXXXXX..']], [2, 19, ['3']], [18, 19, ['3']], [10, 2, ['r']], [16, 4, ['F']], [4, 6, ['s']]
+  ]);
+  D.fern = build(26, 20, (function () {
+    var parts = [];
+    // each frond a curve from the root, scalloped into leaflets, tapering
+    [[13.6, 2.4, 12.6, 9], [3.6, 4.6, 8.6, 3.6], [22.4, 4.6, 17.4, 3.6], [0.6, 14.2, 3, 6.4], [25.4, 14.2, 23, 6.4]].forEach(function (fr) {
+      var pts = [];
+      for (var k = 0; k <= 16; k++) { var t = k / 16, u = 1 - t; pts.push([u * u * 13 + 2 * u * t * fr[2] + t * t * fr[0], u * u * 20 + 2 * u * t * fr[3] + t * t * fr[1]]); }
+      parts.push(P('<', function (x, y) {
+        for (var i = 1; i < pts.length; i++) { var t = i / 16, r = (2.6 - 1.4 * t) * (0.56 + 0.56 * Math.abs(Math.sin(t * Math.PI * 5))), dx = x - pts[i][0], dy = y - pts[i][1]; if (dx * dx + dy * dy <= r * r) return true; }
+        return false;
+      }, function (x, y) {
+        for (var i = 0; i < pts.length; i++) { var dx = x + 0.5 - pts[i][0], dy = y + 0.5 - pts[i][1]; if (dx * dx + dy * dy < 0.45) return ')'; }
+        return orb(11, 6, 15, 13, LEAF)(x, y);
+      }, '('));
+    });
+    return parts;
+  })());
+
+  // Moon: a giant mushroom that breathes light, a cratered moon rock and a
+  // glassy star-flower
+  D.glowshroom = [0, 1].map(function (f) {
+    var tone = f ? '+=-::' : TEAL, spot = f ? 'w' : ':';
+    var spots = or(ell(7, 6.5, 2.2, 1.8), ell(14.5, 3.8, 2, 1.6), ell(19.6, 9, 1.8, 1.5), ell(4.4, 11.4, 1.4, 1.1), ell(12, 9.6, 1.4, 1.2));
+    return build(26, 34, [
+      P('W', or(rrect(9.6, 13, 16.4, 34, 3), ell(13, 31.6, 5.2, 2.6)), orb(11.5, 22, 5, 13, f ? '1WLww' : '21WLw'), '2'),
+      P('+', both(ell(13, 14, 11.4, 3.2), function (x, y) { return y > 13; }), function (x) { return x % 2 ? '@' : '+'; }, '@'),
+      P('=', both(ell(13, 14.5, 12.6, 12.8), function (x, y) { return y < 14.5; }), function (x, y) {
+        return spots(x + 0.5, y + 0.5) ? spot : orb(11, 9, 13, 12, tone)(x, y);
+      }, '@')
+    ]);
+  });
+  // a crater: shadowed on its upper left inside, lit on its lower right,
+  // with a bright lip below
+  var crater = function (cx, cy, rx, ry) {
+    var inside = ell(cx, cy, rx, ry), lip = ell(cx + 0.6, cy + 0.7, rx + 0.6, ry + 0.6);
+    return function (x, y) {
+      var X = x + 0.5, Y = y + 0.5;
+      if (inside(X, Y)) return (X - cx) / rx + (Y - cy) / ry < 0.2 ? 'i' : 'j';
+      return lip(X, Y) && Y > cy ? 'e' : null;
+    };
+  };
+  D.moonrock = build(24, 16, (function () {
+    var cs = [crater(7, 7.6, 2.6, 1.8), crater(15.4, 6.6, 1.8, 1.3), crater(17.4, 11.4, 2.2, 1.5), crater(9.6, 12, 1.4, 1)];
+    return [P('j', or(ell(12, 11, 11.5, 5.6), ell(8, 7.6, 6.6, 5.6), ell(16, 8, 5.8, 5.2), rrect(0.8, 11, 23.2, 16, 2.4)), function (x, y) {
+      for (var i = 0; i < cs.length; i++) { var t = cs[i](x, y); if (t) return t; }
+      return orb(9, 6, 13, 9, MOON)(x, y);
+    }, 'i')];
+  })());
+  // a kite-faceted star: one side of each point catches the light
+  var starShape = function (cx, cy, R, r0, a0) {
+    return function (x, y) {
+      var dx = x - cx, dy = y - cy, rr = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx) - a0, seg = Math.PI * 2 / 5;
+      var d = ((a % seg) + seg * 1.5) % seg - seg / 2;
+      return rr <= r0 + (R - r0) * (1 - Math.abs(d) / (seg / 2));
+    };
+  };
+  var starTex = function (cx, cy, a0, t) {
+    return function (x, y) {
+      var dx = x + 0.5 - cx, dy = y + 0.5 - cy, rr = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx) - a0, seg = Math.PI * 2 / 5;
+      var d = ((a % seg) + seg * 1.5) % seg - seg / 2;
+      if (rr < 1.3) return t[4];
+      if (Math.abs(d) * rr < 0.45) return t[3];
+      return d < 0 ? (dy < 0 ? t[3] : t[2]) : (dy < 0 ? t[2] : t[1]);
+    };
+  };
+  D.crystalflower = build(14, 22, [
+    P('-', rrect(5.3, 9, 8.7, 22, 1.4), orb(6, 15, 2.6, 8, '+=-::'), '+'),
+    P('-', petal(7, 19.6, -2.6, 3, 3.4, 1.8), orb(4, 17, 4, 3, '+=-::'), '+'),
+    P('-', petal(7, 17.2, -0.5, 3, 3.4, 1.8), orb(9, 15, 4, 3, '+=-::'), '+'),
+    P('r', starShape(7, 6.6, 6.6, 2.8, -Math.PI / 2), starTex(7, 6.6, -Math.PI / 2, PINK), 'p')
+  ], [[6, 6, ['w']]]);
+
+  // Clock tower: a brass lantern hung from a post, a big brass cog
+  D.lantern = build(12, 26, [
+    P('U', or(rrect(0.8, 2, 4, 26, 1), rrect(0, 23.4, 4.8, 26, 1.2), rrect(0.8, 1.6, 9.8, 4.4, 1)), orb(2.4, 10, 3, 14, WOOD), 'S'),
+    P('G', cap(8.2, 4, 8.2, 7.2, 0.8)),
+    P('7', rrect(4.6, 9, 11.6, 17.4, 1.4), orb(7, 11, 5, 6, '67788'), 'G'),
+    P('G', or(tri(8.1, 5.6, 4.2, 9.4, 12, 9.4), rrect(4.2, 8.4, 12, 10, 0.8)), orb(7, 7, 4, 3, INK), 'f'),
+    P('G', rrect(4.4, 16.6, 11.8, 18.8, 0.9), orb(7, 16, 4, 2, INK), 'f')
+  ], [[8, 10, ['G', 'G', 'G', 'G', 'G', 'G', 'G']], [6, 12, ['8.', '7.', '6.']]]);
+  D.gearBig = build(32, 32, (function () {
+    var N = 10, holes = [0, 1, 2, 3, 4].map(function (k) { var a = k * Math.PI * 2 / 5 - Math.PI / 2; return ell(16 + Math.cos(a) * 7.4, 16 + Math.sin(a) * 7.4, 2.1, 2.1); });
+    var shape = function (x, y) {
+      var dx = x - 16, dy = y - 16, r = Math.sqrt(dx * dx + dy * dy), u = Math.abs(((Math.atan2(dy, dx) * N / (Math.PI * 2) + 0.25) % 1 + 1) % 1 - 0.5) * 2;
+      if (r > 12.6 + Math.max(0, Math.min(1, (0.62 - u) * 6)) * 3 || r < 1.6) return false;
+      return !holes.some(function (h) { return h(x, y); });
+    };
+    return [P('C', shape, function (x, y) {
+      var dx = x + 0.5 - 16, dy = y + 0.5 - 16, r = Math.sqrt(dx * dx + dy * dy), t = orb(13, 13, 17, 17, GOLD)(x, y);
+      // a groove inside the rim and a raised hub
+      if (r > 10.6 && r < 11.6) return step(GOLD, t, -1);
+      if (r > 3.4 && r < 4.4) return step(GOLD, t, -1);
+      if (r <= 3.4) return step(GOLD, t, 1);
+      return t;
+    }, 'A')];
+  })());
+
+  // Sky ship: the Captain's pennant on a little post, a gold star on red
+  D.flagpost = build(16, 36, [
+    P('U', or(rrect(1.2, 4, 4.6, 36, 1), rrect(0.2, 32.4, 5.6, 36, 1.2)), orb(2.4, 20, 2.6, 18, WOOD), 'S'),
+    O(2.9, 2.9, 2.7, 2.7, GOLD, 'A'),
+    P('x', function (x, y) {
+      if (x < 4.2 || x > 15.8) return false;
+      var t = (x - 4.2) / 11.6;
+      return Math.abs(y - (10.6 + Math.sin(x * 0.6) * 1.1 * t)) < 5.6 * (1 - t) + 0.5;
+    }, function (x, y) { var w = Math.cos(x * 0.6), t = orb(6, 7, 10, 7, RED)(x, y); return t === 'z' || t === 'y' ? t : w > 0.5 ? 'y' : w < -0.5 ? 'v' : 'x'; }, 'u')
+  ], [[6, 8, ['..D..', 'DDDCB', '.DCB.', '.D.B.']]]);
 })();

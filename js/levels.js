@@ -151,7 +151,9 @@
   /* Scenery: from the theme's list, on open ground, never over a pipe, a
      stair or a set piece, and never under something it would poke into. */
   B.scatter = function (theme, seed) {
-    var A = BB.ART, rnd = BB.rng(seed), list = theme.deco;
+    // only scenery that has actually been drawn (a world can list one before it's painted)
+    var A = BB.ART, rnd = BB.rng(seed), list = theme.deco.filter(function (n) { return A.deco[n]; });
+    if (!list.length) return;
     var x = 4;
     while (x < this.w - 6) {
       var name = list[Math.floor(rnd() * list.length)];
@@ -640,6 +642,373 @@
       L.e('gate', 170, 15);
       L.e('dragon', 196);
       L.e('cage', 202);
+      L.box(206, 2, 212, 16, TL.HARD);
+    }
+  });
+
+  /* ==========================================================================
+     THE SECOND LAND — MAGPIE ISLES (levels 11–20)
+     Captain Magpie has pinched Monsty's birthday presents and flown off
+     across the sea. Each world has its own trick: boats that bob, jelly
+     to bounce on, wind that pushes, crumbling stones, glowing mushrooms,
+     swimming in a cave, sinking sand, the Moon's floaty jumps, a clock
+     tower to climb, and the Captain himself on his sky ship.
+     ========================================================================== */
+
+  /* 11 — Sunset Harbour. Piers over the sea, and little boats bobbing on
+     the waves to hop across. */
+  add({
+    name: 'SUNSET HARBOUR', theme: 'harbour', w: 220, seed: 111,
+    build: function (L) {
+      L.ground(0, 34);
+      L.row(9, R1, '?P?');
+      L.e('crab', 18); L.e('magpie', 26, 9);
+      L.semi(34, 42, 16); L.coins(35, 13, 6);
+      L.ground(42, 64);
+      L.e('crab', 48); L.e('snail', 56);
+      L.pipe(60, 3);
+      L.plat(65, 15, 3, { bob: true });
+      L.plat(70, 15, 3, { bob: true, dx: 4, speed: 0.4 });
+      L.arc(66, 12, 9);
+      L.ground(78, 104);
+      L.row(82, R1, 'BB?BB'); L.row(84, R2, 'M');
+      L.e('magpie', 90, 9); L.e('crab', 96);
+      L.check(100);
+      L.semi(104, 112, 16); L.e('magpie', 108, 10); L.coins(105, 13, 6);
+      L.ground(112, 141);
+      L.e('snail', 118); L.e('crab', 124);
+      L.row(127, R1, '?L?');
+      // Bear: up the tall mooring post, then onto the lookout ledge
+      L.pipe(134, 4); L.semi(136, 141, 8); L.bear(138, 8);
+      L.plat(142, 15, 3, { bob: true }); L.plat(146, 14, 3, { bob: true });
+      L.ground(151, 220);
+      L.e('crab', 158); L.e('magpie', 165, 9);
+      L.row(170, R1, 'B?B'); L.e('crab', 176);
+      L.stairs(186, 6);
+      L.goal(200);
+    }
+  });
+
+  /* 12 — Candy Meadow. Cake with pink frosting, cookie blocks, cotton-candy
+     clouds, gummy bears — and jelly trampolines everywhere. */
+  add({
+    name: 'CANDY MEADOW', theme: 'candy', w: 210, seed: 122,
+    build: function (L) {
+      L.ground(0, 36);
+      L.row(8, R1, '?P?');
+      L.e('gummy', 18);
+      L.spring(24); L.coins(23, 4, 4);
+      L.semi(28, 34, 10); L.e('bee', 31, 6);
+      L.semi(36, 40, 13);
+      L.ground(40, 76);
+      L.e('gummy', 46); L.e('gummy', 50);
+      L.row(54, R1, 'BB?BB');
+      L.spring(60); L.semi(58, 66, 5); L.coins(59, 4, 6);
+      L.e('bee', 68, 10);
+      L.pipe(72, 3);
+      L.semi(77, 81, 13);
+      L.ground(82, 118);
+      L.check(86);
+      L.e('gummy', 92);
+      // Bear: on the high cloud, from the jelly's big bounce
+      L.spring(98); L.semi(96, 104, 7); L.coins(97, 6, 6); L.bear(102, 7);
+      L.e('snail', 110); L.e('bee', 114, 11);
+      L.semi(118, 122, 13);
+      L.ground(122, 160);
+      L.spring(126); L.row(130, R2, '?S?');
+      L.e('gummy', 136); L.e('gummy', 140);
+      L.row(146, R1, 'BMB');
+      L.pipe(152, 3);
+      L.semi(161, 165, 12);
+      L.ground(166, 210);
+      L.e('gummy', 172); L.e('bee', 178, 10);
+      L.row(176, R1, 'L');
+      L.stairs(184, 6);
+      L.goal(196);
+    }
+  });
+
+  /* 13 — Windy Cliffs. Out on the white clifftops the wind gusts — first
+     one way, then the other — and pushes Bonnie along (or back). */
+  add({
+    name: 'WINDY CLIFFS', theme: 'cliffs', w: 214, seed: 133, wind: true,
+    build: function (L) {
+      L.ground(0, 30);
+      L.row(8, R1, '?P?');
+      L.e('snail', 18); L.e('magpie', 24, 9);
+      L.ground(34, 62, 14);
+      L.e('snail', 42, 14);
+      L.row(46, 9, 'B?B');
+      L.e('magpie', 52, 8);
+      L.ground(62, 70, 12);
+      L.coins(63, 10, 6);
+      L.ground(75, 100);
+      L.check(80);
+      L.e('snail', 86);
+      L.row(92, R1, '???');
+      L.plat(101, 13, 3, { dx: 2, speed: 0.4 });
+      L.ground(106, 140, 13);
+      L.e('magpie', 112, 7); L.e('snail', 118, 13);
+      L.row(122, 8, 'BSB');
+      // Bear: on the ledge over the clifftop, out in the wind
+      L.semi(126, 131, 9); L.bear(128, 9);
+      L.ground(144, 214);
+      L.e('snail', 150); L.e('magpie', 158, 9);
+      L.row(162, R1, 'B?B?B');
+      L.e('snail', 170);
+      L.row(174, R1, 'L');
+      L.stairs(182, 6);
+      L.goal(196);
+    }
+  });
+
+  /* 14 — Jungle Ruins. The old stones of a friendly temple — some crumble
+     away underfoot — boars, bats, and monkeys lobbing coconuts. */
+  add({
+    name: 'JUNGLE RUINS', theme: 'jungle', w: 220, seed: 144,
+    build: function (L) {
+      L.ground(0, 32);
+      L.row(8, R1, '?P?');
+      L.e('hog', 18);
+      L.box(25, 13, 30, 16); L.e('monkey', 27, 13);
+      L.plat(33, 14, 2, { fall: true }); L.plat(37, 13, 2, { fall: true });
+      L.ground(41, 70);
+      L.stairs(44, 3); L.ground(47, 56, 13);
+      L.e('bat', 50, 3); L.e('hog', 60);
+      L.row(62, R1, 'BB?BB'); L.row(64, R2, 'M');
+      L.semi(70, 78, 10); L.coins(71, 9, 7);
+      L.ground(78, 112);
+      L.check(82);
+      L.e('monkey', 90); L.e('bat', 96, 3); L.e('hog', 102);
+      L.pipe(106, 3);
+      L.plat(112, 14, 2, { fall: true }); L.plat(116, 13, 2, { fall: true }); L.plat(120, 12, 2, { fall: true });
+      L.ground(124, 160);
+      L.e('hog', 130);
+      L.row(134, R1, '?S?');
+      L.box(140, 13, 145, 16); L.e('monkey', 142, 13);
+      // Bear: up from the monkey's block to the ledge above the ruins
+      L.semi(146, 151, 9); L.bear(148, 9);
+      L.e('bat', 152, 3);
+      L.ground(164, 220);
+      L.e('hog', 170); L.e('monkey', 178);
+      L.row(176, R1, 'L');
+      L.stairs(186, 6);
+      L.goal(200);
+    }
+  });
+
+  /* 15 — Glowshroom Grove. Night in a wood of giant glowing mushrooms:
+     bounce high on them, and mind the shy ghosts and bats. */
+  add({
+    name: 'GLOWSHROOM GROVE', theme: 'glow', w: 210, seed: 155,
+    build: function (L) {
+      L.ground(0, 34);
+      L.row(8, R1, '?P?');
+      L.e('ghost', 20, 10);
+      L.spring(26); L.semi(24, 32, 7); L.coins(25, 6, 6);
+      L.semi(34, 38, 13);
+      L.ground(38, 74);
+      L.e('bat', 44, 3); L.e('grumbug', 50);
+      // Bear: on the high branch the big mushroom bounces you up to
+      L.spring(56); L.semi(54, 62, 6); L.coins(55, 5, 5); L.bear(61, 6);
+      L.e('ghost', 66, 9);
+      L.row(68, R1, 'BMB');
+      L.semi(74, 80, 12);
+      L.ground(80, 112);
+      L.check(84);
+      L.e('grumbug', 90); L.e('grumbug', 93);
+      L.spring(98); L.row(96, R2, '?S?');
+      L.e('bat', 104, 3);
+      L.pipe(108, 3);
+      L.plat(113, 14, 3, { dx: 4, speed: 0.4 });
+      L.ground(121, 160);
+      L.e('ghost', 128, 9);
+      L.spring(134); L.semi(132, 140, 6); L.coins(133, 5, 6);
+      L.e('bat', 144, 3); L.e('grumbug', 150);
+      L.semi(160, 164, 12);
+      L.ground(164, 210);
+      L.row(168, R1, 'L');
+      L.e('ghost', 174, 9); L.e('grumbug', 180);
+      L.stairs(186, 6);
+      L.goal(196);
+    }
+  });
+
+  /* 16 — Crystal Lagoon. A cave under the sea: swim (tap to swim up),
+     past glowing crystals, fish and drifting jellies. */
+  add({
+    name: 'CRYSTAL LAGOON', theme: 'lagoon', w: 200, seed: 166, water: true,
+    build: function (L) {
+      L.ceiling(0, 200, 2);
+      L.ground(0, 60);
+      L.row(10, R1, '?P?');
+      L.box(18, 10, 22, 16); L.coins(18, 8, 4);
+      L.e('fish', 28, 9);
+      L.ceiling(30, 44, 6); L.coins(31, 8, 12);
+      L.e('jelly', 40, 11);
+      // Bear: on top of the tall crystal rock, in his bubble
+      L.box(48, 8, 50, 16); L.bear(48, 8);
+      L.e('fish', 54, 6);
+      L.ground(64, 120);
+      L.e('jelly', 70, 8);
+      L.box(76, 12, 86, 16); L.ceiling(78, 88, 7); L.coins(79, 10, 7);
+      L.e('fish', 92, 10);
+      L.check(98);
+      L.row(102, R1, 'BSB');
+      L.e('jelly', 108, 6); L.e('fish', 114, 12);
+      L.ground(124, 200);
+      L.box(128, 3, 131, 10); L.box(136, 11, 139, 16); L.coins(132, 10, 4);
+      L.e('fish', 142, 7); L.e('jelly', 150, 9);
+      L.row(156, R1, 'L');
+      L.e('fish', 164, 11); L.e('jelly', 172, 7);
+      L.stairs(180, 5);
+      L.goal(190);
+    }
+  });
+
+  /* 17 — Dusty Dunes. Sand that sinks when you stand on it, a pyramid to
+     climb, scorpions, and tumbleweeds bowling along. */
+  add({
+    name: 'DUSTY DUNES', theme: 'desert', w: 220, seed: 177,
+    build: function (L) {
+      L.ground(0, 36);
+      L.row(8, R1, '?P?');
+      L.e('scorpion', 18); L.e('tumble', 30);
+      L.plat(37, 14, 3, { fall: true }); L.plat(42, 13, 3, { fall: true });
+      L.ground(47, 80);
+      L.stairs(50, 4); L.ground(54, 62, 12); L.stairs(62, 4, -1);
+      L.e('scorpion', 66); L.e('tumble', 74);
+      L.row(70, R1, 'BB?BB');
+      L.plat(81, 14, 3, { fall: true });
+      L.ground(85, 124);
+      L.check(88);
+      L.e('scorpion', 96);
+      L.pipe(100, 3);
+      L.e('tumble', 108);
+      // Bear: on the ledge over the pyramid's top
+      L.stairs(112, 5); L.stairs(117, 5, -1); L.semi(115, 120, 7); L.bear(116, 7);
+      L.row(106, R2, '?S?');
+      L.plat(125, 14, 3, { fall: true }); L.plat(129, 13, 3, { fall: true });
+      L.ground(133, 220);
+      L.e('scorpion', 138); L.e('tumble', 150);
+      L.row(146, R1, 'BMB');
+      L.e('scorpion', 160); L.e('tumble', 172);
+      L.row(168, R1, 'L');
+      L.stairs(184, 7);
+      L.goal(200);
+    }
+  });
+
+  /* 18 — Moon Garden. On the Moon, jumps are long and floaty — so the gaps
+     are wider and the ledges higher. */
+  add({
+    name: 'MOON GARDEN', theme: 'moon', w: 220, seed: 188, lowgrav: true,
+    build: function (L) {
+      L.ground(0, 30);
+      L.row(8, R1, '?P?');
+      L.e('grumbug', 18);
+      L.semi(24, 28, 9); L.coins(24, 8, 4);
+      L.arc(31, 11, 7);
+      L.ground(38, 64);
+      L.e('ghost', 46, 9);
+      // Bear: right up on the highest crater ledge
+      L.semi(50, 54, 7); L.semi(56, 61, 3); L.coins(56, 2, 4); L.bear(59, 3);
+      L.e('bat', 60, 6);
+      L.arc(65, 11, 7);
+      L.ground(72, 104);
+      L.check(76);
+      L.e('grumbug', 84); L.e('grumbug', 87);
+      L.row(90, R2, 'B?B');
+      L.e('ghost', 96, 8);
+      L.plat(105, 12, 3, { dy: 4, speed: 0.4 });
+      L.ground(114, 150);
+      L.e('bat', 120, 4);
+      L.row(124, R1, '?S?');
+      L.e('grumbug', 132);
+      L.semi(138, 142, 9); L.semi(144, 148, 5); L.coins(144, 4, 4);
+      L.arc(151, 10, 7);
+      L.ground(158, 220);
+      L.e('ghost', 166, 9); L.e('grumbug', 172);
+      L.row(176, R1, 'L');
+      L.stairs(186, 6);
+      L.goal(200);
+    }
+  });
+
+  /* 19 — Clockwork Tower. Up through the inside of a great clock: climb
+     the beams, ride the belts, mind the crushers and the turning gear arm. */
+  add({
+    name: 'CLOCKWORK TOWER', theme: 'clock', w: 186, h: 36, gr: 34, seed: 199,
+    build: function (L) {
+      var g = 34;
+      L.start = { x: 3, row: g };
+      L.ground(0, 30, g);
+      L.row(8, g - 5, '?P?');
+      /* the climb: girders three rows apart, each overlapping the one
+         above, so a jump straight up always finds the next — no
+         pixel-perfect leaps for small hands */
+      L.semi(14, 23, 31); L.semi(21, 30, 28); L.semi(14, 23, 25); L.semi(21, 30, 22); L.semi(14, 23, 19); L.semi(21, 30, 16);
+      L.coins(16, 30, 4); L.coins(23, 27, 4); L.coins(16, 24, 4); L.coins(23, 21, 4); L.coins(16, 18, 4);
+      L.box(30, 14, 52, 16);
+      L.e('robot', 40, 14);
+      L.e('crusher', 46, 3);
+      L.row(50, 10, 'X'); L.e('firebar', 50, 10, { len: 3, speed: 0.02 });
+      L.plat(53, 13, 3, { dx: 3, speed: 0.45 });
+      L.box(60, 14, 80, 16);
+      L.check(62, 14);
+      L.conveyor(66, 76, -1, 14);
+      L.e('robot', 70, 14);
+      // Bear: on the beam above the belt
+      L.semi(75, 80, 10); L.bear(77, 10);
+      L.plat(81, 13, 2, { dy: -4, speed: 0.4 });
+      L.box(86, 10, 104, 12);
+      L.e('robot', 94, 10);
+      L.row(98, 6, 'BSB');
+      L.box(108, 14, 140, 16);
+      L.e('robot', 116, 14);
+      L.conveyor(120, 132, 1, 14);
+      L.e('crusher', 126, 3);
+      L.row(134, 10, 'L');
+      L.box(144, 14, 186, 18);
+      L.e('robot', 150, 14);
+      L.stairs(160, 6, 1, 14);
+      L.goal(172, 14);
+    }
+  });
+
+  /* 20 — Magpie's Sky Ship. Across the deck of Captain Magpie's ship,
+     high in the clouds — and at the stern, the Captain himself, with the
+     sack of presents. He swoops and drops eggs; when he lands to rest,
+     stomp him. Three stomps, and the presents are Monsty's again. */
+  add({
+    name: 'MAGPIE SKY SHIP', theme: 'ship', w: 212, seed: 2020, boss: true,
+    build: function (L) {
+      L.ground(0, 30);
+      L.row(8, R1, '?P?');
+      L.e('magpie', 18, 9);
+      L.plat(31, 14, 3, { bob: true });
+      L.ground(36, 70);
+      L.e('magpie', 44, 8);
+      L.pipe(48, 3);
+      L.e('monkey', 56);
+      L.row(60, R1, 'BB?BB');
+      L.plat(71, 13, 3, { dx: 4, speed: 0.45 });
+      L.ground(80, 113);
+      L.check(84);
+      L.e('magpie', 90, 9); L.e('magpie', 98, 7);
+      L.row(94, R1, 'BSB');
+      L.e('monkey', 104);
+      // Bear: up the mast and onto the yard
+      L.pipe(108, 3); L.semi(110, 113, 9); L.bear(111, 9);
+      L.plat(114, 14, 3, { bob: true });
+      L.ground(118, 212);
+      L.row(124, R1, 'P'); L.row(128, R1, 'L');
+      // the stern: the gate closes behind you, the Captain wakes from his
+      // nap on the crates and flies to and fro between ax0 and ax1
+      L.e('gate', 168, 15);
+      L.box(183, 12, 187, 16, TL.CRATE);
+      L.e('captain', 184, 12, { ax0: 172, ax1: 200 });
+      L.e('sack', 200);
       L.box(206, 2, 212, 16, TL.HARD);
     }
   });

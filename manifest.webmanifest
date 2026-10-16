@@ -1,7 +1,7 @@
 {
   "name": "Bonnie Bounce",
   "short_name": "Bonnie Bounce",
-  "description": "A ten-level platform adventure starring Bonnie.",
+  "description": "A twenty-level platform adventure starring Bonnie.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bonnie Bounce — robot playtest</title>
+<style>
+  body { margin: 0; background: #111; color: #eee; font: 12px/1.5 ui-monospace, monospace; padding: 10px; }
+  #screen { image-rendering: pixelated; width: 480px; display: block; margin-bottom: 10px; }
+  #pad { display: none; }
+  .ok { color: #7ee078; } .bad { color: #ff7a7a; }
+</style>
+</head>
+<body>
+<!-- A dev tool: a robot that proves each level can be finished. It plays
+     by search — from a saved moment it tries a handful of short moves
+     (walk, run, jump, hold the jump, go back, wait), keeps the ones that
+     reach somewhere new, and always carries on from the place nearest the
+     end of the level. Bumps don't stop it (hearts are topped up), but a
+     fall does lose the ground it made, so a level it finishes is one
+     that can really be finished. For the boss levels, "the end" is the
+     boss until it's beaten, then whatever it leaves behind.
+     /tools/playtest.html?level=11   (or ?level=11-20, or ?level=all) -->
+<canvas id="screen" width="240" height="144"></canvas>
+<div id="pad"><div data-dpad></div></div>
+<div id="out"></div>
+<script src="../js/core.js"></script>
+<script src="../js/art.js"></script>
+<script src="../js/creatures.js"></script>
+<script src="../js/backdrop.js"></script>
+<script src="../js/light.js"></script>
+<script src="../js/map.js"></script>
+<script src="../js/music.js"></script>
+<script src="../js/levels.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/voice.js"></script>
+<script src="../js/game.js"></script>
+<script>
+(function () {
+  var T = 8, STEP = 6, BUDGET = 60000;
+  var out = document.getElementById('out');
+  var say = function (html) { var d = document.createElement('div'); d.innerHTML = html; out.appendChild(d); };
+  // the parts of the world that never change are shared, not copied
+  var KEEP = { def: 1, th: 1, L: 1, gfx: 1, light: 1, deco: 1 };
+  var copy = function (v, memo, top) {
+    if (v === null || typeof v !== 'object') return v;
+    if (memo.has(v)) return memo.get(v);
+    if (ArrayBuffer.isView(v)) { var t = v.slice(); memo.set(v, t); return t; }
+    var proto = Object.getPrototypeOf(v), o;
+    if (Array.isArray(v)) { o = []; memo.set(v, o); for (var i = 0; i < v.length; i++) o[i] = copy(v[i], memo); return o; }
+    if (proto !== Object.prototype && proto !== null) return v;
+    o = {}; memo.set(v, o);
+    for (var k in v) o[k] = top && KEEP[k] ? v[k] : copy(v[k], memo);
+    return o;
+  };
+  var snap = function () { return copy(BB.game.G(), new Map(), true); };
+  var restore = function (s) { var G = BB.game.G(), k; for (k in G) delete G[k]; var c = copy(s, new Map(), true); for (k in c) G[k] = c[k]; };
+  // the moves: a = 'press' lets go for a frame first so the jump is a fresh press
+  var MOVES = [
+    { right: 1 }, { right: 1, b: 1 }, { right: 1, a: 'press' }, { right: 1, b: 1, a: 'press' }, { a: 'press' },
+    { right: 1, a: 'hold' }, { right: 1, b: 1, a: 'hold' }, { a: 'hold' }, { left: 1, a: 'hold' },
+    { left: 1 }, { left: 1, a: 'press' }, { left: 1, b: 1, a: 'press' }, {}
+  ];
+  var keys = function (m, a) { return { left: !!m.left, right: !!m.right, b: !!m.b, a: a, up: false, down: false, start: false, select: false }; };
+  var goalOf = function (G) {
+    var p = G.p, best = null, bd = 1e9;
+    G.ents.forEach(function (e) {
+      var want = G.def.boss ? (G.bossDone ? (e.k === 'present' || e.k === 'cage') : (e.k === 'captain' || e.k === 'dragon')) : e.k === 'goal';
+      if (!want) return;
+      var d = Math.abs(e.x - p.x) + Math.abs(e.y - p.y);
+      if (d < bd) { bd = d; best = e; }
+    });
+    return best;
+  };
+  // how far from the end: distance to it, and on a boss level, every hit
+  // the boss still needs counts as a long way
+  var h = function (G) {
+    var p = G.p, g = goalOf(G);
+    if (!g) return G.def.boss && !G.bossDone ? 1e6 : 0;
+    // a flying boss is reached by being under him, not up in the air with him
+    if (G.def.boss && !G.bossDone) return Math.abs(g.x + g.w / 2 - p.x - p.w / 2) + (g.hp || 0) * 400;
+    var gy = g.k === 'goal' ? g.base - 20 : g.y;
+    return Math.abs(g.x - p.x) + Math.abs(gy - p.y) * 1.5;
+  };
+  /* falling with nothing at all below (no ground, no platform) is a fall
+     into a pit: the robot gives up on it at once, rather than spending its
+     tries on every way of falling (a pit can look near the end, by distance) */
+  var doomed = function (G) {
+    var p = G.p;
+    if (p.ground || p.vy <= 0 || G.water) return false;
+    var x0 = Math.floor(p.x / T) - 1, x1 = Math.floor((p.x + p.w - 1) / T) + 1, r0 = Math.floor((p.y + p.h) / T);
+    for (var x = Math.max(0, x0); x <= Math.min(G.w - 1, x1); x++) for (var r = Math.max(0, r0); r < G.h; r++) if (G.map[r * G.w + x]) return false;
+    return !G.ents.some(function (e) { return e.k === 'plat' && e.alive && e.x < p.x + p.w + 24 && e.x + e.w > p.x - 24 && e.y > p.y; });
+  };
+  var bossHp = function (G) { var b = goalOf(G); return b && !G.bossDone ? (b.hp || 0) + (b.st || '') : 'D'; };
+  var run = function (n) {
+    var t0 = performance.now();
+    BB.game.startLevel(n); BB.game.go('play');
+    BB.steps(2, keys({}, false));
+    var G = BB.game.G();
+    var heap = [{ s: snap(), f: h(G), heldA: false, d: 0 }], seen = {}, done = null, n2 = 0, bumps = 0, best = 1e9, bestX = 0, bestRow = 0;
+    var push = function (node) { heap.push(node); var i = heap.length - 1; while (i > 0) { var j = (i - 1) >> 1; if (heap[j].f <= heap[i].f) break; var t = heap[i]; heap[i] = heap[j]; heap[j] = t; i = j; } };
+    var pop = function () { var top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; var i = 0; for (;;) { var l = i * 2 + 1, r = l + 1, m = i; if (l < heap.length && heap[l].f < heap[m].f) m = l; if (r < heap.length && heap[r].f < heap[m].f) m = r; if (m === i) break; var t = heap[i]; heap[i] = heap[m]; heap[m] = t; i = m; } } return top; };
+    // a boss fight is long (a flight between each chance to stomp), so it gets more tries
+    var budget = G.def.boss ? BUDGET * 4 : BUDGET;
+    while (heap.length && n2 < budget && !done) {
+      var node = pop();
+      for (var mi = 0; mi < MOVES.length && !done; mi++) {
+        var m = MOVES[mi];
+        if (m.a === 'hold' && !node.heldA) continue;
+        restore(node.s); n2++;
+        G = BB.game.G();
+        var hp0 = G.hp;
+        if (m.a === 'press') BB.steps(1, keys(m, false), true);
+        BB.steps(m.a === 'press' ? STEP - 1 : STEP, keys(m, !!m.a), true);
+        G = BB.game.G();
+        var p = G.p;
+        if (G.hp < hp0) bumps++;
+        G.hp = 6;
+        // a fall (he's popped back in a bubble) or the last heart: not a way forward
+        if (p.st === 'dead' || p.bubble || BB.game.scene() !== 'play' || doomed(G)) continue;
+        if (p.st === 'arch' || p.st === 'cheer' || p.st === 'walk' || p.st === 'in') { done = { frames: (node.d + 1) * STEP }; break; }
+        /* a place, and roughly when: moving platforms, fire bars and
+           bosses all go round in cycles, so the same spot at a different
+           moment can be a different chance (and a boss fight is long, so
+           there the clock never repeats: waiting out a flight is a move) */
+        var key = Math.floor(p.x / 4) + ',' + Math.floor(p.y / 4) + ',' + (p.ground ? 1 : 0) + ',' + (m.a ? 1 : 0) + ',' + (G.def.boss ? Math.floor(G.tick / 20) + ',' + bossHp(G) : Math.floor(G.tick / 20) % 16);
+        if (seen[key]) continue;
+        seen[key] = 1;
+        var f = h(G);
+        if (f < best) { best = f; bestX = Math.round(p.x / T); bestRow = Math.round((p.y + p.h) / T); }
+        push({ s: snap(), f: f + (node.d + 1) * 0.15, heldA: !!m.a, d: node.d + 1 });
+      }
+    }
+    var ms = Math.round(performance.now() - t0);
+    BB.steps(0, null);
+    var name = BB.LEVELS[n - 1].name;
+    if (done) say('<span class="ok">✓ ' + n + ' ' + name + '</span> — finished in ' + (done.frames / 60).toFixed(1) + 's of play (' + n2 + ' tries, ' + ms + 'ms)');
+    else say('<span class="bad">✗ ' + n + ' ' + name + '</span> —  got no nearer than tile ' + bestX + ', row ' + bestRow + ' (' + Math.round(best) + 'px from the end) after ' + n2 + ' tries');
+    window.results = (window.results || []).concat([{ n: n, ok: !!done, bestX: bestX, tries: n2 }]);
+  };
+  var q = location.search, m1 = /level=(\d+)(?:-(\d+))?/.exec(q), list = [];
+  if (/level=all/.test(q)) list = BB.LEVELS.map(function (d) { return d.n; });
+  else if (m1) for (var i = +m1[1]; i <= +(m1[2] || m1[1]); i++) list.push(i);
+  else list = [1];
+  BB.music = function () {};
+  // one level at a time, so the page can draw in between
+  var next = function () { if (!list.length) { window.playtestDone = true; return; } run(list.shift()); setTimeout(next, 30); };
+  setTimeout(next, 100);
+})();
+</script>
+</body>
+</html>

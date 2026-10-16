@@ -1,12 +1,15 @@
 # Bonnie Bounce
 
-A ten-level platform adventure starring Bonnie, in the style of a 1999
+A twenty-level platform adventure starring Bonnie, in the style of a 1999
 handheld colour game. Grown out of TEKEX Jump (the Easter egg on the Tekex
 site), it's now full screen, in colour, and a whole game: a world map,
-power-ups, checkpoints, a boss and an ending.
+power-ups, checkpoints, two bosses and two endings.
 
 > Grumble the Dragon has taken Monsty! Bounce through ten lands to bring him home —
 > and find Bear, the family's grey cat, who's hiding somewhere in every one.
+>
+> Then, at Monsty's birthday party, Captain Magpie swoops in and steals the
+> presents. Sail to the Magpie Isles and win them back.
 
 ## Playing it
 
@@ -66,7 +69,9 @@ Keyboard → Keyboard Shortcuts).
 
 ## The game
 
-**Ten worlds**, each with its own look, music, enemies and trick:
+**Twenty worlds on two islands**, each with its own look, music, enemies and trick.
+The second island, the Magpie Isles, opens when Monsty is home: a boat
+route across the water on the map, and a short party scene to start it.
 
 | | World | What's new |
 |---|---|---|
@@ -80,10 +85,25 @@ Keyboard → Keyboard Shortcuts).
 | 8 | Cloud Kingdom | a climb up into the sky, nothing below |
 | 9 | Toy Factory | conveyor belts, wind-up robots, crushers |
 | 10 | Dragon Castle | lava, fire bars, and Grumble himself — with Monsty in a cage |
+| 11 | Sunset Harbour | bobbing boats, magpies |
+| 12 | Candy Meadow | jelly that bounces you high, gummy bears |
+| 13 | Windy Cliffs | gusts that push Bonnie along (leaves show which way) |
+| 14 | Jungle Ruins | crumbling stones, monkeys that lob coconuts |
+| 15 | Glowshroom Grove | a glowing night wood, bouncy mushrooms, fireflies |
+| 16 | Crystal Lagoon | swimming in a crystal cave |
+| 17 | Dusty Dunes | sinking sand, tumbleweeds, scorpions |
+| 18 | Moon Garden | low gravity — every jump floats |
+| 19 | Clockwork Tower | a climb up the tower, belts and crushers |
+| 20 | Magpie's Sky Ship | Captain Magpie: he swoops and drops eggs; stomp him when he lands |
 
-**Lives:** unlimited. A fall or a bump just sends Bonnie back to the
-start of the level, or to the checkpoint flag if he has reached it, after
-a one-second card. Hearts and every 100 stars give a burst of points.
+**Hearts:** Bonnie has three. A bump from a baddie costs one and he
+carries on (blinking for a moment, so he can get clear). A fall into a
+pit or lava costs one too, and a bubble pops him back onto the last safe
+ground he stood on. Only when the last heart goes does he start again —
+from the checkpoint flag if he reached it, after a one-second card.
+Every 10 stars gives half a heart back, and a heart from a present gives
+a whole one (or a burst of points if he's full). Lives are unlimited.
+When he's big, a bump shrinks him first, as before, without costing a heart.
 
 **Bear** hides in every level — up on a stump, a ledge, the top of a
 climbing frame. Touch him and he meows and follows Bonnie home (he walks
@@ -91,9 +111,10 @@ the very path Bonnie takes, a moment behind, and keeps him company after
 a fall). Bring him home and his face lights up on that level's map tag.
 
 **The sticker book** (BOOK, top left of the map, or the run key) has a
-sticker of Bear for every land he came home from, one for every creature
-Bonnie has met, and the **outfits** — star pyjamas, a superhero suit with
-a cape, a Monsty suit — won by bringing Bear home 3, 6 and 10 times.
+sticker of Bear for every land he came home from (a page for each
+island), one for every creature Bonnie has met, and the **outfits** —
+star pyjamas, a superhero suit with a cape, a Monsty suit, a pirate suit
+and a golden one — won by bringing Bear home 3, 6, 10, 15 and 20 times.
 
 **Grown-ups** (title menu or pause menu, hold to open) can record their
 own "Yay!", "Wheee!" and "Well done!" — played at checkpoints, on
@@ -107,8 +128,8 @@ trampolines and when a level is clear. The clips stay on that device.
 - **Heart** — a burst of points.
 
 Every level has a checkpoint flag halfway, and ends at an arch of
-balloons in front of Bonnie's house — the higher he runs through it, the
-more points. Progress saves automatically (in the browser, on that device).
+balloons in front of Bonnie's house (on the Magpie Isles, his tent) — the
+higher he runs through it, the more points. Progress saves automatically (in the browser, on that device).
 
 Nothing in it is borrowed: presents, wooden toy blocks and each world's
 own columns (tree stumps, a sandcastle tower, coral, crystal rock, cloud
@@ -130,13 +151,13 @@ numbers in `POSES` in `js/art.js`.
 | File | What's in it |
 |---|---|
 | `js/core.js` | screen scaling, palette, the sprite painter (doubling, outlines, lighting), pixel font, input, the sound chip |
-| `js/art.js` | every sprite (Bonnie is at the top), tiles and the ten themes |
+| `js/art.js` | every sprite (Bonnie is at the top), tiles and the twenty themes |
 | `js/creatures.js` | every enemy, Monsty's captor Grumble, and the scenery props, in the same round, softly lit style |
 | `js/backdrop.js` | the parallax backgrounds, layered into the haze |
 | `js/light.js` | sunbeams, dusk and glowing lights, shadows — and how Bonnie catches the light |
 | `js/music.js` | the soundtrack — all original tunes, written as note strings |
-| `js/levels.js` | the level builder and the ten levels |
-| `js/map.js` | the island world map: each world's landmark, all animated |
+| `js/levels.js` | the level builder and the twenty levels |
+| `js/map.js` | the world map: two islands and the boat route between them, each world's landmark, all animated |
 | `js/ui.js` | the game's stationery: paper cards with a running stitch, ribbon banners, Monsty's head as the menu pointer |
 | `js/voice.js` | grown-ups' recorded voices: recording (MediaRecorder), keeping them on the device, playing them in the game |
 | `js/game.js` | physics, Bonnie, enemies, items, the screens and the save |
@@ -151,6 +172,12 @@ Handy while editing:
 - `index.html?debug` opens every level on the map.
 - `tools/sheet.html` shows every sprite, magnified (`?z=8` to zoom).
 - `tools/overview.html?level=all` draws every level flat, to check layouts.
+- `tools/playtest.html?level=all` sends a robot through every level (or
+  `?level=11-20`, `?level=19`), to prove each can be finished after a
+  change. It searches short moves — walk, run, jump, hold, wait — always
+  carrying on from the spot nearest the end; bumps don't stop it, falls
+  do. All twenty pass (the whole run takes a minute or two; the boss
+  fights take longest). If one fails, it says how far it got.
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).
 - `tools/icon.html` redraws the home-screen icons; save each into `icons/`.

@@ -699,6 +699,8 @@
     clink: function () { voice(2093, 2093, 0.04, { duty: 0.5, vol: 0.03 }); },
     pop: function () { voice(600, 1400, 0.06, { duty: 0.5, vol: 0.035 }); },
     // Bear, found: a little meow that rises and falls
+    // half a heart back: three soft rising notes
+    heal: function () { arp(['E6', 'G#6', 'B6'], 0.06, { duty: 0.5, vol: 0.03 }); },
     meow: function () { voice(560, 860, 0.12, { duty: 0.25, vol: 0.035, vib: 1 }); voice(860, 470, 0.26, { duty: 0.25, vol: 0.035, at: 0.12, vib: 1 }); },
     purr: function () { voice(1.2, 0.9, 0.35, { noise: 0, vol: 0.025, sustain: 0.25 }); }
   };
@@ -781,12 +783,13 @@
     var STEP = 1000 / 60, acc = 0, last = performance.now();
     /* For automated checks: run n steps at once and draw, with keys held
        as given — BB.steps(60, {right: 1, b: 1}). Not used by the game. */
-    BB.steps = function (n, hold) {
+    // (quiet: the robot playtest steps without drawing, thousands of times)
+    BB.steps = function (n, hold, quiet) {
       for (var i = 0; i < n; i++) {
         if (hold) NAMES.forEach(function (k) { kb[k] = hold[k] ? 1 : 0; });
         BB.poll(); update();
       }
-      draw();
+      if (!quiet) draw();
     };
     var draw = function () {
       ctx.setTransform(R, 0, 0, R, 0, 0);

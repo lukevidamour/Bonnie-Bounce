@@ -1408,6 +1408,78 @@
       brick: ['#c8a8b8', '#906878', '#604050', '#281820'], hard: ['#c0b0c0', '#8c7890', '#605068', '#281c30'],
       semi: 'bridge', spal: ['#d0a070', '#a07040', '#684420', '#2c1c0c'], column: 'chimney',
       deco: ['torch'], bg: 'castle', music: 'castle', dark: true, lava: true
+    },
+
+    /* ---- the second land: Magpie Isles (levels 11–20) ---- */
+    // 11 · a sandy harbour at sunset: warm sand, piers, the sea in the gaps
+    harbour: {
+      sky: ['#ff8a7a', '#ffb08a', '#ffe0a8'], ground: 'sand', gpal: ['#ffe8b8', '#f0c888', '#c8905c', '#8a5a34'],
+      brick: ['#ffc8a0', '#e88a5a', '#b05a34', '#4c2418'], hard: ['#e8c8a0', '#c8986a', '#94683c', '#4c3018'],
+      semi: 'bridge', spal: ['#e8b880', '#b8804c', '#7a4c28', '#3c2010'], column: 'stump',
+      deco: ['anchor', 'barrel', 'buoy', 'umbrella', 'shell', 'palm'], bg: 'harbour', music: 'harbour', sea: true
+    },
+    // 12 · cake with pink frosting on top; cookie blocks; cotton-candy clouds
+    candy: {
+      sky: ['#ffb8e0', '#ffd0ec', '#fff0f8'], ground: 'snow', gpal: ['#fff4fa', '#ffd0e8', '#d888b0', '#8a4a78'],
+      brick: ['#fff0b0', '#ffc860', '#d88a30', '#6a3a10'], hard: ['#c8f0ff', '#88c8f0', '#4a88c0', '#1c3a6a'],
+      semi: 'cloud', spal: ['#ffffff', '#ffd8f0', '#f0a8d8', '#b868a8'], column: 'cloud',
+      deco: ['lollipop', 'candycane', 'lollipop', 'bushS', 'flowerP'], bg: 'candy', music: 'candy'
+    },
+    // 13 · green turf over white chalk, out on the breezy clifftops
+    cliffs: {
+      sky: ['#5cb8ff', '#8fd0ff', '#d4f0ff'], ground: 'grass', gpal: ['#a8f070', '#58c048', '#ece4cc', '#a89878'],
+      brick: ['#f4f0e0', '#d8d0b8', '#a89c80', '#4c4434'], hard: ['#e8e4d4', '#c8c0a8', '#8c8470', '#3c382c'],
+      semi: 'bridge', spal: ['#e8c890', '#b88850', '#7a5428', '#3c2410'], column: 'stump',
+      deco: ['fence', 'flowerY', 'bushS', 'sign', 'flowerR'], bg: 'cliffs', music: 'cliffs'
+    },
+    // 14 · lush turf and the old stones of a friendly ruined temple
+    jungle: {
+      sky: ['#7fd0a8', '#a8e0b8', '#e0f4d0'], ground: 'grass', gpal: ['#7ed858', '#2e9a48', '#8a6a48', '#4a3420'],
+      brick: ['#c8c0a0', '#9a9278', '#6a6450', '#2c2a20'], hard: ['#b8b098', '#8a8470', '#5c5848', '#2a2820'],
+      semi: 'branch', spal: ['#a88a5c', '#7a5c34', '#4c3a20', '#20160c'], column: 'stump',
+      deco: ['fern', 'totem', 'fern', 'palm', 'bush'], bg: 'jungle', music: 'jungle'
+    },
+    // 15 · night in a grove of giant glowing mushrooms
+    glow: {
+      sky: ['#101838', '#1c2a58', '#2c4a78'], ground: 'grass', gpal: ['#4ac8b0', '#2a7a88', '#3a3060', '#1c1638'],
+      brick: ['#88a8e8', '#5874c0', '#384c88', '#18203c'], hard: ['#9080c8', '#6858a0', '#403070', '#1c1438'],
+      semi: 'branch', spal: ['#9a88c8', '#6a5a98', '#40366a', '#1c1838'], column: 'crystal',
+      deco: ['glowshroom', 'glowshroom', 'fern', 'mushroom'], bg: 'glow', music: 'glow', dark: true
+    },
+    // 16 · a cave under the sea: swimming, crystals, coral
+    lagoon: {
+      sky: ['#0c3a5a', '#145a78', '#1e7a94'], ground: 'reef', gpal: ['#a8e0d8', '#5ab0b0', '#2a7880', '#14404a'],
+      brick: ['#ffb0c8', '#f07098', '#b03868', '#401830'], hard: ['#9ad8e8', '#5aa8c0', '#2a7088', '#123848'],
+      semi: 'coral', spal: ['#c8f0ff', '#88d0f0', '#4890c0', '#1c4868'], column: 'coral',
+      deco: ['seaweed', 'coral', 'crystalflower', 'seaweed'], bg: 'lagoon', music: 'lagoon', water: true
+    },
+    // 17 · golden dunes, sandstone and cacti
+    desert: {
+      sky: ['#8fd4ff', '#bfe6ff', '#fff2d0'], ground: 'sand', gpal: ['#fff0c8', '#f8d898', '#e0b070', '#a87840'],
+      brick: ['#f8d8a0', '#e0b070', '#b88040', '#5c3c18'], hard: ['#f0d0a0', '#d0a870', '#a07840', '#4c3418'],
+      semi: 'bridge', spal: ['#e0b880', '#b08850', '#7a5428', '#3c2410'], column: 'sandcastle',
+      deco: ['cactus', 'cactusS', 'cactus', 'shell'], bg: 'desert', music: 'desert'
+    },
+    // 18 · the moon: lilac rock, craters, crystal flowers — and floaty jumps
+    moon: {
+      sky: ['#140c34', '#241a58', '#3a2c78'], ground: 'rock', gpal: ['#d8d0f0', '#a89cd0', '#6c5c98', '#3a2c5c'],
+      brick: ['#c8c0e8', '#9890c8', '#605898', '#2c2450'], hard: ['#d0c8f0', '#a098d0', '#685c98', '#30284c'],
+      semi: 'cloud', spal: ['#e8e4ff', '#c8c0f0', '#9890c8', '#585090'], column: 'crystal',
+      deco: ['moonrock', 'crystalflower', 'moonrock', 'crystal'], bg: 'moon', music: 'moon', dark: true
+    },
+    // 19 · inside a clock tower: brass floors, wooden blocks, ticking gears
+    clock: {
+      sky: ['#3a2418', '#4c3020', '#6a4428'], ground: 'metal', gpal: ['#ffe0a0', '#d8a858', '#9a6a30', '#4c3014'],
+      brick: ['#d8a878', '#a87848', '#784c28', '#3a2010'], hard: ['#ffd890', '#d8a850', '#9a6c28', '#4c3010'],
+      semi: 'girder', spal: ['#ffe070', '#e0a020', '#9c6810', '#3c2408'], column: 'funnel',
+      deco: ['gearBig', 'lantern', 'gear', 'blocks'], bg: 'clock', music: 'clock', dark: true
+    },
+    // 20 · the deck of Captain Magpie's sky ship, high in the clouds
+    ship: {
+      sky: ['#ffb070', '#ffd090', '#fff0c8'], ground: 'stone', gpal: ['#e8b880', '#c08850', '#8a5a30', '#4c3018'],
+      brick: ['#c89060', '#a06838', '#704420', '#341c0c'], hard: ['#d8a070', '#b07848', '#7a4c28', '#3a2010'],
+      semi: 'bridge', spal: ['#e8b880', '#b8804c', '#7a4c28', '#3c2010'], column: 'stump',
+      deco: ['barrel', 'flagpost', 'anchor', 'barrel'], bg: 'ship', music: 'ship'
     }
   };
 
@@ -1452,7 +1524,10 @@
     snow: ['snowTuft', 'pebble', 'snowTuft'],
     sky: ['flowerW', 'flowerP', 'sprout', 'flowerY'],
     factory: ['bolt', 'pebble'],
-    castle: ['pebble', 'moss', 'pebble']
+    castle: ['pebble', 'moss', 'pebble'],
+    harbour: ['shell', 'pebble', 'seagrass'], candy: ['flowerP', 'flowerW', 'sprout'], cliffs: ['flowerY', 'tuft', 'clover', 'flowerW'],
+    jungle: ['tuft', 'berries', 'tuft', 'clover', 'shroom'], glow: ['glowP', 'glowC', 'tuft', 'glowC'], lagoon: ['coral', 'seagrass', 'crystal'],
+    desert: ['pebble', 'shell'], moon: ['crystal', 'pebble', 'glowP'], clock: ['bolt', 'pebble'], ship: ['pebble']
   };
   // what hangs from the underside of ground: [style, colours]
   var HANG = {
@@ -1460,7 +1535,12 @@
     beach: ['roots', ['#c89a5a', '#e8c080', '#a07040']], reef: ['kelp', ['#3aa878', '#6ad8a0', '#2a7858']],
     woods: ['vines', ['#5a4aa8', '#9a88e8', '#3c2a6a']], cave: ['drips', ['#8ad8ff', '#d0f4ff', '#5a4a8a']],
     snow: ['icicles', ['#c8ecff', '#ffffff', '#88b8e0']], sky: ['vines', ['#ffb0d8', '#ffe0f0', '#d880b8']],
-    factory: ['chains', ['#8898b8', '#c8d4e8', '#586888']], castle: ['chains', ['#9a8aa0', '#c8b8c8', '#5c4c60']]
+    factory: ['chains', ['#8898b8', '#c8d4e8', '#586888']], castle: ['chains', ['#9a8aa0', '#c8b8c8', '#5c4c60']],
+    harbour: ['roots', ['#c89a5a', '#e8c080', '#a07040']], candy: ['drips', ['#ffd0e8', '#ffffff', '#d888b0']],
+    cliffs: ['vines', ['#58c048', '#a8f070', '#8a7a5a']], jungle: ['vines', ['#2e9a48', '#7ed858', '#5a4028']],
+    glow: ['vines', ['#2a8a98', '#7ae8e0', '#2a2050']], lagoon: ['kelp', ['#3aa878', '#6ad8a0', '#2a7858']],
+    desert: ['roots', ['#c8a060', '#e8c890', '#a07840']], moon: ['drips', ['#c8c0f0', '#ffffff', '#8878c0']],
+    clock: ['chains', ['#c8a050', '#ffe0a0', '#7a5428']], ship: ['chains', ['#a07848', '#d8b080', '#5a3c20']]
   };
   // each world's light (see light.js)
   var LIGHT = {
@@ -1473,7 +1553,17 @@
     snow: { rays: { col: '#ffffff', a: 0.36 } },
     sky: { rays: { col: '#ffe2c4', a: 0.36 }, motes: '#ffffff' },
     factory: { dark: { col: '#0e1228', a: 0.2 }, rays: { col: '#ffe2a0', a: 0.42 }, motes: '#ffe8b0' },
-    castle: { dark: { col: '#1c0614', a: 0.36 }, motes: '#ffb868' }
+    castle: { dark: { col: '#1c0614', a: 0.36 }, motes: '#ffb868' },
+    harbour: { rays: { col: '#ffd0a0', a: 0.34 }, motes: '#fff0d8' },
+    candy: { rays: { col: '#fff0f8', a: 0.3 }, motes: '#ffffff' },
+    cliffs: { rays: { col: '#ffffff', a: 0.28 }, motes: '#ffffff' },
+    jungle: { rays: { col: '#f0ffc8', a: 0.4 }, motes: '#f8ffb0' },
+    glow: { dark: { col: '#081030', a: 0.34 }, motes: '#a8ffe8' },
+    lagoon: { dark: { col: '#04182a', a: 0.22 }, rays: { col: '#a8f0ff', a: 0.45 }, motes: '#d0fbff' },
+    desert: { rays: { col: '#fff8d0', a: 0.28 }, motes: '#fff4d8' },
+    moon: { dark: { col: '#0a0628', a: 0.22 }, motes: '#e8e0ff' },
+    clock: { dark: { col: '#140a04', a: 0.3 }, rays: { col: '#ffd890', a: 0.36 }, motes: '#ffe0a0' },
+    ship: { rays: { col: '#ffe0b0', a: 0.36 }, motes: '#ffffff' }
   };
   Object.keys(A.themes).forEach(function (k) {
     var th = A.themes[k];

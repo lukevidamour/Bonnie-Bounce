@@ -136,6 +136,8 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
   the main cause of frustration.
 - **P1** Two-player helper mode (a parent as a floating helper who can
   carry Bonnie over a gap) — the single best feature for this age.
+- *Done 16 Oct:* three hearts, so one bump never undoes a good run, and a
+  fall into a pit costs a heart rather than the level.
 
 ### 6. Rewards and replay
 - **P1** Three big hidden **Monsty badges** per level (like star coins),
@@ -186,7 +188,11 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
 ### 11. Quality
 - **P1** Known rough edges: the "CMD" label reads as "CMO" in the pixel
   font; some old props (bench, swings, slide, blocks, igloo, gears) are
-  still in the first art style; the overview/sheet tools need a refresh.
+  still in the first art style.
+- *Done 16 Oct:* the robot playtest (`tools/playtest.html?level=all`)
+  finishes all twenty levels, bosses included — run it after any level
+  change. It proves a level *can* be finished, not that it's fun or fair
+  for a six-year-old: that still needs Bonnie.
 - **P1** Device QA pass and a performance budget (stay at 60fps on a
   five-year-old iPad).
 
@@ -198,6 +204,7 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
 | **2 · Make it ours** *(done, 14 Oct)* | Nothing on screen is borrowed | Gift boxes, toy bricks, stumps and chimneys, the sunflower, the acorn, the balloon arch · repainted mountains · old props redrawn · the map's landmarks given the same care as the levels |
 | **3 · Juice & heart** *(done, 14 Oct)* | Every action has weight, and the story needs no reading | Hit-stop, baddies that pop into flowers, Bonnie's checkpoint wave · picture-book opening and reunion ending · grown-ups' recorded voices · (still to come: settings with volumes) |
 | **4 · Reasons to replay** *(mostly done, 14 Oct)* | A child wants to go back | Bear hidden in every land and following Bonnie home · sticker book (Bear, creatures, outfits) · outfits won with Bear · (still to come: the football kit, once we have its colours; bonus rooms; music second sections) |
+| **4½ · A second land** *(done, 16 Oct)* | Bonnie asked for more | The Magpie Isles: ten new worlds (11–20) with their own backdrops, music, creatures and tricks — wind, low gravity, bobbing boats, jelly bounces — a boat route across the map, a party story, Captain Magpie as the boss, a party ending · three hearts (a bump or a fall costs one; stars and presents give them back) · Bear in every new land, two more outfits · `tools/playtest.html`, a robot that checks each level can be finished |
 | **5 · For every child, ready to ship** | Nobody gets stuck; could be sold | Assist mode, two-player helper, remapping, save slots · privacy note · device QA matrix · store wrap · launch assets |
 
 ## How we'll know it's working
