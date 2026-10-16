@@ -1487,7 +1487,11 @@
         if (!p.star) hurt();
         continue;
       }
-      if (p.star && !K.shot && e.k !== 'dragon') {
+      // the rainbow knocks baddies flying — but never a boss out of the
+      // level (then nothing would open the cage or the sack): to a boss
+      // it's one hit, like a thrown ball
+      if (p.star && !K.shot && K.stomp === 'boss') { bossHit(e, 'ball'); continue; }
+      if (p.star && !K.shot) {
         flip(e, p.vx >= 0 ? 1 : -1); p.combo++;
         points(COMBO[Math.min(p.combo - 1, 7)], e.x, e.y);
         continue;
@@ -1623,6 +1627,15 @@
   /* ==========================================================================
      ONE STEP OF PLAY
      ========================================================================== */
+  /* If a boss is ever gone without being beaten (knocked off the screen
+     by something no one thought of), count him beaten anyway, so the
+     cage or the sack still opens: a level must always be finishable. */
+  var bossCheck = function () {
+    if (!G.bossOn || G.bossDone) return;
+    var any = false;
+    for (var i = 0; i < G.ents.length; i++) { var e = G.ents[i]; if ((e.k === 'dragon' || e.k === 'captain') && e.alive && !e.dying) any = true; }
+    if (!any) { G.bossDone = true; BB.music(''); }
+  };
   var updatePlay = function () {
     G.tick++;
     var p = G.p;
@@ -1646,6 +1659,7 @@
     // (he doesn't shiver or glance about: on a small screen any jiggle of
     // the hero reads as a glitch — the breath in the cold says it all)
     updateFx();
+    if (G.def.boss) bossCheck();
     // a power change freezes the world for a beat, as the classic does
     if (G.freeze) {
       G.freeze--; p.t++;
