@@ -77,7 +77,7 @@ The second island, the Magpie Isles, opens when Monsty is home: a boat
 route across the water on the map, and a short party scene to start it.
 The third land, the Big Trip, opens when the presents are back: a ferry
 over to France, where the family's dark grey Yeti drives Bonnie from
-level to level. Bonnie's parents, Luke and Lucy, are in it — waiting by
+level to level. Bonnie's mum and dad, Lucy and Luke, are in it — waiting by
 the car at the end of every level and cheering at every checkpoint — and
 so is Brocco, Bonnie's broccoli soft toy.
 
@@ -150,7 +150,7 @@ trampolines and when a level is clear. The clips stay on that device.
 
 Every level has a checkpoint flag halfway, and ends at an arch of
 balloons in front of Bonnie's house (on the Magpie Isles, his tent; on
-the Big Trip, the family car with Luke and Lucy beside it) — the
+the Big Trip, the family car with Mum and Dad beside it) — the
 higher he runs through it, the more points. Progress saves automatically (in the browser, on that device).
 
 Nothing in it is borrowed: presents, wooden toy blocks and each world's
@@ -175,7 +175,7 @@ numbers in `POSES` in `js/art.js`.
 | `js/core.js` | screen scaling, palette, the sprite painter (doubling, outlines, lighting), pixel font, input, the sound chip |
 | `js/art.js` | every sprite (Bonnie is at the top), tiles and the thirty themes |
 | `js/creatures.js` | every enemy, the three bosses, and the scenery props, in the same round, softly lit style |
-| `js/family.js` | Bonnie's family, drawn from photos: Luke and Lucy, Brocco, and the family's Skoda Yeti |
+| `js/family.js` | Bonnie's family, drawn from photos: Lucy and Luke (Mum and Dad), Brocco, and the family's Skoda Yeti |
 | `js/backdrop.js` | the parallax backgrounds, layered into the haze |
 | `js/light.js` | sunbeams, dusk and glowing lights, shadows — and how Bonnie catches the light |
 | `js/music.js` | the soundtrack — all original tunes, written as note strings |

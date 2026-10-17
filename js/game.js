@@ -3339,7 +3339,7 @@
   var CREDITS3 = [
     ['HOORAY!', bright], ['BROCCO IS HOME!', '#7ee058'], ['', ''], ['WHAT A BIG TRIP!', '#ff94cc'], ['', ''], ['', ''],
     ['BONNIE BOUNCE', bright], ['', ''], ['STARRING', '#9098b0'], ['BONNIE', '#ffffff'], ['', ''], ['AND MONSTY', '#ab86f3'], ['AND BEAR THE CAT', '#c9c7da'], ['', ''],
-    ['AND BROCCO', '#7ee058'], ['WITH LUKE AND LUCY', '#ff94cc'], ['', ''], ['RASCAL THE FOX', '#fa9c38'], ['SAYS SORRY', '#9098b0'], ['', ''], ['', ''],
+    ['AND BROCCO', '#7ee058'], ['WITH MUM AND DAD', '#ff94cc'], ['', ''], ['RASCAL THE FOX', '#fa9c38'], ['SAYS SORRY', '#9098b0'], ['', ''], ['', ''],
     ['MADE WITH LOVE', '#ffffff'], ['FOR BONNIE', '#ff94cc'], ['', ''], ['', ''], ['THE END', bright]
   ];
   var creditsFor = function (land) { return land === 3 ? CREDITS3 : land === 2 ? CREDITS2 : CREDITS; };
