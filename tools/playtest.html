@@ -26,6 +26,7 @@
 <script src="../js/core.js"></script>
 <script src="../js/art.js"></script>
 <script src="../js/creatures.js"></script>
+<script src="../js/family.js"></script>
 <script src="../js/backdrop.js"></script>
 <script src="../js/light.js"></script>
 <script src="../js/map.js"></script>
@@ -36,7 +37,7 @@
 <script src="../js/game.js"></script>
 <script>
 (function () {
-  var T = 8, STEP = 6, BUDGET = 60000;
+  var T = 8, STEP = 6, BUDGET = 100000;
   var out = document.getElementById('out');
   var say = function (html) { var d = document.createElement('div'); d.innerHTML = html; out.appendChild(d); };
   // the parts of the world that never change are shared, not copied
@@ -64,7 +65,8 @@
   var goalOf = function (G) {
     var p = G.p, best = null, bd = 1e9;
     G.ents.forEach(function (e) {
-      var want = G.def.boss ? (G.bossDone ? (e.k === 'present' || e.k === 'cage') : (e.k === 'captain' || e.k === 'dragon')) : e.k === 'goal';
+      // a boss until he's beaten; then whoever (or whatever) he was keeping
+      var want = G.def.boss ? (G.bossDone ? /^(present|cage|monsty|brocco)$/.test(e.k) : !!(e.K && e.K.boss && e.alive)) : e.k === 'goal';
       if (!want) return;
       var d = Math.abs(e.x - p.x) + Math.abs(e.y - p.y);
       if (d < bd) { bd = d; best = e; }

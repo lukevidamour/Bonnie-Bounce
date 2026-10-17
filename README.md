@@ -1,15 +1,18 @@
 # Bonnie Bounce
 
-A twenty-level platform adventure starring Bonnie, in the style of a 1999
+A thirty-level platform adventure starring Bonnie, in the style of a 1999
 handheld colour game. Grown out of TEKEX Jump (the Easter egg on the Tekex
 site), it's now full screen, in colour, and a whole game: a world map,
-power-ups, checkpoints, two bosses and two endings.
+power-ups, checkpoints, three bosses and three endings.
 
 > Grumble the Dragon has taken Monsty! Bounce through ten lands to bring him home —
 > and find Bear, the family's grey cat, who's hiding somewhere in every one.
 >
 > Then, at Monsty's birthday party, Captain Magpie swoops in and steals the
 > presents. Sail to the Magpie Isles and win them back.
+>
+> And then it's off to Disneyland Paris in the family car — until Rascal the
+> Fox snatches Brocco, Bonnie's broccoli, and runs for Paris.
 
 ## Playing it
 
@@ -69,9 +72,14 @@ Keyboard → Keyboard Shortcuts).
 
 ## The game
 
-**Twenty worlds on two islands**, each with its own look, music, enemies and trick.
+**Thirty worlds in three lands**, each with its own look, music, enemies and trick.
 The second island, the Magpie Isles, opens when Monsty is home: a boat
 route across the water on the map, and a short party scene to start it.
+The third land, the Big Trip, opens when the presents are back: a ferry
+over to France, where the family's dark grey Yeti drives Bonnie from
+level to level. Bonnie's parents, Luke and Lucy, are in it — waiting by
+the car at the end of every level and cheering at every checkpoint — and
+so is Brocco, Bonnie's broccoli soft toy.
 
 | | World | What's new |
 |---|---|---|
@@ -95,13 +103,23 @@ route across the water on the map, and a short party scene to start it.
 | 18 | Moon Garden | low gravity — every jump floats |
 | 19 | Clockwork Tower | a climb up the tower, belts and crushers |
 | 20 | Magpie's Sky Ship | Captain Magpie: he swoops and drops eggs; stomp him when he lands |
+| 21 | The Ferry | steam from the funnels lifts Bonnie up; lifeboats bob |
+| 22 | Sunflower Fields | windmill sails to ride round, hay bales, hedgehogs |
+| 23 | Market Village | stripy market awnings to bounce on, snails, pigeons |
+| 24 | The Bakery | conveyor belts, bouncy dough, croissants on the run |
+| 25 | Cheese Caves | rolling cheeses, bats, grumpy rocks |
+| 26 | Paris Rooftops | roof to roof, a chimney's steam up to the tallest |
+| 27 | The Metro | trains to ride across the tracks, hopping suitcases |
+| 28 | Eiffel Tower | a climb all the way up, girders and a lift |
+| 29 | Disneyland Paris | carousel horses, spinning teacups, a parade float, bouncy castles, toy soldiers |
+| 30 | Fireworks Night | the castle at night, and Rascal the Fox: stomp him when he lands in a dizzy heap |
 
 **Hearts:** Bonnie has three. A bump from a baddie costs one and he
 carries on (blinking for a moment, so he can get clear). A fall into a
 pit or lava costs one too, and a bubble pops him back onto the last safe
 ground he stood on. Only when the last heart goes does he start again —
 from the checkpoint flag if he reached it, after a one-second card.
-Every 10 stars gives half a heart back, and a heart from a present gives
+Every 12 stars gives half a heart back, and a heart from a present gives
 a whole one (or a burst of points if he's full). Lives are unlimited.
 When he's big, a bump shrinks him first, as before, without costing a heart.
 
@@ -112,9 +130,12 @@ a fall). Bring him home and his face lights up on that level's map tag.
 
 **The sticker book** (BOOK, top left of the map, or the run key) has a
 sticker of Bear for every land he came home from (a page for each
-island), one for every creature Bonnie has met, and the **outfits** —
+land), one for every creature Bonnie has met, and the **outfits** —
 star pyjamas, a superhero suit with a cape, a Monsty suit, a pirate suit
-and a golden one — won by bringing Bear home 3, 6, 10, 15 and 20 times.
+with a tricorn hat and a golden one with a crown, won by bringing Bear
+home 3, 6, 10, 15 and 20 times; and a football kit, a golf outfit with a
+cap, and mouse ears for a day at the park, won by finishing levels 21,
+25 and 29.
 
 **Grown-ups** (title menu or pause menu, hold to open) can record their
 own "Yay!", "Wheee!" and "Well done!" — played at checkpoints, on
@@ -128,7 +149,8 @@ trampolines and when a level is clear. The clips stay on that device.
 - **Heart** — a burst of points.
 
 Every level has a checkpoint flag halfway, and ends at an arch of
-balloons in front of Bonnie's house (on the Magpie Isles, his tent) — the
+balloons in front of Bonnie's house (on the Magpie Isles, his tent; on
+the Big Trip, the family car with Luke and Lucy beside it) — the
 higher he runs through it, the more points. Progress saves automatically (in the browser, on that device).
 
 Nothing in it is borrowed: presents, wooden toy blocks and each world's
@@ -151,13 +173,14 @@ numbers in `POSES` in `js/art.js`.
 | File | What's in it |
 |---|---|
 | `js/core.js` | screen scaling, palette, the sprite painter (doubling, outlines, lighting), pixel font, input, the sound chip |
-| `js/art.js` | every sprite (Bonnie is at the top), tiles and the twenty themes |
-| `js/creatures.js` | every enemy, Monsty's captor Grumble, and the scenery props, in the same round, softly lit style |
+| `js/art.js` | every sprite (Bonnie is at the top), tiles and the thirty themes |
+| `js/creatures.js` | every enemy, the three bosses, and the scenery props, in the same round, softly lit style |
+| `js/family.js` | Bonnie's family, drawn from photos: Luke and Lucy, Brocco, and the family's Skoda Yeti |
 | `js/backdrop.js` | the parallax backgrounds, layered into the haze |
 | `js/light.js` | sunbeams, dusk and glowing lights, shadows — and how Bonnie catches the light |
 | `js/music.js` | the soundtrack — all original tunes, written as note strings |
-| `js/levels.js` | the level builder and the twenty levels |
-| `js/map.js` | the world map: two islands and the boat route between them, each world's landmark, all animated |
+| `js/levels.js` | the level builder and the thirty levels |
+| `js/map.js` | the world map: two islands and France, the boat and ferry routes between them, each world's landmark, all animated |
 | `js/ui.js` | the game's stationery: paper cards with a running stitch, ribbon banners, Monsty's head as the menu pointer |
 | `js/voice.js` | grown-ups' recorded voices: recording (MediaRecorder), keeping them on the device, playing them in the game |
 | `js/game.js` | physics, Bonnie, enemies, items, the screens and the save |
@@ -176,14 +199,15 @@ Handy while editing:
   `?level=11-20`, `?level=19`), to prove each can be finished after a
   change. It searches short moves — walk, run, jump, hold, wait — always
   carrying on from the spot nearest the end; bumps don't stop it, falls
-  do. All twenty pass (the whole run takes a minute or two; the boss
+  do. All thirty pass (the whole run takes a minute or two; the boss
   fights take longest). If one fails, it says how far it got.
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).
 - `tools/icon.html` redraws the home-screen icons; save each into `icons/`.
-- How hard it is: `SLOW` (how fast baddies and hazards move, 0.85 now)
-  and `THIN` (one baddie in THIN is left out) at the top of `js/game.js`,
-  next to the jump and forgiveness settings.
+- How hard it is: `SLOW` (how fast baddies and hazards move, 0.94 now),
+  `THIN` (one baddie in THIN is left out, 10 now) and `HEAL_STARS` (stars
+  for half a heart, 12 now) at the top of `js/game.js`, next to the jump
+  and forgiveness settings.
 - Level 1's signposts are `L.tip(x, 'jump')` and so on; the words and
   pictures for each are `TIPS` in `js/game.js`.
 

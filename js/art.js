@@ -1480,6 +1480,78 @@
       brick: ['#c89060', '#a06838', '#704420', '#341c0c'], hard: ['#d8a070', '#b07848', '#7a4c28', '#3a2010'],
       semi: 'bridge', spal: ['#e8b880', '#b8804c', '#7a4c28', '#3c2010'], column: 'stump',
       deco: ['barrel', 'flagpost', 'anchor', 'barrel'], bg: 'ship', music: 'ship'
+    },
+
+    /* ---- the third land: the Big Trip (levels 21–30) — off to Paris in the Yeti ---- */
+    // 21 · the deck of the ferry: painted steel, lifeboats, funnels letting off steam
+    ferry: {
+      sky: ['#7cc8ff', '#a8dcff', '#e0f4ff'], ground: 'metal', gpal: ['#eef2f4', '#c0ccd6', '#7c8ca0', '#38445a'],
+      brick: ['#ffb070', '#f07838', '#b04c1c', '#4a1c0c'], hard: ['#f4f4f0', '#d0d4d8', '#9aa0aa', '#454a58'],
+      semi: 'girder', spal: ['#ffffff', '#d8e0e8', '#98a8b8', '#485468'], column: 'funnel',
+      deco: ['buoy', 'barrel', 'bollard', 'lifering', 'buoy'], bg: 'ferry', music: 'ferry', sea: true
+    },
+    // 22 · French countryside: sunflowers, hay bales, a windmill
+    fields: {
+      sky: ['#6cc0ff', '#9ad4ff', '#e4f6ff'], ground: 'grass', gpal: ['#c8ec70', '#80b840', '#c8904c', '#7a5028'],
+      brick: ['#ffe8a0', '#f0c860', '#c09030', '#5c4010'], hard: ['#f4d8a0', '#d0a868', '#9a7438', '#4c3418'],
+      semi: 'bridge', spal: ['#f8d890', '#c89848', '#8a5c24', '#3c2410'], column: 'stump',
+      deco: ['sunflower', 'haybale', 'sunflower', 'fence', 'flowerY'], bg: 'fields', music: 'fields'
+    },
+    // 23 · a village square on market day: cobbles, terracotta, stripy awnings
+    village: {
+      sky: ['#8cd0ff', '#b0e0ff', '#eaf6ff'], ground: 'stone', gpal: ['#ece2ce', '#c4b094', '#8a745a', '#4a3a2a'],
+      brick: ['#ffd0b0', '#e8906a', '#b05c3c', '#4c2418'], hard: ['#f6ecd6', '#dccaa8', '#a8946c', '#4c4030'],
+      semi: 'bridge', spal: ['#e8c090', '#b88850', '#7a5428', '#3c2410'], column: 'chimney',
+      deco: ['lamppost', 'cafetable', 'flowerbox', 'fountain', 'lamppost'], bg: 'village', music: 'village'
+    },
+    // 24 · inside the bakery: warm tiles, crusty-loaf blocks, shelves of bread
+    bakery: {
+      sky: ['#f8d0a0', '#ffe4bc', '#fff4e0'], ground: 'stone', gpal: ['#fff2dc', '#ecca9c', '#b88a58', '#5c3c20'],
+      brick: ['#f8c888', '#e09048', '#a85c24', '#4a2810'], hard: ['#fae2bc', '#dab282', '#a07840', '#4c3418'],
+      semi: 'bridge', spal: ['#f0d0a0', '#c89860', '#8a6030', '#3c2410'], column: 'chimney',
+      deco: ['breadbasket', 'baguettes', 'cake', 'breadbasket'], bg: 'bakery', music: 'bakery'
+    },
+    // 25 · the cheese caves: cheese-gold rock, wheels on racks, lantern light
+    cheese: {
+      sky: ['#2c1c0c', '#3c2a14', '#50381c'], ground: 'rock', gpal: ['#ffe890', '#f0c840', '#b88a20', '#5c4010'],
+      brick: ['#fff0a0', '#f8d050', '#c89820', '#5c4008'], hard: ['#dccca4', '#ac9c74', '#7a6a4a', '#3a3020'],
+      semi: 'bridge', spal: ['#d8b070', '#a87c40', '#6c4c20', '#2c1c0c'], column: 'stump',
+      deco: ['cheesewedge', 'barrel', 'lantern', 'cheesewedge'], bg: 'cheese', music: 'cheese', dark: true, ceiling: true
+    },
+    // 26 · the rooftops of Paris: blue-grey zinc, cream stone, chimney pots
+    roofs: {
+      sky: ['#7ab8f0', '#a8d0f8', '#ffe2cc'], ground: 'metal', gpal: ['#cad6e2', '#98a8bc', '#68788c', '#343c4c'],
+      brick: ['#ffb898', '#e07858', '#a84c34', '#401c14'], hard: ['#ece4d4', '#ccc0aa', '#988c78', '#48402c'],
+      semi: 'girder', spal: ['#5a6478', '#3c4458', '#282e3e', '#14181e'], column: 'chimney',
+      deco: ['chimneypot', 'flowerbox', 'lamppost', 'chimneypot'], bg: 'roofs', music: 'roofs'
+    },
+    // 27 · the Metro: white tiles, green ironwork, trains in the tunnels
+    metro: {
+      sky: ['#1e2636', '#283246', '#323e56'], ground: 'stone', gpal: ['#f4f4f0', '#d0d4d8', '#9098a8', '#3c4250'],
+      brick: ['#8ad0ac', '#4c9a78', '#2c6a50', '#10301c'], hard: ['#ecc678', '#c09040', '#8a6020', '#3c280c'],
+      semi: 'girder', spal: ['#6aa888', '#3c7a5c', '#22503a', '#0c2418'], column: 'funnel',
+      deco: ['metrosign', 'bench', 'lamp', 'metrosign'], bg: 'metro', music: 'metro', dark: true, ceiling: true
+    },
+    // 28 · up the Eiffel Tower: bronze-brown ironwork, all the way to the top
+    tower: {
+      sky: ['#70b4f8', '#a4d2ff', '#e8f4ff'], ground: 'metal', gpal: ['#cca484', '#9e785c', '#6c4e3a', '#30201a'],
+      brick: ['#dab494', '#aa7e5e', '#7a5038', '#341c10'], hard: ['#d4b494', '#a88468', '#765640', '#34241a'],
+      semi: 'girder', spal: ['#c49a78', '#94704e', '#644630', '#2a1c12'], column: 'funnel',
+      deco: ['lantern', 'flagpost', 'lantern'], bg: 'tower', music: 'tower'
+    },
+    // 29 · Disneyland Paris: pink paths, a fairytale castle, carousel and teacups
+    magic: {
+      sky: ['#86ccff', '#bce4ff', '#ffe8f4'], ground: 'stone', gpal: ['#ffeef4', '#f8c4d4', '#c88ca2', '#6a4054'],
+      brick: ['#ffdcea', '#f8a4c8', '#c86c98', '#5a2448'], hard: ['#e4f2ff', '#acd2f2', '#6a9aca', '#2c4a78'],
+      semi: 'bridge', spal: ['#fff0b0', '#f8c850', '#c08a20', '#5a3c10'], column: 'sandcastle',
+      deco: ['balloon', 'teacup', 'lamppost', 'flowerbox', 'carouselhorse'], bg: 'magic', music: 'magic'
+    },
+    // 30 · the castle at night, fireworks overhead, and Rascal the Fox
+    night: {
+      sky: ['#141038', '#2a1c5c', '#5a3a88'], ground: 'stone', gpal: ['#cabce2', '#9282ba', '#5c4c88', '#2a2048'],
+      brick: ['#dcaad2', '#aa7aaa', '#704870', '#2c1830'], hard: ['#acbae8', '#7a8ac2', '#4a5a92', '#1c2448'],
+      semi: 'bridge', spal: ['#e8d090', '#b89850', '#7a6028', '#3a2c10'], column: 'sandcastle',
+      deco: ['lamppost', 'balloon', 'flowerbox', 'lamppost'], bg: 'night', music: 'night', dark: true
     }
   };
 
@@ -1527,7 +1599,10 @@
     castle: ['pebble', 'moss', 'pebble'],
     harbour: ['shell', 'pebble', 'seagrass'], candy: ['flowerP', 'flowerW', 'sprout'], cliffs: ['flowerY', 'tuft', 'clover', 'flowerW'],
     jungle: ['tuft', 'berries', 'tuft', 'clover', 'shroom'], glow: ['glowP', 'glowC', 'tuft', 'glowC'], lagoon: ['coral', 'seagrass', 'crystal'],
-    desert: ['pebble', 'shell'], moon: ['crystal', 'pebble', 'glowP'], clock: ['bolt', 'pebble'], ship: ['pebble']
+    desert: ['pebble', 'shell'], moon: ['crystal', 'pebble', 'glowP'], clock: ['bolt', 'pebble'], ship: ['pebble'],
+    ferry: ['bolt'], fields: ['flowerY', 'tuft', 'flowerW', 'clover', 'tuft'], village: ['pebble', 'flowerP', 'moss'],
+    bakery: [], cheese: ['pebble', 'crystal'], roofs: ['moss', 'pebble'], metro: ['bolt', 'pebble'], tower: ['bolt'],
+    magic: ['flowerP', 'flowerB', 'flowerW', 'flowerY'], night: ['glowP', 'flowerW', 'glowC']
   };
   // what hangs from the underside of ground: [style, colours]
   var HANG = {
@@ -1540,7 +1615,12 @@
     cliffs: ['vines', ['#58c048', '#a8f070', '#8a7a5a']], jungle: ['vines', ['#2e9a48', '#7ed858', '#5a4028']],
     glow: ['vines', ['#2a8a98', '#7ae8e0', '#2a2050']], lagoon: ['kelp', ['#3aa878', '#6ad8a0', '#2a7858']],
     desert: ['roots', ['#c8a060', '#e8c890', '#a07840']], moon: ['drips', ['#c8c0f0', '#ffffff', '#8878c0']],
-    clock: ['chains', ['#c8a050', '#ffe0a0', '#7a5428']], ship: ['chains', ['#a07848', '#d8b080', '#5a3c20']]
+    clock: ['chains', ['#c8a050', '#ffe0a0', '#7a5428']], ship: ['chains', ['#a07848', '#d8b080', '#5a3c20']],
+    ferry: ['chains', ['#98a8b8', '#d8e0e8', '#586878']], fields: ['roots', ['#a87848', '#d8a870', '#7a5030']],
+    village: ['vines', ['#58b848', '#9ae070', '#7a5a36']], bakery: ['drips', ['#fff4e0', '#ffffff', '#e8c898']],
+    cheese: ['drips', ['#ffe890', '#fff6c8', '#c89a30']], roofs: ['drips', ['#a8b8cc', '#e0e8f0', '#68788c']],
+    metro: ['chains', ['#6aa888', '#b8e8d0', '#2c6a50']], tower: ['chains', ['#9e785c', '#cca484', '#5a3c28']],
+    magic: ['vines', ['#58c048', '#ffb0d8', '#7a5a36']], night: ['vines', ['#5a4aa8', '#ffd0f0', '#3c2a6a']]
   };
   // each world's light (see light.js)
   var LIGHT = {
@@ -1563,7 +1643,17 @@
     desert: { rays: { col: '#fff8d0', a: 0.28 }, motes: '#fff4d8' },
     moon: { dark: { col: '#0a0628', a: 0.22 }, motes: '#e8e0ff' },
     clock: { dark: { col: '#140a04', a: 0.3 }, rays: { col: '#ffd890', a: 0.36 }, motes: '#ffe0a0' },
-    ship: { rays: { col: '#ffe0b0', a: 0.36 }, motes: '#ffffff' }
+    ship: { rays: { col: '#ffe0b0', a: 0.36 }, motes: '#ffffff' },
+    ferry: { rays: { col: '#ffffff', a: 0.3 }, motes: '#ffffff' },
+    fields: { rays: { col: '#fff4c0', a: 0.38 }, motes: '#fffbe0' },
+    village: { rays: { col: '#fff0c8', a: 0.34 }, motes: '#ffffff' },
+    bakery: { rays: { col: '#ffe0a8', a: 0.4 }, motes: '#fff4e0' },
+    cheese: { dark: { col: '#1c1004', a: 0.4 }, motes: '#ffe8a0' },
+    roofs: { rays: { col: '#ffe0c0', a: 0.36 }, motes: '#ffffff' },
+    metro: { dark: { col: '#0c1018', a: 0.34 }, rays: { col: '#e0f0ff', a: 0.3 }, motes: '#d8e8ff' },
+    tower: { rays: { col: '#ffffff', a: 0.3 }, motes: '#ffffff' },
+    magic: { rays: { col: '#fff0f8', a: 0.36 }, motes: '#ffffff' },
+    night: { dark: { col: '#0c0828', a: 0.3 }, motes: '#ffe0ff' }
   };
   Object.keys(A.themes).forEach(function (k) {
     var th = A.themes[k];

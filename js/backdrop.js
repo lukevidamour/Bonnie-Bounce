@@ -1420,6 +1420,1252 @@
     return L;
   };
 
+  /* ==========================================================================
+     THE BIG TRIP — the third land's ten worlds: over the sea to France,
+     through the fields and a market village to Paris, and on to the
+     fairground castle. The same painting again (haze toward the horizon,
+     light from the top left, round things in three tones), with the shapes
+     the journey needs.
+     ========================================================================== */
+  /* A strip that reaches up above the screen, for a climb. drawBackdrop slides
+     each layer down by as much as lift * f * 1.6 while the camera rises (see
+     GEN.clock), so the strip is that much taller, drawn from y = -e. */
+  var tallStrip = function (f, lift) { var e = Math.ceil(lift * f * 1.6) + 2, c = BB.surface(SW, H + e); c.getContext('2d').translate(0, e); return { c: c, f: f, y: -e, e: e }; };
+  // a gull gliding: wings bent at the wrist, the far one in shade, tips dipped in grey. c = [wing, shade, tip]
+  var gull = function (g, x, y, s, c) {
+    [-1, 1].forEach(function (d) {
+      var w = Math.max(HP, 0.55 * s);
+      line(g, x, y, x + d * 2.1 * s, y - 1.4 * s, w, d < 0 ? c[0] : c[1]);
+      line(g, x + d * 2.1 * s, y - 1.4 * s, x + d * 4.4 * s, y - 0.3 * s, w, d < 0 ? c[0] : c[1]);
+      R(g, x + d * 4.4 * s - (d < 0 ? 0 : w), y - 0.3 * s, w, w, c[2]);
+    });
+    oval(g, x, y + 0.3 * s, 1.1 * s, Math.max(HP, 0.55 * s), c[0]);
+  };
+  // bunting slung from (x0, y0) to (x1, y1), sagging in the middle, its little flags in turn
+  var bunting = function (g, x0, y0, x1, y1, sag, cols, fw, rope) {
+    line(g, x0, y0, x1, y1, HP, rope, sag);
+    var n = Math.max(2, Math.floor(Math.abs(x1 - x0) / (fw * 1.7)));
+    for (var i = 1; i < n; i++) {
+      var t = i / n, fx = x0 + (x1 - x0) * t, fy = y0 + (y1 - y0) * t + sag * 4 * t * (1 - t) + HP, col = cols[i % cols.length], fh = fw * 1.25;
+      span(g, fy, fy + fh, function (yy) { return fx - fw / 2 * (1 - (yy - fy) / fh); }, function (yy) { return fx + fw / 2 * (1 - (yy - fy) / fh); }, col);
+      R(g, fx - fw / 2, fy, fw * 0.45, HP, mix(col, '#ffffff', 0.45));
+    }
+  };
+  /* A striped awning, seen from the front: the stripes catch the light at
+     the top, a scalloped hem, and the shade it throws beneath. c = [stripe, stripe2, shade] */
+  var awning = function (g, x, y, w, h, c, sw) {
+    sw = sw || 2;
+    for (var i = 0; i * sw < w; i++) { var col = i % 2 ? c[1] : c[0]; R(g, x + i * sw, y, Math.min(sw, w - i * sw), h, col); R(g, x + i * sw, y, Math.min(sw, w - i * sw), HP, mix(col, '#ffffff', 0.35)); disc(g, x + i * sw + sw / 2, y + h, sw / 2, col); }
+    g.globalAlpha = 0.35; R(g, x, y + h + sw / 2, w, 1.5, c[2]); g.globalAlpha = 1;
+  };
+  /* A soft beam of light from (x0, y0), fading towards (x1, y1) and widening
+     from w0 to w1: three nested bands, so its sides are soft. */
+  var beam = function (g, x0, y0, x1, y1, w0, w1, col, a) {
+    var n = Math.max(1, Math.ceil(Math.abs(y1 - y0) / HP));
+    for (var i = 0; i <= n; i++) {
+      var t = i / n, x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t, w = w0 + (w1 - w0) * t;
+      for (var q = 1; q > 0.3; q -= 0.33) { g.globalAlpha = a * (1 - t) * 0.34; R(g, x - w * q / 2, y, w * q, HP, col); }
+    }
+    g.globalAlpha = 1;
+  };
+  /* The Eiffel Tower seen far across the city: four legs curving up from a
+     wide foot, the great arch between them, two platforms and the long
+     spire. Its lattice is see-through, so inside it is paler than at its
+     edges. c = [edge, lattice, light] */
+  var eiffel = function (g, cx, base, h, c) {
+    var hw = function (k) { return Math.max(0.5, 0.205 * h * Math.exp(-3 * k)); };
+    for (var y = 0; y < h * 0.93; y += HP) {
+      var k = y / h, yy = base - y, w = hw(k), lw = Math.max(1, w * 0.3), e = Math.max(HP, w * 0.13);
+      if (k < 0.16) {
+        var ao = (w - lw) * Math.sqrt(Math.max(0, 1 - Math.pow(k / 0.16, 2)));
+        R(g, cx - w, yy, w - ao, HP, c[1]); R(g, cx + ao, yy, w - ao, HP, c[1]);
+        if (ao > HP) { R(g, cx - ao - HP, yy, HP, HP, c[0]); R(g, cx + ao, yy, HP, HP, c[0]); }
+      } else R(g, cx - w, yy, w * 2, HP, c[1]);
+      R(g, cx - w, yy, e, HP, c[2]); R(g, cx + w - e, yy, e, HP, c[0]);
+    }
+    // criss-cross bracing in the legs and the stage above them
+    for (var s = 0; s < 3; s++) {
+      var k0 = s * 0.063, k1 = k0 + 0.063, w0 = hw(k0), w1 = hw(k1);
+      [-1, 1].forEach(function (d) { line(g, cx + d * w0, base - k0 * h, cx + d * (w1 - w1 * 0.3), base - k1 * h, HP, c[0]); line(g, cx + d * (w0 - w0 * 0.3), base - k0 * h, cx + d * w1, base - k1 * h, HP, c[0]); });
+    }
+    [[0.19, 0.38], [0.38, 0.6]].forEach(function (q) { var a = hw(q[0]), b = hw(q[1]); line(g, cx - a, base - q[0] * h, cx + b, base - q[1] * h, HP, c[0]); line(g, cx + a, base - q[0] * h, cx - b, base - q[1] * h, HP, c[0]); });
+    // the platforms, and the lookout at the top under its mast
+    R(g, cx - hw(0.19) - 1.2, base - h * 0.19 - 1.5, hw(0.19) * 2 + 2.4, 1.5, c[0]); R(g, cx - hw(0.19) - 1.2, base - h * 0.19 - 1.5, hw(0.19) * 2 + 2.4, HP, c[2]);
+    R(g, cx - hw(0.38) - 0.8, base - h * 0.38 - 1, hw(0.38) * 2 + 1.6, 1, c[0]); R(g, cx - hw(0.38) - 0.8, base - h * 0.38 - 1, hw(0.38) * 2 + 1.6, HP, c[2]);
+    R(g, cx - 1.2, base - h * 0.95, 2.4, 1.5, c[0]); R(g, cx - HP, base - h * 1.05, HP * 2, h * 0.1, c[0]);
+  };
+  /* A white basilica on its hill: a tall egg-shaped dome on its drum,
+     smaller domes at its shoulders, a square bell tower behind.
+     c = [shade, body, light] */
+  var basilica = function (g, cx, base, s, c) {
+    var dome = function (x, y, rx, ry) { oval(g, x + rx * 0.12, y, rx, ry, c[0], true); oval(g, x - rx * 0.06, y, rx * 0.86, ry * 0.97, c[1], true); oval(g, x - rx * 0.4, y - ry * 0.45, rx * 0.3, ry * 0.32, c[2]); };
+    R(g, cx + 6 * s, base - 16 * s, 3 * s, 16 * s, c[0]); R(g, cx + 6 * s, base - 16 * s, s, 16 * s, c[1]); dome(cx + 7.5 * s, base - 16 * s, 1.7 * s, 2.6 * s);
+    R(g, cx - 10 * s, base - 6 * s, 20 * s, 6 * s, c[1]); R(g, cx + 5 * s, base - 6 * s, 5 * s, 6 * s, c[0]); R(g, cx - 10 * s, base - 6 * s, 20 * s, HP, c[2]);
+    [-6.5, 6.5].forEach(function (d) { R(g, cx + d * s - 1.5 * s, base - 8.5 * s, 3 * s, 2.5 * s, d < 0 ? c[1] : c[0]); dome(cx + d * s, base - 8.5 * s, 1.9 * s, 2.8 * s); });
+    R(g, cx - 3.2 * s, base - 11 * s, 6.4 * s, 5 * s, c[1]); R(g, cx + 1.6 * s, base - 11 * s, 1.6 * s, 5 * s, c[0]);
+    for (var a = -2; a <= 2; a++) R(g, cx + a * 1.2 * s - HP / 2, base - 10.5 * s, HP, 4 * s, c[0]);
+    dome(cx, base - 11 * s, 4 * s, 7 * s);
+    R(g, cx - 0.6 * s, base - 19.6 * s, 1.2 * s, 1.8 * s, c[1]); dome(cx, base - 19.6 * s, 0.8 * s, 1.1 * s);
+    R(g, cx - HP / 2, base - 22 * s, HP, 1.4 * s, c[0]);
+  };
+  /* A Paris building: a cream stone front, rows of tall windows with iron
+     balconies on two floors, a cornice, and the zinc mansard above with its
+     dormers and a chimney stack crowned with pots. top is the cornice.
+     Z = zinc [shade, body, light], S = stone [shade, body, light],
+     P = [pot, pot light, iron, glass, glass glint] */
+  var paris = function (g, x, w, top, Z, S, P, rnd) {
+    var rh = 9, inset = 3.2, i, yy;
+    span(g, top - rh, top, function (y) { return x - 0.5 + (top - y) / rh * inset; }, function (y) { return x + w + 0.5 - (top - y) / rh * inset; }, Z[1]);
+    for (yy = top - rh; yy < top; yy += HP) { var k = (top - yy) / rh; R(g, x - 0.5 + k * inset, yy, 1, HP, Z[2]); R(g, x + w - 0.5 - k * inset, yy, 1, HP, Z[0]); }
+    for (var sx = x + 2.5; sx < x + w - 2; sx += 2.5) R(g, sx, top - rh + 2, HP, rh - 2, mix(Z[1], Z[0], 0.45));
+    R(g, x + inset - 0.5, top - rh - 1, w - inset * 2 + 1, 1, Z[2]);
+    // dormers, each window lit gold by the low sun
+    for (var dx = x + 4; dx < x + w - 5; dx += 7) {
+      R(g, dx - 0.5, top - 6.5, 4, 5.5, S[1]); R(g, dx + 2.5, top - 6.5, 1, 5.5, S[0]); oval(g, dx + 1.5, top - 6.5, 2.4, 1.4, S[2], true);
+      R(g, dx + 0.5, top - 5.5, 2, 3.5, P[3]); R(g, dx + 0.5, top - 5.5, 1, 1.5, P[4]);
+    }
+    // a chimney stack crowned with pots
+    var cx = x + 3 + Math.floor(rnd() * (w - 10)), cw = 4 + Math.floor(rnd() * 4), ch = 4 + rnd() * 4, ct = top - rh - ch;
+    R(g, cx, ct, cw, ch + 1, S[1]); R(g, cx + cw - 1, ct, 1, ch + 1, S[0]); R(g, cx - 0.5, ct, cw + 1, 1, S[2]);
+    for (var px = cx + 0.5; px < cx + cw - 0.5; px += 1.5) { var ph = 1.5 + rnd() * 1.5; R(g, px, ct - ph, 1, ph, P[0]); R(g, px, ct - ph, 1, HP, P[1]); }
+    // the stone front: a cornice, then floor on floor of tall windows
+    R(g, x, top, w, H - top, S[1]); R(g, x + w - 1.5, top, 1.5, H - top, S[0]); R(g, x, top, HP, H - top, S[2]);
+    R(g, x - 0.5, top, w + 1, 1, S[2]); R(g, x - 0.5, top + 1, w + 1, HP, S[0]);
+    for (var fl = 0, fy = top + 3; fy < H; fl++, fy += 9) {
+      for (var wx = x + 2; wx < x + w - 3; wx += 5) { R(g, wx, fy, 2.5, 5.5, P[3]); if (rnd() > 0.6) R(g, wx, fy, 1, 2, P[4]); R(g, wx - HP, fy - HP, 3.5, HP, S[2]); }
+      if (fl === 1 || fl === 4) { R(g, x + 1, fy + 4.5, w - 2, HP, P[2]); for (var bx = x + 1; bx < x + w - 1; bx += 1) R(g, bx, fy + 5, HP, 1, P[2]); }
+      R(g, x, fy + 7.5, w, HP, mix(S[1], S[0], 0.4));
+    }
+  };
+
+  GEN.ferry = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, j, x, y, k, SEA = 96, SX = 70;
+    /* A big summer sky over the Channel, and the sea under it: the sun, high
+       heaps of cloud with blue bellies, small ones sitting on the horizon,
+       and the sun's glitter on the water. One layer, so they keep together. */
+    var far = strip(), g = far.getContext('2d');
+    sun(g, SX, 26, 10, ['#fff8d8', '#fff4c0', '#fffbea']);
+    var CB = [mix('#a4c8ec', hz, 0.12), '#ffffff', '#ffffff'];
+    [[136, 30, 1.2], [282, 22, 1], [392, 44, 0.85], [8, 56, 0.7], [214, 60, 0.6], [462, 18, 0.95]].forEach(function (q) { cloud(g, q[0] + rnd() * 16, q[1] + rnd() * 4, q[2], CB); });
+    for (i = 0; i < 8; i++) cloud(g, i * 64 + rnd() * 30, SEA - 7 - rnd() * 4, 0.3 + rnd() * 0.2, [mix('#b8d8f2', hz, 0.45), mix('#ffffff', hz, 0.25), '#ffffff']);
+    for (y = SEA; y < H; y += HP) { k = (y - SEA) / (H - SEA); R(g, 0, y, SW, HP, k < 0.3 ? mix(mix('#90ccf0', hz, 0.3), '#4c9ee0', k / 0.3) : mix('#4c9ee0', '#2a6cc0', (k - 0.3) / 0.7)); }
+    R(g, 0, SEA, SW, HP, mix('#ffffff', hz, 0.2));
+    // white horses: small and crowded near the horizon, longer nearer, each with its trough
+    for (i = 0; i < 150; i++) { x = rnd() * SW; k = Math.pow(rnd(), 1.5); y = SEA + 1.5 + k * (H - SEA - 3); var wl = 0.8 + k * 4 * (0.5 + rnd()); R(g, x, y, wl, HP, mix('#ffffff', '#9ad0f0', 0.3 * (1 - k))); if (k > 0.3) R(g, x + 0.5, y + HP, Math.max(HP, wl - 1), HP, mix('#3c88d4', '#20589e', k)); }
+    // the sun's road of glitter, spreading as it comes nearer
+    for (y = SEA + HP; y < H; y += HP) {
+      k = (y - SEA) / (H - SEA);
+      if (rnd() < 0.4) continue;
+      for (j = 0; j < 1 + Math.floor(rnd() * 2); j++) { x = SX + (rnd() + rnd() - 1) * (5 + k * 24); R(g, x - 1, y, 0.5 + rnd() * (1 + k * 3.5), HP, rnd() > 0.35 ? '#fffbe2' : '#d8f0ff'); }
+    }
+    // a ferry far off, heading home the other way, its wake fanning out behind it
+    var fx = 176, fy = SEA + 1.5;
+    for (k = 0; k < 54; k += HP) { g.globalAlpha = 0.75 * (1 - k / 54); R(g, fx + 7 + k, fy - 0.5 + k * 0.012, HP, HP, '#ffffff'); R(g, fx + 7 + k, fy + k * 0.07, HP, HP, '#ffffff'); }
+    g.globalAlpha = 1;
+    span(g, fy - 2, fy, function (yy) { return fx - 8 + (fy - yy) * -0.8; }, function () { return fx + 7; }, mix('#3a4a7a', hz, 0.4));
+    R(g, fx - 6, fy - 4, 11, 2, mix('#ffffff', hz, 0.25)); R(g, fx - 4, fy - 5.5, 7, 1.5, mix('#ffffff', hz, 0.25));
+    for (x = fx - 5; x < fx + 4; x += 1) R(g, x, fy - 3.5, HP, HP, mix('#3a4a7a', hz, 0.4));
+    R(g, fx + 1, fy - 7.5, 2, 2, mix('#e04a3a', hz, 0.3)); R(g, fx + 1, fy - 7.5, 2, HP, mix('#2a2a3a', hz, 0.4));
+    [[34, 0.34], [436, 0.3], [484, 0.26]].forEach(function (q) { boat(g, q[0], SEA + 1, q[1], [mix('#3a4a7a', hz, 0.4), mix('#ffffff', hz, 0.2), mix('#c8d8ea', hz, 0.3), mix('#4a5a7a', hz, 0.4)]); });
+    L.push({ c: far, f: 0.03 });
+
+    /* The coast of France ahead: low white cliffs under green downs, a
+       harbour town climbing from its jetty, a church spire, and the
+       lighthouse out on the headland. */
+    var cst = strip(), c = cst.getContext('2d');
+    var X0 = 186, X1 = 506;
+    var top = function (xx) {
+      var u = (xx - X0) / (X1 - X0);
+      if (u <= 0 || u >= 1) return SEA;
+      var e = Math.min(1, u / 0.05, (1 - u) / 0.14);
+      return SEA - (3.5 + 6 * Math.exp(-Math.pow((u - 0.15) / 0.09, 2)) + 10 * Math.exp(-Math.pow((u - 0.62) / 0.08, 2)) + 3 * Math.exp(-Math.pow((u - 0.84) / 0.06, 2)) + Math.sin(u * 40) * 0.5) * Math.sqrt(e);
+    };
+    var CF = [mix('#b0bccf', hz, 0.42), mix('#f2ece0', hz, 0.38), mix('#ffffff', hz, 0.3)], GR = [mix('#5a9a5c', hz, 0.42), mix('#80be6e', hz, 0.4), mix('#c4ec98', hz, 0.34)];
+    c.globalAlpha = 0.2;
+    for (x = X0; x < X1; x += HP) { var rh = (SEA - top(x)) * 0.5; for (y = SEA + HP; y < SEA + rh; y += HP * 2) R(c, x + Math.sin(y * 2.3) * 0.5, y, HP, HP, CF[1]); }
+    c.globalAlpha = 1;
+    for (x = X0; x < X1; x += HP) {
+      y = top(x); var sl = top(x + 1) - top(x - 1), gd = 1.6 + Math.max(0, Math.sin(x * 0.7)) * 0.9;
+      R(c, x, y, HP, SEA - y, sl > 0.3 ? CF[0] : CF[1]);
+      if (SEA - y > 4 && Math.sin(x * 1.3) > 0.6) R(c, x, y + gd + 1, HP, (SEA - y - gd) * 0.6, mix(CF[1], CF[0], 0.5));
+      R(c, x, y, HP, gd, GR[1]); R(c, x, y + gd - HP, HP, HP, GR[0]); R(c, x, y, HP, HP, GR[2]);
+    }
+    for (i = 0; i < 12; i++) { x = X0 + 30 + rnd() * 120; ball(c, x, top(x) - 0.8, 1.2 + rnd() * 0.8, GR); }
+    // the town: rows of cream houses under slate roofs, stepping down to the quay
+    var TW = [mix('#fff6e4', hz, 0.42), mix('#f4e2c8', hz, 0.42), mix('#ffffff', hz, 0.38)], TS = mix('#c8bcc0', hz, 0.42), TR = [mix('#6a7a9a', hz, 0.45), mix('#8a6a6a', hz, 0.45)];
+    for (var row = 0; row < 3; row++) for (x = 276 + row * 3; x < 352 - row * 6; x += 3.5 + rnd() * 2.5) {
+      var hw = 3 + Math.floor(rnd() * 2), hh = 2.5 + Math.floor(rnd() * 2), gy = Math.min(SEA - 1, top(x + hw / 2) + 1 + row * 2.5);
+      R(c, x, gy - hh, hw, hh + 1, TW[Math.floor(rnd() * 3)]); R(c, x + hw - HP, gy - hh, HP, hh + 1, TS);
+      R(c, x - HP, gy - hh - 1, hw + 1, 1, TR[rnd() > 0.3 ? 0 : 1]);
+      if (rnd() > 0.4) R(c, x + 1, gy - hh + 0.5, HP, HP, mix('#5a6a8a', hz, 0.4));
+    }
+    var ch = 318, cy2 = top(ch) + 0.5;
+    R(c, ch - 1.5, cy2 - 9, 3, 9, TW[2]); R(c, ch + 0.5, cy2 - 9, 1, 9, TS);
+    span(c, cy2 - 15, cy2 - 9, function (yy) { return ch - 1.6 * (yy - cy2 + 15) / 6; }, function (yy) { return ch + 1.6 * (yy - cy2 + 15) / 6; }, TR[0]);
+    // the jetty, and its little light at the end
+    R(c, 262, SEA - 1.5, 22, 1.5, mix('#d8d0c8', hz, 0.42)); R(c, 262, SEA - 1.5, 22, HP, TW[2]);
+    R(c, 262, SEA - 5, 1.5, 3.5, mix('#ffffff', hz, 0.3)); R(c, 262, SEA - 6, 1.5, 1, mix('#4ab86a', hz, 0.3));
+    lighthouse(c, 384, top(384) + 0.5, 0.6, [mix('#ffffff', hz, 0.3), mix('#f8f8f8', hz, 0.3), mix('#ccd4e4', hz, 0.38), mix('#d8463c', hz, 0.3), '#fff6c8']);
+    mist(c, SEA - 10, 10, hz);
+    L.push({ c: cst, f: 0.055 });
+
+    // gulls riding the wind beside the ship, and a yacht heeling out on the water
+    var md = strip(), m = md.getContext('2d');
+    boat(m, 120, 104, 0.72, [mix('#2a4a8a', hz, 0.3), mix('#ffffff', hz, 0.1), mix('#d8e4f0', hz, 0.15), mix('#3a4a6a', hz, 0.3)]);
+    m.globalAlpha = 0.3; for (k = 0; k < 18; k += HP) R(m, 124 + k, 104 + k * 0.05, HP, HP, '#ffffff'); m.globalAlpha = 1;
+    for (i = 0; i < 6; i++) gull(m, i * 85 + rnd() * 50, 22 + rnd() * 46, 0.75 + rnd() * 0.35, [mix('#ffffff', hz, 0.1), mix('#c4d0dc', hz, 0.15), mix('#4a5a6a', hz, 0.3)]);
+    L.push({ c: md, f: 0.11 });
+
+    /* The ferry itself: its wash streaming back along the hull, the
+       superstructure with its lifeboats, and the rail along the deck. */
+    var nr = strip(), n = nr.getContext('2d');
+    for (y = 108; y < H; y += HP) { k = Math.min(1, (y - 108) / 16); n.globalAlpha = k * 0.5; R(n, 0, y, SW, HP, mix('#5ac4dc', '#9ae6ec', k)); }
+    n.globalAlpha = 1;
+    [[112, 0.45, 2, 0.5], [116.5, 0.6, 3, 1.2], [121.5, 0.75, 4, 2.1], [127, 0.85, 5, 0.4]].forEach(function (q) {
+      for (x = 0; x < SW; x += HP) {
+        var on = Math.sin(x * TAU * q[2] + q[3]) + Math.sin(x * TAU * (q[2] * 2 + 3) + q[3] * 3) * 0.5;
+        if (on < -0.2) continue;
+        n.globalAlpha = q[1] * Math.min(1, (on + 0.2) * 2); R(n, x, q[0] + Math.sin(x * TAU * 9 + q[3]) * 0.8, HP, on > 0.7 ? 1 : HP, '#ffffff');
+      }
+    });
+    n.globalAlpha = 1;
+    var RL = [mix('#7ea8cc', hz, 0.3), mix('#a8cce6', hz, 0.3), mix('#d8ecf8', hz, 0.25)];
+    /* Here and there the ship's white superstructure: a wall of painted steel
+       rising out of sight (so it has no top edge to land on), a row of
+       portholes, and a lifeboat hung on short, solid davits bolted to it. */
+    var SS = [mix('#bcc8d4', hz, 0.3), mix('#eef2f4', hz, 0.28), mix('#ffffff', hz, 0.2), mix('#98a8b8', hz, 0.3)];
+    var DV = [mix('#7c8a9c', hz, 0.25), mix('#c8d2dc', hz, 0.25), mix('#f4f8fa', hz, 0.2)];
+    var LB = [mix('#d06a2a', hz, 0.3), mix('#f4904a', hz, 0.28), mix('#ffc890', hz, 0.24)], WC = [mix('#c4d0dc', hz, 0.3), mix('#f8fafc', hz, 0.24), '#ffffff'];
+    [[250, 66], [478, 62]].forEach(function (q) {
+      var x0 = q[0], w = q[1];
+      R(n, x0, 0, w, 128, SS[1]); R(n, x0, 0, 1, 128, SS[2]); R(n, x0 + w - 3, 0, 3, 128, SS[0]); R(n, x0 + w - HP, 0, HP, 128, SS[3]);
+      for (x = x0 + 14; x < x0 + w - 6; x += 14) R(n, x, 0, HP, 128, mix(SS[1], SS[0], 0.5));
+      for (x = x0 + 5; x < x0 + w - 9; x += 8) { R(n, x, 9, 6, 5, SS[3]); R(n, x + HP, 9.5, 5, 4, mix('#5a7894', hz, 0.3)); R(n, x + HP, 9.5, 2, 1.5, mix('#c8e4f8', hz, 0.2)); }
+      R(n, x0, 16, w, HP, mix(SS[1], SS[0], 0.5));
+      for (x = x0 + 8; x < x0 + w - 6; x += 9) { disc(n, x + 0.3, 36.3, 2.8, SS[3]); disc(n, x, 36, 2.6, SS[2]); disc(n, x, 36, 1.8, mix('#5a7894', hz, 0.3)); R(n, x - 1, 34.5, 1, 1, mix('#c8e4f8', hz, 0.2)); }
+      // the lifeboat: an orange hull with a raked bow, a white canopy, a row of windows
+      var bx = x0 + 9, bw = w - 18, by = 86;
+      [[bx + 4, 1], [bx + bw - 4, -1]].forEach(function (d) {
+        var dx = d[0], k = d[1];
+        R(n, dx - 1.5, 66, 3, 15, DV[1]); R(n, dx - 1.5, 66, 1, 15, DV[2]); R(n, dx + 1, 66, HP, 15, DV[0]);
+        R(n, dx - 2.5, 79, 5, 2.5, DV[0]); R(n, dx - 2.5, 79, 5, HP, DV[1]);
+        line(n, dx, 66.5, dx + k * 2, 64, 2, DV[1]); line(n, dx + k * 2, 64, dx + k * 5, 64, 2, DV[1]); R(n, dx + k * 2, 64, 3 * k, HP, DV[2]);
+        R(n, dx + k * 5 - 1, 65.5, 2, 1.5, DV[0]);
+        R(n, dx + k * 5 - HP / 2, 67, HP, by - 72, mix('#6a7a8a', hz, 0.3));
+      });
+      for (y = by; y < by + 6; y += HP) {
+        var t = (y - by) / 6, l = bx + Math.pow(t, 2) * 3.5, r = bx + bw - Math.pow(t, 1.2) * 8;
+        R(n, l, y, r - l, HP, LB[1]); R(n, l + (r - l) * 0.72, y, (r - l) * 0.28, HP, LB[0]);
+      }
+      R(n, bx, by, bw, 1, mix('#ffffff', hz, 0.2)); R(n, bx + bw - 1, by - 1, 2, 1.5, LB[1]);
+      R(n, bx + 3, by - 4.5, bw - 8, 4.5, WC[1]); oval(n, bx + 3, by - 2.2, 1.6, 2.3, WC[1]); oval(n, bx + bw - 5, by - 2.2, 1.6, 2.3, WC[1]);
+      R(n, bx + 3, by - 4.5, bw - 8, HP, WC[2]); R(n, bx + bw - 9, by - 4.5, 4, 4.5, WC[0]);
+      R(n, bx + 6, by - 6.5, 7, 2, WC[1]); R(n, bx + 6, by - 6.5, 7, HP, WC[2]);
+      for (x = bx + 5; x < bx + bw - 8; x += 3) R(n, x, by - 3, 1.5, 1, mix('#4a6a8a', hz, 0.3));
+      R(n, bx + 3, by + 2, bw - 10, HP, LB[2]);
+    });
+    // the rail along the deck, pale and close to the sea's colour, so it never reads as a ledge
+    for (x = 0; x < SW; x += 16) { R(n, x, 109, 1, 19, RL[1]); R(n, x, 109, HP, 19, RL[2]); R(n, x + 1, 110, HP, 18, RL[0]); }
+    R(n, 0, 109, SW, 1, RL[1]); R(n, 0, 109, SW, HP, RL[2]); R(n, 0, 115.5, SW, HP, RL[1]); R(n, 0, 121.5, SW, HP, RL[1]);
+    // and a gull resting on a davit
+    var GX = 478 + 9 + 4 - 1;
+    R(n, GX, 61, 3, 1.5, '#ffffff'); R(n, GX + 1, 61.5, 2, 1, mix('#c4d0dc', hz, 0.1)); R(n, GX - 0.5, 60, 1, 1.5, '#ffffff'); R(n, GX - 1, 60.5, HP, HP, '#f0a040'); R(n, GX + 1, 62.5, HP, 1, '#f0a040');
+    L.push({ c: nr, f: 0.3 });
+    return L;
+  };
+
+  // a poplar: a tall slim column of leaves on a short trunk, lit down its left side. c = [shade, body, light, trunk]
+  var poplar = function (g, x, ground, h, w, c) {
+    R(g, x - 0.5, ground - h * 0.16, 1, h * 0.16, c[3]);
+    var top = ground - h;
+    for (var y = top; y < ground - h * 0.1; y += HP) {
+      var k = (y - top) / (h * 0.9), hw = w / 2 * Math.pow(Math.sin(Math.PI * Math.pow(k, 0.75)), 0.65) + Math.sin(y * 1.7 + x) * 0.25;
+      if (hw <= 0.1) continue;
+      R(g, x - hw, y, hw * 2, HP, c[1]); R(g, x - hw, y, hw * 0.7, HP, c[2]); R(g, x + hw * 0.25, y, hw * 0.75, HP, c[0]);
+    }
+  };
+  // a lavender bush in flower: a dome of grey-green, purple spikes over it. c = [shade, body, flower, flower light]
+  var lavender = function (g, x, base, r, c) {
+    oval(g, x + r * 0.1, base, r, r * 0.7, c[0], true); oval(g, x - r * 0.08, base - HP, r * 0.88, r * 0.64, c[1], true);
+    for (var s = -r * 0.85; s <= r * 0.86; s += 1) { var t = base - r * 0.66 * Math.sqrt(Math.max(0, 1 - (s / r) * (s / r))); R(g, x + s, t - r * 0.4, HP, r * 0.5, s < 0 ? c[3] : c[2]); }
+  };
+
+  GEN.fields = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, j, x, y;
+    // a high summer sky: the sun, and fair-weather clouds with flat grey-blue bellies
+    var far = strip(), g = far.getContext('2d');
+    sun(g, 92, 24, 11, ['#fff8d0', '#fff2a8', '#fffbe6']);
+    for (i = 0; i < 7; i++) cloud(g, i * 73 + rnd() * 40, 12 + rnd() * 36, 0.6 + rnd() * 0.55, [mix('#b0d2f0', hz, 0.15), '#ffffff', '#ffffff']);
+    for (i = 0; i < 5; i++) bird(g, 150 + rnd() * 250, 20 + rnd() * 30, mix('#4a6a8a', hz, 0.45));
+    L.push({ c: far, f: 0.03 });
+
+    /* Far hills in a patchwork: bands along the contours, cut into fields,
+       each field its own crop, hedges between; a little windmill on the
+       skyline (the level has its own big sails, so this one stays tiny). */
+    var bk = strip(), b = bk.getContext('2d');
+    var bf = function (xx) { return 90 + Math.sin(xx * TAU * 2 + 0.6) * 6 + Math.sin(xx * TAU * 5 + 1) * 2.5; };
+    var PF = ['#84c060', '#a4d070', '#ecd070', '#ae9ee6', '#c4da78', '#6aac52', '#e6c060'].map(function (c) { return mix(c, hz, 0.42); });
+    var hedge = mix('#3e7e44', hz, 0.42), BD = [0, 4, 9, 15.5, 23.5, 33, 45, 60], NB = [22, 17, 13, 10, 8, 6, 4], tbl = [];
+    for (j = 0; j < NB.length; j++) { tbl.push([]); for (i = 0; i < NB[j]; i++) tbl[j].push(PF[Math.floor(rnd() * PF.length)]); }
+    for (x = 0; x < SW; x += 1) {
+      var t0 = bf(x);
+      for (j = 0; j < NB.length; j++) {
+        var y0 = t0 + BD[j] + (j ? Math.sin(x * TAU * 3 + j) * 0.8 : 0), y1 = t0 + BD[j + 1] + Math.sin(x * TAU * 3 + j + 1) * 0.8;
+        if (y0 > H) break;
+        var cw = SW / NB[j], u = (x + j * 37) % SW, ci = Math.floor(u / cw);
+        R(b, x, y0, 1, y1 - y0, tbl[j][ci]);
+        if (j) R(b, x, y0, 1, HP, hedge);
+        if (Math.floor(((u - 1) + SW) % SW / cw) !== ci) R(b, x, y0, HP, y1 - y0, hedge);
+      }
+      R(b, x, t0, 1, HP, mix('#d8f0a8', hz, 0.35));
+    }
+    for (i = 0; i < 30; i++) { x = rnd() * SW; j = 1 + Math.floor(rnd() * 4); ball(b, x, bf(x) + BD[j] + Math.sin(x * TAU * 3 + j) * 0.8, 0.9 + rnd() * 0.8, [hedge, mix('#5a9a50', hz, 0.48), mix('#9ad078', hz, 0.42)]); }
+    windmill(b, 214, bf(214) + 0.5, 0.48, [mix('#fff8ec', hz, 0.42), mix('#d8d4e0', hz, 0.45), mix('#a86a5a', hz, 0.45), mix('#fffaf0', hz, 0.4)], 0.35);
+    // a hamlet and its church on the far rise
+    for (i = 0; i < 5; i++) { x = 330 + i * 4.5 + rnd() * 2; y = bf(x) + 2; R(b, x, y - 3, 3.5, 3.5, mix('#fff2dc', hz, 0.45)); R(b, x - HP, y - 4, 4.5, 1, mix('#d86a4a', hz, 0.45)); }
+    R(b, 352, bf(352) - 6, 2, 7, mix('#fff2dc', hz, 0.45)); span(b, bf(352) - 10, bf(352) - 6, function (yy) { return 352 + 1 - (yy - bf(352) + 10) / 4 * 1.2; }, function (yy) { return 353 + (yy - bf(352) + 10) / 4 * 1.2; }, mix('#7a6a8a', hz, 0.45));
+    mist(b, 82, 24, hz);
+    L.push({ c: bk, f: 0.06 });
+
+    /* Nearer fields: lavender combed into rows along the hill, a wheat field
+       round a farmhouse with a red roof, a field of sunflowers all facing the
+       sun, poplars standing in lines between them. */
+    var md = strip(), m = md.getContext('2d');
+    var mf = function (xx) { return 104 + Math.sin(xx * TAU * 2 + 2.2) * 6 + Math.sin(xx * TAU * 3 + 0.4) * 3; };
+    var hm = function (c) { return mix(c, hz, 0.3); };
+    land(m, mf, [hm('#5a9a40'), hm('#80bc54'), hm('#c4ea8c')], 6);
+    var row = function (n) { return 2 + n * 2 + n * n * 0.2; };
+    var LV = [hm('#5e4ca0'), hm('#8a6cc8'), hm('#a88ade')], LG = hm('#7a9a5c');
+    for (x = 14; x < 178; x += 1) {
+      var t = mf(x);
+      R(m, x, t, 1, H - t, LG);
+      for (j = 0; t + row(j) < H; j++) { var r0 = row(j), hh = (row(j + 1) - r0) * 0.6; R(m, x, t + r0, 1, hh, LV[1]); R(m, x, t + r0, 1, HP, LV[2]); R(m, x, t + r0 + hh - HP, 1, HP, LV[0]); }
+    }
+    var WH = [hm('#d8a840'), hm('#f0cc60'), hm('#fff0a8')];
+    for (x = 182; x < 258; x += 1) { t = mf(x); R(m, x, t, 1, H - t, WH[1]); R(m, x, t, 1, HP, WH[2]); for (j = 1; t + row(j) * 1.3 < H; j++) { R(m, x, t + row(j) * 1.3, 1, HP, WH[2]); R(m, x, t + row(j) * 1.3 + 1, 1, HP, WH[0]); } }
+    var SF = [hm('#5a8a2a'), hm('#e8b820'), hm('#ffe050'), hm('#7a4a1a')];
+    for (x = 262; x < 402; x += HP) { t = mf(x); R(m, x, t, HP, H - t, SF[0]); R(m, x, t, HP, 1.5, SF[1]); }
+    for (j = 0; j < 12; j++) for (x = 263 + rnd() * 2; x < 400; x += 1.6 + j * 0.35 + rnd() * 0.8) {
+      y = mf(x) + 1 + row(j) * 0.9; var fr = 0.55 + j * 0.09;
+      if (y > H) continue;
+      disc(m, x, y, fr, SF[1]); disc(m, x - fr * 0.25, y - fr * 0.25, fr * 0.55, SF[2]); if (fr > 0.9) R(m, x - HP, y - HP, 1, 1, SF[3]);
+    }
+    // hedges where the fields meet, and poplars in lines along them
+    [14, 180, 260, 404].forEach(function (hx) { for (y = mf(hx) - 1; y < H; y += HP) R(m, hx - 1 + Math.sin(y * 0.9) * 0.5, y, 2, HP, hm('#4a8a3a')); });
+    var PP = [hm('#3e7a3a'), hm('#5aa048'), hm('#9ad070'), hm('#6a5038')];
+    for (i = 0; i < 4; i++) poplar(m, 172 + i * 5 + rnd() * 2, mf(172 + i * 5) + 1, 22 + rnd() * 6, 3.6, PP);
+    for (i = 0; i < 6; i++) poplar(m, 412 + i * 7 + rnd() * 3, mf(412 + i * 7) + 1, 20 + rnd() * 8, 3.4, PP);
+    // the farmhouse: cream stone, a red roof, blue shutters, and its barn
+    var FX = 206, FY = mf(212) + 2, FW = [hm('#e0cca8'), hm('#f8ecd4'), hm('#fffaf0')], FR = [hm('#a8402e'), hm('#d4583c'), hm('#f08a62')];
+    R(m, FX + 17, FY - 6, 11, 6, FW[1]); R(m, FX + 26, FY - 6, 2, 6, FW[0]); R(m, FX + 21, FY - 4, 3, 4, hm('#8a5a3a'));
+    R(m, FX + 16.5, FY - 8, 12, 2, FR[1]); R(m, FX + 16.5, FY - 8, 12, HP, FR[2]);
+    R(m, FX, FY - 11, 17, 11, FW[1]); R(m, FX + 15, FY - 11, 2, 11, FW[0]); R(m, FX, FY - 11, HP, 11, FW[2]);
+    span(m, FY - 15, FY - 10.5, function (yy) { return FX - 1 + (FY - 10.5 - yy) * 0.6; }, function (yy) { return FX + 18 - (FY - 10.5 - yy) * 0.6; }, FR[1]);
+    R(m, FX - 1, FY - 11, 19, 1, FR[0]); R(m, FX + 1.5, FY - 15, 14, HP, FR[2]);
+    [[FX + 3, FY - 8], [FX + 11, FY - 8], [FX + 3, FY - 4]].forEach(function (q) { R(m, q[0] - 1, q[1], 1, 2.5, hm('#4a7ac8')); R(m, q[0], q[1], 2, 2.5, hm('#4a4a5a')); R(m, q[0] + 2, q[1], 1, 2.5, hm('#4a7ac8')); });
+    R(m, FX + 10, FY - 4, 2.5, 4, hm('#7a5236'));
+    tree(m, FX - 6, FY + 1, 16, rnd, [hm('#3e7a3a'), hm('#5aa048'), hm('#9ad070')], [hm('#6a5038'), hm('#8a6a48')]);
+    mist(m, 100, 18, hz);
+    L.push({ c: md, f: 0.13 });
+
+    // in front: a bank of lavender in two rows, poppies in the grass, and two stands of poplars
+    var nr = strip(), n = nr.getContext('2d');
+    var nf = function (xx) { return 117 + Math.sin(xx * TAU * 2 + 1) * 3 + Math.sin(xx * TAU * 5) * 1.5; };
+    land(n, nf, ['#4a8a34', '#6aac44', '#a8dc6a'], 7);
+    var NP = ['#2e6a34', '#4a9040', '#86c862', '#5a4028'];
+    [[118, 3], [384, 4]].forEach(function (q) { for (j = 0; j < q[1]; j++) { x = q[0] + j * 6 + rnd() * 2; poplar(n, x, nf(x) + 2, 46 + rnd() * 16, 4.6 + rnd(), NP); } });
+    for (x = 4; x < SW; x += 8) lavender(n, x + Math.sin(x) * 0.5, nf(x) + 3, 3.4, ['#5c4a98', '#7a68b4', '#9a7ad8', '#c8aef6']);
+    for (i = 0; i < 26; i++) { x = rnd() * SW; y = nf(x) + 1 + rnd() * 4; R(n, x + 0.25, y, HP, 1.5, '#4a8a34'); disc(n, x, y - 0.4, 0.8, '#e83a3a'); R(n, x - HP, y - 0.9, HP, HP, '#ff8a7a'); }
+    for (x = 0; x < SW; x += 8) lavender(n, x, nf(x + 4) + 10, 4.4, ['#5c4a98', '#7a68b4', '#9a7ad8', '#c8aef6']);
+    L.push({ c: nr, f: 0.3 });
+    return L;
+  };
+
+  GEN.village = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, j, x, y;
+    var far = strip(), g = far.getContext('2d');
+    sun(g, 300, 22, 10, ['#fff8d0', '#fff2a8', '#fffbe6']);
+    for (i = 0; i < 5; i++) cloud(g, i * 102 + rnd() * 50, 12 + rnd() * 30, 0.55 + rnd() * 0.4, [mix('#b8d8f4', hz, 0.15), '#ffffff', '#ffffff']);
+    for (i = 0; i < 7; i++) bird(g, rnd() * SW, 30 + rnd() * 30, mix('#3a4a6a', hz, 0.35));
+    L.push({ c: far, f: 0.03 });
+
+    /* The hill behind the village: vines in rows, dark cypresses, the old
+       houses climbing it, and the church with its spire on the top. */
+    var bk = strip(), b = bk.getContext('2d');
+    var hb = function (c) { return mix(c, hz, 0.45); };
+    var bf = function (xx) { return 80 + Math.sin(xx * TAU + 0.6) * 9 + Math.sin(xx * TAU * 3 + 2) * 3; };
+    land(b, bf, [hb('#7a9a5a'), hb('#9cbc6c'), hb('#d4ec9c')], 12);
+    for (j = 0; j < 9; j++) for (x = 0; x < SW; x += 1.5) { y = bf(x) + 4 + j * (3.5 + j * 0.4) + Math.sin(x * TAU * 2 + j) * 0.6; R(b, x, y, 1, HP, hb('#6a8a48')); }
+    var cyp = function (cx2, gy, h) { span(b, gy - h, gy, function (yy) { return cx2 - 1.3 * Math.sin(Math.PI * Math.pow((yy - gy + h) / h, 0.7)); }, function (yy) { return cx2 + 1.3 * Math.sin(Math.PI * Math.pow((yy - gy + h) / h, 0.7)); }, hb('#3a6a3a')); R(b, cx2 - 1, gy - h * 0.7, 0.6, h * 0.5, hb('#6a9a5a')); };
+    for (i = 0; i < 14; i++) { x = rnd() * SW; cyp(x, bf(x) + 3 + rnd() * 8, 8 + rnd() * 6); }
+    var BW = [hb('#e8d8b8'), hb('#f8ecd4'), hb('#fffaf0')], BR = hb('#d27a4a');
+    for (i = 0; i < 16; i++) { x = 156 + i * 5.5 + rnd() * 3; y = bf(x) + 3 + (i % 3) * 3; var bw = 4 + Math.floor(rnd() * 2); R(b, x, y - 4, bw, 5, BW[1]); R(b, x + bw - 1, y - 4, 1, 5, BW[0]); R(b, x - HP, y - 5, bw + 1, 1, BR); R(b, x + 1, y - 2.5, 1, 1.5, hb('#5a7ab8')); }
+    // the church: nave, a square bell tower with its clock, and the slate spire
+    var CX = 204, CY = bf(CX) + 3;
+    R(b, CX - 14, CY - 9, 16, 9, BW[1]); span(b, CY - 13, CY - 9, function (yy) { return CX - 14 + (CY - 9 - yy) * 1.2; }, function (yy) { return CX + 2 - (CY - 9 - yy) * 1.2; }, BR);
+    R(b, CX, CY - 24, 6, 24, BW[1]); R(b, CX + 4.5, CY - 24, 1.5, 24, BW[0]); R(b, CX, CY - 24, HP, 24, BW[2]);
+    R(b, CX + 1.5, CY - 20, 3, 4, hb('#5a5a6a')); disc(b, CX + 3, CY - 13, 1.4, BW[2]); R(b, CX + 3, CY - 14, HP, 1, hb('#3a3a4a'));
+    span(b, CY - 38, CY - 24, function (yy) { return CX + 3 - 3.5 * (yy - CY + 38) / 14; }, function (yy) { return CX + 3 + 3.5 * (yy - CY + 38) / 14; }, hb('#6a7490'));
+    span(b, CY - 38, CY - 24, function (yy) { return CX + 3 - 3.5 * (yy - CY + 38) / 14; }, function (yy) { return CX + 3 - 1.5 * (yy - CY + 38) / 14; }, hb('#9aa4c0'));
+    R(b, CX + 2.5, CY - 41, 1, 3, hb('#c8a050')); R(b, CX + 1.5, CY - 40, 3, HP, hb('#c8a050'));
+    mist(b, 76, 30, hz);
+    L.push({ c: bk, f: 0.07 });
+
+    /* The square: tall old houses shoulder to shoulder, cream stone under
+       terracotta, shutters in blue and green and lavender, geraniums in the
+       window boxes, plane trees in front, and the market at their feet. */
+    var md = strip(), m = md.getContext('2d');
+    var hm = function (c) { return mix(c, hz, 0.24); };
+    var WALL = ['#f4e4c4', '#f0d8b8', '#f8ead0', '#ecd0a8', '#f6dcae', '#fbeedc'], SHUT = ['#4a7ac8', '#3e9a78', '#7a7ec8', '#3a98a8', '#5a9a5a'], ROOF = ['#c8683a', '#b85432', '#d6804a'];
+    var BASE = 124, hx = 0;
+    var house = function (x0, w, h) {
+      var top = BASE - h, wall = hm(WALL[Math.floor(rnd() * WALL.length)]), sh = hm(SHUT[Math.floor(rnd() * SHUT.length)]), roof = hm(ROOF[Math.floor(rnd() * ROOF.length)]);
+      var dk = mix(wall, '#8a5a48', 0.24), lt = mix(wall, '#ffffff', 0.45), glass = hm('#4a4e6a');
+      R(m, x0, top, w, h, wall); R(m, x0 + w - 1.5, top, 1.5, h, dk); R(m, x0, top, HP, h, lt);
+      // the roof, seen from the street: a band of round tiles, the génoise eave beneath
+      R(m, x0 - 1, top - 4, w + 2, 4, roof); R(m, x0 - 1, top - 4, w + 2, HP, mix(roof, '#ffffff', 0.3));
+      for (var tx = x0 - 0.5; tx < x0 + w + 1; tx += 1.5) R(m, tx, top - 3.5, HP, 3.5, mix(roof, '#6a2a1a', 0.25));
+      R(m, x0, top, w, 1, mix(roof, '#4a2a1a', 0.3)); for (tx = x0 + 0.5; tx < x0 + w; tx += 1.5) R(m, tx, top + 1, 1, HP, dk);
+      // windows with their shutters thrown open, and the odd window box of geraniums
+      for (var wy = top + 5; wy < BASE - 12; wy += 11) for (var wx = x0 + 5; wx + 7 < x0 + w; wx += 10) {
+        R(m, wx - 2.2, wy, 2, 5.5, sh); R(m, wx + 3.2, wy, 2, 5.5, mix(sh, '#1a2a4a', 0.15));
+        for (var sy = wy + 1; sy < wy + 5.5; sy += 1.5) { R(m, wx - 2.2, sy, 2, HP, mix(sh, '#1a2a4a', 0.25)); R(m, wx + 3.2, sy, 2, HP, mix(sh, '#1a2a4a', 0.35)); }
+        R(m, wx, wy, 3, 5.5, glass); R(m, wx, wy, 1, 2, hm('#c8e0f8')); R(m, wx - 0.5, wy - 0.5, 4, HP, lt); R(m, wx - 0.5, wy + 5.5, 4, HP, dk);
+        if (rnd() > 0.45) { R(m, wx - 0.5, wy + 5, 4, 1.2, hm('#b0603a')); for (var fx = wx - 0.5; fx < wx + 3.5; fx += 1) { R(m, fx, wy + 4.3, 1, 1, rnd() > 0.5 ? hm('#e8384a') : hm('#ff7aa0')); R(m, fx + HP, wy + 4.8, HP, HP, hm('#4a9a40')); } }
+      }
+      // a door on the street, under a little arch
+      if (w > 30 && rnd() > 0.3) { var dx = x0 + w - 11; R(m, dx, BASE - 9, 5, 9, mix(sh, '#2a1a1a', 0.3)); disc(m, dx + 2.5, BASE - 9, 2.5, mix(sh, '#2a1a1a', 0.3)); R(m, dx + 0.5, BASE - 8, HP, 7, mix(sh, '#ffffff', 0.2)); }
+    };
+    while (hx < SW) {
+      var hw = 28 + Math.floor(rnd() * 3) * 6, hh = 36 + Math.floor(rnd() * 4) * 5;
+      if (SW - hx - hw < 24) hw = SW - hx;
+      house(hx, hw, hh); hx += hw;
+    }
+    // plane trees: pale mottled trunks, broad crowns
+    var PT = [hm('#4a8a3a'), hm('#6aaa4a'), hm('#a8d878'), hm('#d8f0a8')];
+    [52, 182, 318, 446].forEach(function (tx2) {
+      x = tx2 + rnd() * 12;
+      for (y = 78; y < BASE; y += HP) { R(m, x - 1.5, y, 3, HP, hm('#c8c0a0')); if (Math.sin(y * 0.7 + x) > 0.4) R(m, x - 1.5 + Math.sin(y) * 0.5, y, 1.5, HP, hm('#8a8a6a')); if (Math.sin(y * 0.5 + x * 2) > 0.6) R(m, x, y, 1.5, HP, hm('#ece4c8')); }
+      line(m, x, 86, x - 7, 78, 1, hm('#b8b090')); line(m, x, 84, x + 8, 76, 1, hm('#b8b090'));
+      canopy(m, x, 70, 18, 11, rnd, PT);
+    });
+    // the market: stalls under stripy awnings, heaped with fruit and vegetables
+    var AW = [['#e8404a', '#fff8f0'], ['#3a7ad0', '#fff8f0'], ['#3aa070', '#fffae8'], ['#f0a030', '#fff8e8']];
+    [[18, 26], [118, 30], [236, 24], [352, 30], [462, 26]].forEach(function (q, qi) {
+      var sx = q[0] + rnd() * 6, sw = q[1], ac = AW[qi % AW.length];
+      R(m, sx + 1, 109, 1, 15, hm('#7a5a3a')); R(m, sx + sw - 2, 109, 1, 15, hm('#7a5a3a'));
+      R(m, sx, 117, sw, 2, hm('#a87a4a')); R(m, sx, 117, sw, HP, hm('#d8a870')); R(m, sx + 1, 119, sw - 2, 5, hm('#8a6038'));
+      for (x = sx + 1.5; x < sx + sw - 1.5; x += 1.4) { var pc = [hm('#e83a3a'), hm('#ffd040'), hm('#7ac040'), hm('#a050b0'), hm('#ff9030')][Math.floor((x - sx) / 5) % 5]; disc(m, x, 116.2 - Math.sin((x - sx) / sw * Math.PI) * 1.2, 0.8, pc); }
+      awning(m, sx - 1, 106, sw + 2, 3.5, [hm(ac[0]), hm(ac[1]), hm('#6a4a3a')], 2);
+    });
+    mist(m, 112, 14, hz);
+    L.push({ c: md, f: 0.15 });
+
+    // in front: plane-tree leaves overhead, and blue, white and red bunting strung between them
+    var nr = strip(), n = nr.getContext('2d');
+    [72, 328].forEach(function (cx2) { canopy(n, cx2, -6, 30, 12, rnd, ['#3e7a34', '#5a9a40', '#8cc85e', '#c8ec90']); });
+    var BT = ['#3a6ad8', '#ffffff', '#e8404a'];
+    [[96, 200, 11], [200, 304, 13], [352, 456, 11], [456, 560, 13]].forEach(function (q) { bunting(n, q[0], 6, q[1], 7, q[2], BT, 3.4, '#9a8a7a'); });
+    L.push({ c: nr, f: 0.32 });
+    return L;
+  };
+
+  GEN.bakery = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, j, x, y, k;
+    /* The back wall: warm plaster above, glazed tiles below a painted band,
+       a clock, a chalkboard with bread drawn on it, copper pans, and the big
+       shop window onto the sunny street outside. */
+    var far = strip(), g = far.getContext('2d');
+    var TY = 88;
+    g.globalAlpha = 0.07; for (i = 0; i < 46; i++) disc(g, rnd() * SW, rnd() * TY, 3 + rnd() * 9, '#d89a64'); g.globalAlpha = 1;
+    R(g, 0, TY + 3, SW, H - TY - 3, '#e6cfa8');
+    for (y = TY + 3, j = 0; y < H; y += 3, j++) { R(g, 0, y, SW, 2.5, '#fff4e2'); R(g, 0, y, SW, HP, '#ffffff'); R(g, 0, y + 2, SW, HP, '#f2dcbc'); for (x = j % 2 ? 0 : 4; x < SW; x += 8) R(g, x, y, HP, 3, '#e6cfa8'); }
+    R(g, 0, TY, SW, 3, '#c8643c'); R(g, 0, TY, SW, HP, '#e88a5a'); R(g, 0, TY + 2.5, SW, HP, '#8a3a22');
+    for (x = 2; x < SW; x += 4) { R(g, x, TY + 1, 1, 1, '#ffe2b0'); }
+    // the window onto the street
+    var WX = 140, WY = 18, WW = 80, WH = 66;
+    for (y = WY; y < WY + WH; y += HP) R(g, WX, y, WW, HP, mix('#7cc4ff', '#d8f0ff', Math.min(1, (y - WY) / 40)));
+    R(g, WX + 6, WY + 14, 52, WH - 14, '#fbe8c8'); R(g, WX + 54, WY + 14, 4, WH - 14, '#e0c49c'); R(g, WX + 4, WY + 12, 56, 2.5, '#d06a44'); R(g, WX + 4, WY + 12, 56, HP, '#f08a62');
+    [[WX + 12, WY + 22], [WX + 34, WY + 22]].forEach(function (q) { R(g, q[0] - 2.5, q[1], 2.5, 8, '#4a7ac8'); R(g, q[0], q[1], 5, 8, '#5a6a8a'); R(g, q[0], q[1], 2, 3, '#c8e4ff'); R(g, q[0] + 5, q[1], 2.5, 8, '#4a7ac8'); R(g, q[0] - 0.5, q[1] + 8, 6, 1.5, '#b0603a'); for (var fx = 0; fx < 6; fx += 1) R(g, q[0] - 0.5 + fx, q[1] + 7.2, 1, 1, fx % 2 ? '#ff6a8a' : '#e83a3a'); });
+    awning(g, WX + 8, WY + 40, 46, 5, ['#e8404a', '#fff8f0', '#8a5a4a'], 2.5);
+    R(g, WX + 14, WY + 50, 8, WH - 50, '#6a4a3a'); R(g, WX + 30, WY + 50, 18, 9, '#a8d0f0'); R(g, WX + 30, WY + 50, 18, HP, '#ffffff');
+    canopy(g, WX + 68, WY + 30, 10, 12, rnd, ['#4a9a40', '#6ab84a', '#a8e078', '#e0ffb0']); R(g, WX + 67, WY + 40, 2, WH - 40, '#8a6a4a');
+    R(g, WX, WY + WH - 6, WW, 6, '#c8bcae'); for (x = WX; x < WX + WW; x += 3) R(g, x + (Math.floor((x - WX) / 3) % 2) * 0.5, WY + WH - 4.5, 2, 1.5, '#ded4c6');
+    g.globalAlpha = 0.22; for (i = 0; i < 3; i++) for (k = 0; k < 30; k += HP) R(g, WX + 8 + i * 26 + k * 0.6, WY + 4 + k, 3 - i * 0.5, HP, '#ffffff'); g.globalAlpha = 1;
+    var FR = ['#1e3e4a', '#2e5a6a', '#4a8090'];
+    R(g, WX - 3, WY - 3, WW + 6, 3, FR[1]); R(g, WX - 3, WY + WH, WW + 6, 3, FR[1]); R(g, WX - 3, WY, 3, WH, FR[1]); R(g, WX + WW, WY, 3, WH, FR[1]);
+    R(g, WX - 3, WY - 3, WW + 6, HP, FR[2]); R(g, WX - 3, WY - 3, HP, WH + 6, FR[2]); R(g, WX + WW + 3 - HP, WY - 3, HP, WH + 6, FR[0]);
+    R(g, WX, WY + 16, WW, 2, FR[1]); R(g, WX, WY + 16, WW, HP, FR[2]); R(g, WX + WW / 2 - 1, WY + 18, 2, WH - 18, FR[1]); R(g, WX + WW / 3 - 0.5, WY, 1, 16, FR[1]); R(g, WX + WW * 2 / 3 - 0.5, WY, 1, 16, FR[1]);
+    R(g, WX - 5, WY + WH + 3, WW + 10, 2.5, '#a8784a'); R(g, WX - 5, WY + WH + 3, WW + 10, HP, '#d8a870');
+    // the clock: ten past ten, so it is smiling
+    var CX = 240, CY = 36;
+    disc(g, CX + 0.6, CY + 0.6, 9, '#8a5a34'); disc(g, CX, CY, 9, '#b8824c'); disc(g, CX, CY, 7.4, '#fff8ea'); disc(g, CX - 2, CY - 2, 3, '#ffffff');
+    for (i = 0; i < 12; i++) { var a = i / 12 * Math.PI * 2; R(g, CX + Math.cos(a) * 6 - 0.25, CY + Math.sin(a) * 6 - 0.25, HP, HP, '#6a4a34'); }
+    line(g, CX, CY, CX - 3, CY - 2, HP, '#3a2a1e'); line(g, CX, CY, CX + 4.4, CY - 3, HP, '#3a2a1e'); disc(g, CX, CY, 0.8, '#b8824c');
+    // the chalkboard, with a croissant, a baguette and a round loaf drawn on it
+    var BX = 384, BY = 28;
+    R(g, BX - 2, BY - 2, 52, 36, '#9a6a3e'); R(g, BX - 2, BY - 2, 52, HP, '#c8945e'); R(g, BX, BY, 48, 32, '#2e3c36');
+    g.globalAlpha = 0.85;
+    for (a = 0.3; a < 2.85; a += 0.12) { var px = BX + 12 + Math.cos(a) * 7, py = BY + 16 - Math.sin(a) * 5; R(g, px, py, HP, HP, '#f0f0e4'); if (Math.round(a * 10) % 6 === 0) line(g, px, py, BX + 12 + Math.cos(a) * 4, BY + 16 - Math.sin(a) * 2.5, HP, '#f0f0e4'); }
+    line(g, BX + 5, BY + 16, BX + 19, BY + 16, HP, '#f0f0e4');
+    for (x = BX + 26; x < BX + 44; x += HP) { R(g, x, BY + 12 - Math.sin((x - BX - 26) / 18 * Math.PI) * 1.6, HP, HP, '#f0f0e4'); R(g, x, BY + 13 + Math.sin((x - BX - 26) / 18 * Math.PI) * 1.6, HP, HP, '#f0f0e4'); }
+    for (x = BX + 29; x < BX + 42; x += 3) line(g, x, BY + 13.5, x + 1.5, BY + 11.5, HP, '#f0f0e4');
+    ring(g, BX + 35, BY + 24, 3.6, 4.1, '#f0f0e4'); line(g, BX + 33, BY + 25, BX + 37, BY + 22.5, HP, '#f0f0e4');
+    for (i = 0; i < 4; i++) R(g, BX + 6 + i * 3, BY + 26 + (i % 2) * 0.5, 2, HP, '#e8e4d8');
+    g.globalAlpha = 1;
+    // copper pans on their rail
+    R(g, 446, 30, 52, 1, '#7a5a3a'); R(g, 446, 30, 52, HP, '#a8885a');
+    [[456, 6], [474, 5], [490, 4.5]].forEach(function (q) { R(g, q[0] - HP / 2, 31, HP, 3, '#5a4a3a'); R(g, q[0] - 0.75, 33, 1.5, 6, '#a85a30'); disc(g, q[0] + 0.4, 39 + q[1], q[1], '#9a4a24'); disc(g, q[0], 39 + q[1] - 0.4, q[1] - 0.6, '#d47a40'); disc(g, q[0] - q[1] * 0.35, 39 + q[1] * 0.6, q[1] * 0.35, '#ffb478'); });
+    // a room is shallow: the wall and what stands against it move almost together
+    L.push({ c: far, f: 0.08 });
+
+    /* The bread oven, its brick mouth glowing with the fire inside, the
+       shelves of loaves and croissants, baskets of baguettes, flour sacks. */
+    var md = strip(), m = md.getContext('2d');
+    var BRK = ['#a8503a', '#bc6448', '#cc7656'], MOR = '#e4c4a0';
+    var OX = 20, OW = 92, OT = 46, MX = OX + OW / 2, MY = 106, MR = 18;
+    R(m, MX - 15, 0, 30, OT - 6, MOR);
+    for (y = 0; y < OT - 6; y += 3) for (x = MX - 15 + ((y / 3) % 2 ? 0 : 3.5); x < MX + 15; x += 7) R(m, x + HP, y + HP, Math.min(7, MX + 15 - x) - HP, 2.5, BRK[(Math.floor(x * 7 + y * 3)) % 3]);
+    R(m, MX + 11, 0, 4, OT - 6, 'rgba(90,30,20,0.25)');
+    span(m, OT - 6, OT, function (yy) { return MX - 15 - (yy - OT + 6) * 5.5; }, function (yy) { return MX + 15 + (yy - OT + 6) * 5.5; }, '#8a4030');
+    R(m, OX - 2, OT - HP, OW + 4, 2, '#d8b890'); R(m, OX - 2, OT - HP, OW + 4, HP, '#fff0d0');
+    R(m, OX, OT + 1.5, OW, 128 - OT - 1.5, MOR);
+    for (y = OT + 1.5, j = 0; y < 128; y += 3, j++) for (x = OX + (j % 2 ? 0 : 3.5); x < OX + OW; x += 7) { var bw2 = Math.min(7, OX + OW - x) - HP; R(m, x + HP, y + HP, bw2, 2.5, BRK[(j * 5 + Math.floor(x / 7)) % 3]); R(m, x + HP, y + HP, bw2, HP, '#dc8a6a'); }
+    R(m, OX + OW - 3, OT + 1.5, 3, 128 - OT, 'rgba(90,30,20,0.18)');
+    // the mouth: an arch of bricks set on end, and the fire inside
+    ring(m, MX, MY, MR, MR + 4, '#8a3a28', MY);
+    for (a = 0; a <= Math.PI; a += Math.PI / 9) line(m, MX + Math.cos(a) * MR, MY - Math.sin(a) * MR, MX + Math.cos(a) * (MR + 4), MY - Math.sin(a) * (MR + 4), HP, MOR);
+    R(m, MX - MR - 4, MY, 4, 128 - MY, '#8a3a28'); R(m, MX + MR, MY, 4, 128 - MY, '#8a3a28');
+    for (y = MY - MR; y < 120; y += HP) { var hw = y < MY ? Math.sqrt(MR * MR - (MY - y) * (MY - y)) : MR; R(m, MX - hw, y, hw * 2, HP, mix('#3a1408', '#c84a18', Math.max(0, (y - MY + MR) / (MR + 14)))); }
+    glow(m, MX, 116, 20, '#ffc060', 1);
+    for (i = 0; i < 26; i++) { x = MX - 14 + rnd() * 28; R(m, x, 117 + rnd() * 2.5, 1 + rnd(), 1, rnd() > 0.5 ? '#ffe070' : '#ff8a30'); }
+    [[MX - 8, 4], [MX + 2, 5], [MX + 11, 3.6]].forEach(function (q) { oval(m, q[0], 116.5, q[1], q[1] * 0.7, '#7a3418', true); oval(m, q[0] - 0.4, 116.2, q[1] * 0.85, q[1] * 0.6, '#c8642a', true); oval(m, q[0] - q[1] * 0.35, 116.5 - q[1] * 0.45, q[1] * 0.3, q[1] * 0.14, '#ffc070'); });
+    R(m, MX - MR - 5, 120, MR * 2 + 10, 3, '#d8bc98'); R(m, MX - MR - 5, 120, MR * 2 + 10, HP, '#fff0d8'); R(m, MX - MR - 5, 122.5, MR * 2 + 10, HP, '#a88a68');
+    glow(m, MX, MY, 40, '#ffb050', 0.9);
+    // the baker's peel, leaning on the oven
+    line(m, 118, 127, 106, 70, 1, '#a8784a'); line(m, 117.5, 127, 105.5, 70, HP, '#d8a870'); oval(m, 105, 64, 3.2, 6.5, '#c8945e'); oval(m, 104.4, 63.4, 2, 5, '#e8b880');
+    // bread: round boules, long baguettes, croissants, tall loaves
+    var CR = ['#9a5424', '#c8803c', '#eaae64', '#fff0c0'];
+    var boule = function (bx, by, r) { oval(m, bx + 0.3, by, r, r * 0.72, CR[0], true); oval(m, bx - 0.2, by - 0.2, r * 0.9, r * 0.66, CR[1], true); oval(m, bx - r * 0.3, by - r * 0.4, r * 0.4, r * 0.18, CR[2]); line(m, bx - r * 0.3, by - r * 0.5, bx + r * 0.25, by - r * 0.25, HP, CR[3]); };
+    var baguette = function (bx, by, len) { oval(m, bx + len / 2, by - 1.3, len / 2, 1.4, CR[0]); oval(m, bx + len / 2 - 0.2, by - 1.5, len / 2 - 0.4, 1.1, CR[1]); for (var sx = bx + 2; sx < bx + len - 2; sx += 2.5) R(m, sx, by - 2, 1.2, HP, CR[3]); };
+    var croissant = function (bx, by) { for (var t = -1; t <= 1.01; t += 0.2) { var r = 1.9 - Math.abs(t) * 0.95; disc(m, bx + t * 4 + 0.3, by - 1.6 - (1 - Math.abs(t)) * 1.1 + 0.3, r, CR[0]); } for (t = -1; t <= 1.01; t += 0.2) { r = 1.9 - Math.abs(t) * 0.95; disc(m, bx + t * 4, by - 1.6 - (1 - Math.abs(t)) * 1.1, r * 0.9, Math.round(t * 5) % 2 ? CR[1] : CR[2]); } R(m, bx - 1.5, by - 3.6, 2.5, HP, CR[3]); };
+    var tin = function (bx, by) { R(m, bx, by - 5, 7, 5, CR[1]); oval(m, bx + 3.5, by - 5, 3.5, 2, CR[2], true); R(m, bx + 5.5, by - 5, 1.5, 5, CR[0]); R(m, bx + 1.5, by - 6, 3, HP, CR[3]); };
+    var shelfUnit = function (x0, x1, rows, kinds) {
+      R(m, x0, 30, 2.5, 98, '#6a4426'); R(m, x0, 30, HP, 98, '#a8784a'); R(m, x1, 30, 2.5, 98, '#6a4426'); R(m, x1, 30, HP, 98, '#a8784a');
+      rows.forEach(function (sy, ri) {
+        R(m, x0, sy, x1 - x0 + 2.5, 2, '#8a5a34'); R(m, x0, sy, x1 - x0 + 2.5, HP, '#c8945e'); m.globalAlpha = 0.25; R(m, x0 + 2.5, sy + 2, x1 - x0 - 2.5, 2, '#6a3a1a'); m.globalAlpha = 1;
+        var kind = kinds[ri % kinds.length];
+        for (var bx = x0 + 4; bx < x1 - 6;) {
+          if (kind === 'boule') { var br = 4 + rnd() * 1.6; if (bx + br * 2 > x1 - 3) break; boule(bx + br, sy, br); bx += br * 2 + 1.5; }
+          else if (kind === 'baguette') { if (bx + 22 > x1 - 2) break; for (var s = 0; s < 3; s++) baguette(bx, sy - s * 2.6, 22); bx += 25; }
+          else if (kind === 'croissant') { if (bx + 12 > x1 - 2) break; croissant(bx + 5, sy); bx += 11; }
+          else { if (bx + 8 > x1 - 2) break; tin(bx, sy); bx += 9; }
+        }
+      });
+    };
+    shelfUnit(256, 376, [48, 72, 96], ['croissant', 'boule', 'baguette']);
+    shelfUnit(436, 506, [48, 72, 96], ['tin', 'boule', 'croissant']);
+    // baskets of baguettes standing on the floor
+    [[226, 9], [452, 10]].forEach(function (q) {
+      for (i = 0; i < q[1]; i++) { var bx2 = q[0] + 2 + i * 2.2, lean = (i - q[1] / 2) * 0.12; line(m, bx2, 120, bx2 + lean * 14, 104 - (i % 3) * 2, 1.6, CR[1]); line(m, bx2 - 0.4, 120, bx2 - 0.4 + lean * 14, 104.5 - (i % 3) * 2, HP, CR[2]); }
+      R(m, q[0], 116, q[1] * 2.2 + 4, 12, '#b88a50'); for (y = 116.5; y < 128; y += 2) for (x = q[0] + ((y - 116.5) % 4 ? 0 : 1.5); x < q[0] + q[1] * 2.2 + 4; x += 3) R(m, x, y, 2, 1, '#d8ac68');
+      R(m, q[0] - 0.5, 115.5, q[1] * 2.2 + 5, 1.5, '#8a5a30');
+    });
+    // flour sacks, tied at the neck, with a sheaf of wheat on each
+    var sack = function (sx, base, w, h) {
+      span(m, base - h, base, function (yy) { var k = (yy - base + h) / h; return sx + (k < 0.2 ? w * 0.3 * (1 - k / 0.2) : 0) - Math.sin(k * Math.PI) * 1.2; }, function (yy) { var k = (yy - base + h) / h; return sx + w - (k < 0.2 ? w * 0.3 * (1 - k / 0.2) : 0) + Math.sin(k * Math.PI) * 1.2; }, '#f4ead4');
+      span(m, base - h * 0.8, base, function (yy) { return sx + w * 0.7 + Math.sin((yy - base + h) / h * Math.PI) * 1.2; }, function (yy) { return sx + w + Math.sin((yy - base + h) / h * Math.PI) * 1.2; }, '#dccaa6');
+      R(m, sx + w * 0.3, base - h - 2, w * 0.4, 2, '#e8dcc0'); R(m, sx + w * 0.28, base - h + 0.5, w * 0.44, 1, '#a88a5a');
+      R(m, sx, base - h * 0.55, w, 1, '#6a8ac8');
+      line(m, sx + w / 2, base - 3, sx + w / 2, base - h * 0.42, HP, '#c8a050'); line(m, sx + w / 2, base - 5, sx + w / 2 - 2, base - h * 0.4, HP, '#c8a050'); line(m, sx + w / 2, base - 5, sx + w / 2 + 2, base - h * 0.4, HP, '#c8a050');
+    };
+    sack(386, 128, 14, 16); sack(402, 128, 13, 14); sack(393, 113, 12, 12); sack(124, 128, 12, 14);
+    L.push({ c: md, f: 0.12 });
+
+    // in front: enamel lamps hanging on long cords, each with its warm pool of light
+    var nr = strip(), n = nr.getContext('2d');
+    [92, 250, 424].forEach(function (lx) {
+      R(n, lx - HP / 2, 0, HP, 20, '#5a3a2a');
+      beam(n, lx, 25, lx, 92, 7, 30, '#fff0c8', 0.2);
+      glow(n, lx, 25, 18, '#ffe0a0', 0.8);
+      oval(n, lx + 0.4, 25, 6, 5, '#1e4a3e', true); oval(n, lx - 0.2, 24.8, 5.4, 4.5, '#2e6a58', true); oval(n, lx - 2, 22.5, 1.5, 1.2, '#6aa890');
+      R(n, lx - 6, 24.5, 12, 1, '#f4f0e0'); disc(n, lx, 26, 1.6, '#fffbe0'); R(n, lx - 1, 18.5, 2, 2, '#3a3a3a');
+    });
+    L.push({ c: nr, f: 0.3 });
+    return L;
+  };
+
+  GEN.cheese = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, j, x, y, k;
+    var WARM = '#ffc860';
+    /* The cellar's far wall: a row of round arches, and through each the
+       vaulted passage running back into the dark, rib after rib, a lantern
+       on the piers between them pooling warm light on the flagstones. */
+    var far = strip(), g = far.getContext('2d');
+    var ST = ['#2a1e10', '#4a3820', '#5e4a2e', '#7c6442'], FL = 116;
+    for (y = 0, j = 0; y < FL; y += 6, j++) for (x = j % 2 ? 0 : 8; x < SW; x += 16) { var tone = mix(ST[1], ST[2], rnd()); R(g, x + HP, y + HP, 15.5, 5.5, tone); R(g, x + HP, y + HP, 15.5, HP, mix(tone, ST[3], 0.5)); }
+    var AR = 50, SPR = 66, VPY = 90;
+    for (var ai = 0; ai < 4; ai++) {
+      var cx = 64 + ai * 128;
+      for (k = 0; k < 7; k++) {
+        var s = Math.pow(0.76, k), r = AR * s, sp = VPY + (SPR - VPY) * s, fl = VPY + (FL - VPY) * s, dark = mix(mix(ST[1], '#140c04', 0.25), '#0e0802', Math.min(1, k / 5));
+        for (y = sp - r; y < fl; y += HP) { var hw = y < sp ? Math.sqrt(Math.max(0, r * r - (sp - y) * (sp - y))) : r; R(g, cx - hw, y, hw * 2, HP, dark); }
+        if (k) { var fn = VPY + (FL - VPY) * Math.pow(0.76, k - 1), fc = mix('#6a5234', '#140c04', k / 6); for (y = fl; y < fn; y += HP) { var w2 = AR * Math.pow(0.76, k - 1) - (AR * Math.pow(0.76, k - 1) - r) * (fn - y) / (fn - fl); R(g, cx - w2, y, w2 * 2, HP, fc); } }
+        ring(g, cx, sp, r - Math.max(HP, 1.4 * s), r, mix(ST[3], dark, Math.min(0.85, k / 6)), sp);
+        R(g, cx - r, sp, Math.max(HP, 1.4 * s), fl - sp, mix(ST[3], dark, Math.min(0.85, k / 5)));
+      }
+      if (ai % 2 === 0) { var ly = VPY + (SPR - VPY) * 0.58 + 4, lx = cx - AR * 0.58 + 3; glow(g, lx, ly, 10, WARM, 0.8); R(g, lx - 0.75, ly - 1, 1.5, 2, '#ffe8a0'); }
+      // the arch's own stones, and its keystone
+      ring(g, cx, SPR, AR, AR + 5, ST[2], SPR);
+      for (var a = 0; a <= Math.PI + 0.01; a += Math.PI / 11) line(g, cx + Math.cos(a) * AR, SPR - Math.sin(a) * AR, cx + Math.cos(a) * (AR + 5), SPR - Math.sin(a) * (AR + 5), HP, ST[0]);
+      ring(g, cx, SPR, AR + 4.5, AR + 5, ST[3], SPR - AR * 0.4);
+      R(g, cx - 2.5, SPR - AR - 6, 5, 7, ST[3]); R(g, cx - 2.5, SPR - AR - 6, 5, HP, '#a08860'); R(g, cx + 1.5, SPR - AR - 6, 1, 7, ST[1]);
+      R(g, cx - AR - 5, SPR, 5, FL - SPR, ST[2]); R(g, cx + AR, SPR, 5, FL - SPR, ST[2]); R(g, cx - AR - 5, SPR, HP, FL - SPR, ST[3]);
+      // the lantern on the pier, and its pool of light
+      var px2 = cx + 64;
+      glow(g, px2, 58, 30, WARM, 0.85);
+      R(g, px2 - 3, 62, 6, 1, '#2a1a0a'); R(g, px2 - HP, 62, 1, 4, '#2a1a0a');
+      R(g, px2 - 2, 53, 4, 6, '#ffd878'); R(g, px2 - 1.5, 53.5, 1.5, 2.5, '#fff6d0'); R(g, px2 - 2.5, 52, 5, 1.2, '#3a2412'); R(g, px2 - 2.5, 59, 5, 1, '#3a2412'); R(g, px2 - HP, 50.5, 1, 1.5, '#3a2412');
+    }
+    // the floor: worn flagstones, brightest in the lantern light
+    for (y = FL; y < H; y += HP) R(g, 0, y, SW, HP, mix('#5a4428', '#3a2a16', (y - FL) / (H - FL)));
+    for (y = FL + 3, j = 0; y < H; y += 3 + j * 1.5, j++) { R(g, 0, y, SW, HP, '#2e2010'); var fs = SW / [32, 24, 16, 12, 10, 8, 8, 8][Math.min(7, j)]; for (x = (j * 7) % 11; x < SW; x += fs) R(g, x, y - 3 - j * 1.5, HP, 3 + j * 1.5, '#2e2010'); }
+    R(g, 0, FL, SW, HP, '#8a7050');
+    for (ai = 0; ai < 4; ai++) { g.globalAlpha = 0.16; oval(g, 128 + ai * 128, FL + 6, 22, 5, WARM); oval(g, 128 + ai * 128, FL + 6, 12, 3, WARM); g.globalAlpha = 1; }
+    L.push({ c: far, f: 0.05 });
+
+    /* The racks: tall wooden shelves of round cheeses — gold, pale and
+       orange — a ladder against one, and lanterns hung between them. */
+    var md = strip(), m = md.getContext('2d');
+    var WD = ['#2e1c0c', '#5a3a1e', '#8a6038'];
+    var CHS = [['#b8862a', '#e8b844', '#ffe08a'], ['#c8b488', '#ecdcb4', '#fff6dc'], ['#c86a20', '#f08c34', '#ffbc70']];
+    var wheel = function (wx, base, w, h, c) {
+      R(m, wx + 0.5, base - h, w - 1, h, c[1]); R(m, wx, base - h + 0.5, w, h - 1, c[1]);
+      R(m, wx + w - 1.5, base - h + 0.5, 1.5, h - 1, c[0]); R(m, wx + 0.5, base - 1, w - 1, 1, c[0]); R(m, wx, base - h + 1, 1, h - 2.5, c[2]);
+      oval(m, wx + w / 2, base - h + 0.8, w / 2 - 0.4, 1.1, c[2]); oval(m, wx + w / 2 + 0.5, base - h + 1, w / 2 - 1.5, 0.6, mix(c[2], c[1], 0.5));
+      if (w > 9) { disc(m, wx + w * 0.45, base - h / 2, 1, mix(c[1], c[0], 0.6)); }
+    };
+    // a wheel stood on its edge, its rind ringed round; cut, it shows a wedge of holes
+    var standing = function (wx, base, r, c, cut) {
+      var cy = base - r;
+      disc(m, wx + 0.4, cy + 0.4, r, c[0]); disc(m, wx, cy, r - 0.3, c[1]); ring(m, wx, cy, r - 1.4, r - 0.8, mix(c[1], c[0], 0.35)); disc(m, wx - r * 0.38, cy - r * 0.38, r * 0.28, c[2]);
+      if (!cut) return;
+      span(m, cy - r * 0.75, cy + r * 0.75, function (yy) { return wx + Math.abs(yy - cy) / 1.1; }, function (yy) { return wx + Math.sqrt(Math.max(0, r * r - (yy - cy) * (yy - cy))) + 0.3; }, '#fff0a4');
+      line(m, wx, cy, wx + r * 0.66, cy - r * 0.75, HP, '#fffbe0');
+      [[0.45, 0.05, 0.6], [0.7, -0.2, 0.45], [0.66, 0.28, 0.5]].forEach(function (q) { disc(m, wx + r * q[0], cy + r * q[1], Math.max(HP, r * q[2] * 0.3), '#e8c050'); });
+    };
+    [[22, 120], [282, 112]].forEach(function (q) {
+      var x0 = q[0], w = q[1];
+      [x0, x0 + w / 2, x0 + w].forEach(function (px) { R(m, px, 28, 2.5, 100, WD[1]); R(m, px, 28, HP, 100, WD[2]); R(m, px + 2, 28, HP, 100, WD[0]); });
+      [46, 66, 86, 106, 126].forEach(function (sy) {
+        R(m, x0 - 1, sy, w + 4.5, 1.5, WD[1]); R(m, x0 - 1, sy, w + 4.5, HP, WD[2]);
+        for (var wx = x0 + 3; wx < x0 + w - 2;) {
+          var ww = 9 + Math.floor(rnd() * 4), wh = 4.5 + Math.floor(rnd() * 3) * 0.5, c = CHS[rnd() > 0.78 ? (rnd() > 0.5 ? 1 : 2) : 0];
+          if (wx + ww > x0 + w - 1) break;
+          if (Math.abs(wx + ww / 2 - x0 - w / 2 - 1) < ww / 2 + 1.5) { wx += 3; continue; }
+          if (rnd() < 0.34 && sy > 46) { var sr = 4 + rnd() * 1.2; standing(wx + sr, sy, sr, c, sy === 86 && wx < x0 + w / 2); wx += sr * 2 + 1.5; continue; }
+          wheel(wx, sy, ww, wh, c);
+          if (rnd() > 0.6 && wh < 6) wheel(wx + 1, sy - wh, ww - 2, wh - 0.5, c);
+          wx += ww + 1 + rnd() * 2;
+        }
+      });
+    });
+    for (y = 0; y < 82; y += HP) { R(m, 158 + y * 0.12, 128 - y * 1.1, 1, HP, WD[1]); R(m, 166 + y * 0.12, 128 - y * 1.1, 1, HP, WD[1]); }
+    for (y = 4; y < 82; y += 7) R(m, 158 + y * 0.12, 128 - y * 1.1, 9, 1, WD[2]);
+    [214, 466].forEach(function (lx) {
+      R(m, lx - HP / 2, 0, HP, 40, '#2a1a0a');
+      glow(m, lx, 46, 26, WARM, 0.9);
+      R(m, lx - 2.5, 41, 5, 1.2, '#3a2412'); R(m, lx - 2, 42, 4, 6, '#ffd878'); R(m, lx - 1.5, 42.5, 1.5, 2.5, '#fff6d0'); R(m, lx - 2.5, 48, 5, 1.2, '#3a2412'); R(m, lx - 2, 42, HP, 6, '#3a2412'); R(m, lx + 1.5, 42, HP, 6, '#3a2412');
+    });
+    L.push({ c: md, f: 0.13 });
+
+    // in front: great stone piers, the ribs of the vault springing from them, a lantern on its chain
+    var nr = strip(), n = nr.getContext('2d');
+    var NS = ['#1a1008', '#2c2012', '#3e3020', '#5e4a32'];
+    [[96, 352], [352, 608]].forEach(function (q) {
+      var a0 = q[0] + 20, a1 = q[1], acx = (a0 + a1) / 2, arx = (a1 - a0) / 2;
+      for (x = a0; x < a1; x += HP) { var u = (x - acx) / arx, yb = 30 - 34 * Math.sqrt(Math.max(0, 1 - u * u)); R(n, x, yb - 6, HP, 6, NS[2]); R(n, x, yb - HP, HP, HP, NS[0]); R(n, x, yb - 6, HP, HP, NS[3]); }
+    });
+    [96, 352].forEach(function (px) {
+      R(n, px, 0, 20, 128, NS[2]); R(n, px + 15, 0, 5, 128, NS[1]); R(n, px, 0, 1, 128, NS[3]);
+      for (y = 4, j = 0; y < 128; y += 9, j++) { R(n, px, y, 20, HP, NS[0]); R(n, px + (j % 2 ? 7 : 13), y - 9, HP, 9, NS[0]); }
+      R(n, px - 2, 26, 24, 4, NS[2]); R(n, px - 2, 26, 24, HP, NS[3]); R(n, px - 2, 29.5, 24, HP, NS[0]);
+    });
+    [226, 482].forEach(function (lx) {
+      for (y = 0; y < 30; y += 2) { R(n, lx - 0.5, y, 1, 1.5, '#3a2a18'); }
+      glow(n, lx, 36, 22, WARM, 0.9);
+      R(n, lx - 3, 30, 6, 1.5, '#2a1a0a'); R(n, lx - 2.5, 31.5, 5, 7, '#ffd070'); R(n, lx - 2, 32, 2, 3, '#fff6d0'); R(n, lx - 3, 38.5, 6, 1.5, '#2a1a0a'); R(n, lx - 2.5, 31.5, HP, 7, '#2a1a0a'); R(n, lx + 2, 31.5, HP, 7, '#2a1a0a');
+    });
+    L.push({ c: nr, f: 0.3 });
+    return L;
+  };
+
+  GEN.roofs = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, j, x, y, SX = 60, SY = 78;
+    // golden hour: a low sun, streaks of cloud lit from beneath, pigeons wheeling
+    var far = strip(), g = far.getContext('2d');
+    [[3.6, 0.05], [2.7, 0.08], [2, 0.12], [1.45, 0.2]].forEach(function (q) { g.globalAlpha = q[1]; disc(g, SX, SY, 13 * q[0], '#fff0c0'); });
+    g.globalAlpha = 1;
+    disc(g, SX, SY, 13, '#ffb84c'); disc(g, SX - 0.8, SY - 1, 11.8, '#ffcc66'); disc(g, SX - 4, SY - 4.4, 5.4, '#fff0b0');
+    for (i = 0; i < 9; i++) streak(g, rnd() * SW, 16 + rnd() * 58, 40 + rnd() * 80, 1.5 + rnd() * 2.5, [mix('#d49ab4', hz, 0.2), mix('#f8c0b8', hz, 0.15), '#ffe8c0'], true);
+    for (i = 0; i < 9; i++) bird(g, 110 + rnd() * 300, 22 + rnd() * 40, mix('#6a6a88', hz, 0.3));
+    L.push({ c: far, f: 0.02 });
+
+    /* The skyline far off, lilac in the evening haze: the Eiffel Tower over
+       the rooftops, and the white basilica up on its hill catching the sun. */
+    var sk = strip(), s = sk.getContext('2d');
+    var hs = function (c, a) { return mix(c, hz, a === undefined ? 0.55 : a); };
+    var MH = function (xx) { var u = (xx - 338) / 44; return 99 - 17 * Math.exp(-u * u * 1.5); };
+    for (x = 262; x < 414; x += HP) { y = MH(x); R(s, x, y, HP, H - y, hs('#8c8aa8')); R(s, x, y, HP, HP, hs('#e8c4b8')); }
+    for (i = 0; i < 16; i++) { x = 292 + rnd() * 92; ball(s, x, MH(x) + 1.5 + rnd() * 4, 1.4 + rnd(), [hs('#6a7a7a'), hs('#8a9a88'), hs('#c8c8a8')]); }
+    basilica(s, 338, MH(338) + 1.5, 0.95, [hs('#c8b4c0', 0.42), hs('#fff2e8', 0.35), '#fffaf0']);
+    eiffel(s, 150, 104, 84, [hs('#6e5268', 0.5), hs('#a08494', 0.55), hs('#e8b8a0', 0.45)]);
+    [[0.6, 92, '#9894b4'], [0.5, 98, '#a4a0bc'], [0.42, 105, '#aca4bc']].forEach(function (q, qi) {
+      for (x = rnd() * 3; x < SW;) {
+        var bw = 4 + rnd() * 7, bh = 2 + rnd() * (qi ? 4 : 6), c = hs(q[2], q[0]);
+        R(s, x, q[1] - bh, bw, H, c); R(s, x, q[1] - bh, bw, HP, hs('#ffd8b8', q[0] - 0.1)); R(s, x + bw - 1, q[1] - bh, 1, H, hs(mix(q[2], '#5a5070', 0.25), q[0]));
+        if (rnd() > 0.6) R(s, x + 1, q[1] - bh - 1, 1, 1, c);
+        if (rnd() > 0.93) { R(s, x + bw / 2 - 0.5, q[1] - bh - 6, 1, 6, c); R(s, x + bw / 2 - HP / 2, q[1] - bh - 8, HP, 2, c); }
+        if (rnd() > 0.96) oval(s, x + bw / 2, q[1] - bh, 3, 3.5, hs('#c8b090', q[0]), true);
+        x += bw + rnd() * 1.5;
+      }
+    });
+    mist(s, 88, 30, hz);
+    L.push({ c: sk, f: 0.045 });
+
+    // the roofs across the street: cream stone fronts under zinc mansards, dormers, balconies, chimney pots
+    var md = strip(), m = md.getContext('2d');
+    var hm = function (c) { return mix(c, hz, 0.34); };
+    var Z = [hm('#5a6a86'), hm('#7a8aa6'), hm('#b8c4dc')], S = [hm('#d4bea0'), hm('#f0dec0'), hm('#fff4e0')], P = [hm('#c0603c'), hm('#f09a64'), hm('#4a4656'), hm('#4c5a7c'), hm('#ffcc90')];
+    for (x = 0; x < SW;) { var w = 28 + Math.floor(rnd() * 4) * 6, top = 92 + Math.floor(rnd() * 5) * 3; if (SW - x - w < 26) w = SW - x; paris(m, x, w, top, Z, S, P, rnd); x += w; }
+    mist(m, 110, 20, hz);
+    L.push({ c: md, f: 0.11 });
+
+    /* The nearest roofs, at the bottom: steep zinc with standing seams, its
+       dormers flashing gold, and tall chimney stacks crowned with pots, with
+       pigeons on them. No long level ridge: the roofline steps and slopes. */
+    var nr = strip(), n = nr.getContext('2d');
+    var hn = function (c) { return mix(c, hz, 0.16); };
+    var NZ = [hn('#46546e'), hn('#5e6e8c'), hn('#e0b8a8'), hn('#2c3448')], NS = [hn('#c4a688'), hn('#ead0ac'), hn('#fff2d8')], POT = [hn('#a84e2e'), hn('#d0703e'), hn('#ffb07a')];
+    var bigRoof = function (x0, w, top) {
+      var sl = 9;
+      span(n, top, 128, function (yy) { return x0 + Math.max(0, sl - (yy - top) * 0.5); }, function (yy) { return x0 + w - Math.max(0, sl - (yy - top) * 0.5); }, NZ[1]);
+      for (var sx = x0 + 3; sx < x0 + w - 2; sx += 3) R(n, sx, top + 1, HP, 128 - top, NZ[0]);
+      for (y = top; y < top + sl * 2; y += HP) { R(n, x0 + Math.max(0, sl - (y - top) * 0.5), y, 1, HP, NZ[2]); R(n, x0 + w - Math.max(0, sl - (y - top) * 0.5) - 1, y, 1, HP, NZ[3]); }
+      R(n, x0 + sl, top, w - sl * 2, 1, NZ[2]); R(n, x0 + sl, top + 1, w - sl * 2, HP, NZ[0]);
+      for (var dx = x0 + 10 + rnd() * 6; dx < x0 + w - 14; dx += 18 + rnd() * 8) {
+        R(n, dx, top + 3, 7, 9, NS[1]); R(n, dx + 6, top + 3, 1, 9, NS[0]); oval(n, dx + 3.5, top + 3, 4.2, 2.4, NS[1], true); oval(n, dx + 2.5, top + 2, 1.6, 0.8, NS[2]);
+        R(n, dx + 1.5, top + 4.5, 4, 6.5, hn('#3a4660')); R(n, dx + 1.5, top + 4.5, 2, 3.5, '#ffd08a'); R(n, dx + 1.5, top + 8, 4, HP, NS[1]); R(n, dx + 3.25, top + 4.5, HP, 6.5, NS[1]);
+        R(n, dx - 0.5, top + 12, 8, 1, NS[2]);
+      }
+      // the chimney stack and its pots
+      var cx = x0 + 10 + Math.floor(rnd() * (w - 28)), cw = 8 + Math.floor(rnd() * 3) * 2, ch = 16 + rnd() * 10, ct = top - ch;
+      R(n, cx, ct, cw, ch + 2, NS[1]); R(n, cx + cw - 2, ct, 2, ch + 2, NS[0]); R(n, cx, ct, HP, ch + 2, NS[2]);
+      for (y = ct + 3; y < top; y += 3) R(n, cx, y, cw, HP, mix(NS[1], NS[0], 0.5));
+      R(n, cx - 1, ct - 1.5, cw + 2, 1.5, NS[2]); R(n, cx - 1, ct, cw + 2, HP, NS[0]);
+      var pots = [];
+      for (var px = cx + 0.5; px < cx + cw - 1.5; px += 2.4) { var ph = 3 + rnd() * 2.5; pots.push([px, ph]); R(n, px, ct - 1.5 - ph, 1.8, ph, POT[1]); R(n, px + 1.2, ct - 1.5 - ph, 0.6, ph, POT[0]); R(n, px - 0.25, ct - 1.5 - ph, 2.3, 0.8, POT[2]); }
+      return [cx, ct - 1.5, cw];
+    };
+    var stacks = [];
+    for (x = 0; x < SW;) { var rw = 56 + Math.floor(rnd() * 4) * 8; if (SW - x - rw < 44) rw = SW - x; stacks.push(bigRoof(x, rw, 109 + Math.floor(rnd() * 3) * 4)); x += rw; }
+    // pigeons, plump and grey, on two of the stacks
+    [stacks[0], stacks[2]].forEach(function (st, si) {
+      var px2 = st[0] + st[2] * (si ? 0.7 : 0.3), py2 = st[1] - 4.5;
+      oval(n, px2, py2 + 1, 1.8, 1.2, '#8a8aa0'); oval(n, px2 - 0.3, py2 + 0.6, 1.3, 0.8, '#b8b8cc'); disc(n, px2 - 1.6, py2 - 0.3, 0.8, '#9a9ab0');
+      R(n, px2 - 2.6, py2 - 0.3, HP, HP, '#e8a050'); R(n, px2 - 1.6, py2 - 0.6, HP, HP, '#2a2a3a'); R(n, px2 + 1.4, py2 + 0.8, 1, HP, '#6a6a80'); R(n, px2 - 1.4, py2 + 0.4, 0.8, 0.8, '#9ac8a8');
+    });
+    L.push({ c: nr, f: 0.26 });
+    return L;
+  };
+
+  GEN.metro = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, x, y, k, a;
+    /* The far side of the station: the vault of white bevelled tiles, its
+       rows growing shallower and dimmer as it curves away overhead, posters
+       that are only blocks of colour, blank enamel plaques, benches on the
+       far platform, and the arch of the tunnel mouth, where a train's lights
+       glow far off in the dark. */
+    var far = strip(), g = far.getContext('2d');
+    var WB = 104, TX = 410, TR = 50, TS = 104, TA = 66;
+    var yy = WB, ri = 0;
+    while (yy > 0) {
+      var rh = 1.5 + 1.6 * Math.pow(yy / WB, 0.9), y0 = yy - rh, lt = Math.pow(Math.min(1, Math.max(0, (y0 + 6) / 70)), 0.9);
+      var tile = mix('#2c3446', '#e2e6ea', lt), hi = mix('#3a4458', '#ffffff', lt), sh = mix('#20263a', '#b4bcc8', lt), grout = mix('#181e2c', '#8890a0', lt);
+      R(g, 0, y0, SW, rh, grout); R(g, 0, y0, SW, rh - HP, tile); R(g, 0, y0, SW, HP, hi); if (rh > 2) R(g, 0, y0 + rh - HP * 2, SW, HP, sh);
+      for (x = ri % 2 ? 2 : 0; x < SW; x += 4) R(g, x, y0, HP, rh, grout);
+      yy = y0; ri++;
+    }
+    // posters: plain blocks of colour in their faience frames
+    var poster = function (px, py, c) {
+      R(g, px - 2, py - 2, 30, 38, '#b08a5a'); R(g, px - 2, py - 2, 30, HP, '#e8c890'); R(g, px - 2, py - 2, HP, 38, '#e8c890'); R(g, px - 1, py - 1, 28, 36, '#6a4a2a');
+      R(g, px, py, 26, 34, c[0]);
+      return function (fn) { fn(px, py); };
+    };
+    poster(22, 50, ['#2a8a9a'])(function (px, py) { disc(g, px + 17, py + 10, 6, '#ffd040'); disc(g, px + 16, py + 9, 3, '#fff0a0'); oval(g, px + 8, py + 30, 12, 9, '#6ac070', true); oval(g, px + 22, py + 30, 9, 6, '#4aa060', true); R(g, px, py + 30, 26, 4, '#f4f0e0'); });
+    poster(134, 50, ['#e8705a'])(function (px, py) { R(g, px + 4, py + 6, 12, 18, '#2a3a7a'); disc(g, px + 18, py + 20, 6, '#fff0d8'); R(g, px, py + 28, 26, 6, '#2a3a7a'); R(g, px + 3, py + 30, 14, 1.5, '#fff0d8'); });
+    poster(246, 50, ['#f0b440'])(function (px, py) { span(g, py + 8, py + 28, function (q) { return px + 13 - (q - py - 8) * 0.6; }, function (q) { return px + 13 + (q - py - 8) * 0.6; }, '#3a6ac8'); span(g, py + 8, py + 13, function (q) { return px + 13 - (q - py - 8) * 0.6; }, function (q) { return px + 13 + (q - py - 8) * 0.6; }, '#ffffff'); R(g, px, py + 28, 26, 6, '#e8503a'); disc(g, px + 5, py + 6, 3, '#fff6d0'); });
+    // the blank blue plaques where a station's name would go
+    [[66, 60], [178, 60], [290, 60]].forEach(function (q) { R(g, q[0] - 1, q[1] - 1, 36, 9, '#f4f4f0'); R(g, q[0], q[1], 34, 7, '#1e3e8a'); R(g, q[0], q[1], 34, HP, '#3a5aaa'); });
+    // the far platform: its surface, the pale edge line, the face down to the tracks
+    R(g, 0, WB, SW, 3, '#8a8a92'); R(g, 0, WB, SW, HP, '#b4b4bc'); R(g, 0, WB + 2.5, SW, HP, '#f0e8c0'); R(g, 0, WB + 3, SW, 6, '#3e404c'); R(g, 0, WB + 3, SW, HP, '#5a5c68');
+    for (x = 0; x < SW; x += 8) R(g, x, WB + 3, HP, 6, '#2e3040');
+    [[90, 1], [204, 0], [316, 1]].forEach(function (q) {
+      var bx = q[0];
+      R(g, bx, WB - 4, 16, 1.2, '#a8743e'); R(g, bx, WB - 4, 16, HP, '#d8a060'); R(g, bx, WB - 7.5, 16, 1, '#a8743e'); R(g, bx, WB - 6, 16, 0.8, '#8a5a2e');
+      R(g, bx + 1, WB - 3, 1, 3, '#2e5a44'); R(g, bx + 14, WB - 3, 1, 3, '#2e5a44'); R(g, bx + 1, WB - 8, 1, 4, '#2e5a44'); R(g, bx + 14, WB - 8, 1, 4, '#2e5a44');
+    });
+    // the track bed: ballast, sleepers, rails glinting
+    R(g, 0, WB + 9, SW, H, '#161a24');
+    for (x = 0; x < SW; x += 8) R(g, x, WB + 16, 4, 2, '#2e2a28');
+    for (i = 0; i < 160; i++) R(g, rnd() * SW, WB + 10 + rnd() * 30, HP, HP, '#2a2e3a');
+    [WB + 14.5, WB + 21].forEach(function (ry) { R(g, 0, ry, SW, 1, '#4a5060'); R(g, 0, ry, SW, HP, '#9aa4b4'); });
+    // the tunnel mouth: an arch the shape of the vault, and the dark going back and back
+    var arch = function (y) { var d = (TS - y) / TA; return y >= TS ? TR : TR * Math.sqrt(Math.max(0, 1 - d * d)); };
+    for (y = TS - TA - 4; y < WB + 9; y += HP) { var o = y >= TS ? TR + 4 : (TR + 4) * Math.sqrt(Math.max(0, 1 - Math.pow((TS - y) / (TA + 4), 2))); if (o > 0) R(g, TX - o, y, o * 2, HP, '#4a5468'); }
+    for (y = TS - TA; y < WB + 9; y += HP) { var hw = arch(y); if (hw > 0) R(g, TX - hw, y, hw * 2, HP, '#0e121c'); }
+    for (k = 1; k < 6; k++) {
+      var s = Math.pow(0.72, k), vy = 90;
+      for (y = vy + (TS - TA - vy) * s; y < vy + (WB + 9 - vy) * s; y += HP) { var d2 = (vy + (TS - vy) * s - y) / (TA * s), hw2 = y >= vy + (TS - vy) * s ? TR * s : TR * s * Math.sqrt(Math.max(0, 1 - d2 * d2)); if (hw2 > 0) { R(g, TX - hw2, y, HP, HP, mix('#2a3448', '#0e121c', k / 6)); R(g, TX + hw2 - HP, y, HP, HP, mix('#2a3448', '#0e121c', k / 6)); } }
+    }
+    line(g, TX - TR + 6, WB + 14.5, TX - 3, 92, HP, '#3a4256'); line(g, TX - TR + 18, WB + 21, TX - 1, 92.5, HP, '#3a4256');
+    glow(g, TX - 3, 89, 14, '#fff0c0', 0.75); glow(g, TX + 3, 89, 14, '#fff0c0', 0.75);
+    disc(g, TX - 3, 89, 1, '#fffbe8'); disc(g, TX + 3, 89, 1, '#fffbe8'); R(g, TX - 2.5, 86, 5, 1.5, '#8a98b0');
+    for (a = 0; a <= Math.PI + 0.01; a += Math.PI / 14) { var ax = TX + Math.cos(a) * (TR + 2), ay = TS - Math.sin(a) * (TA + 2); R(g, ax - HP / 2, ay - HP / 2, HP, HP, '#2e3646'); }
+    R(g, TX + TR + 6, 78, 3, 8, '#2a2e38'); disc(g, TX + TR + 7.5, 80, 1, '#5aff8a'); glow(g, TX + TR + 7.5, 80, 5, '#5aff8a', 0.7);
+    L.push({ c: far, f: 0.05 });
+
+    /* Green ironwork up the far wall: slim columns that curl at their tops
+       into brackets, each hung with a globe lamp; and the round M sign. */
+    var md = strip(), m = md.getContext('2d');
+    var IR = ['#1a4232', '#2c6a4e', '#5aa47e', '#a4dcbc'];
+    for (i = 0; i < 4; i++) {
+      x = 40 + i * 128;
+      R(m, x - 1.5, 8, 3, WB - 6, IR[1]); R(m, x - 1.5, 8, HP, WB - 6, IR[2]); R(m, x + 1, 8, HP, WB - 6, IR[0]);
+      R(m, x - 3, WB - 6, 6, 4, IR[1]); R(m, x - 3, WB - 6, 6, HP, IR[2]); R(m, x - 2, 30, 4, 2, IR[1]); R(m, x - 2, 30, 4, HP, IR[3]);
+      [-1, 1].forEach(function (d) { for (var t = 0; t < 1; t += 0.03) { var a2 = t * Math.PI * 1.6, rr = 5 * (1 - t * 0.6); R(m, x + d * (5 - Math.cos(a2) * rr) - 0.5, 14 - Math.sin(a2) * rr, 1, 1, t < 0.3 ? IR[2] : IR[1]); } });
+      line(m, x + 1.5, 38, x + 9, 34, 1, IR[1]); R(m, x + 8.5, 34, HP, 5, IR[0]);
+      glow(m, x + 8.75, 42, 16, '#fff0c8', 0.85); disc(m, x + 8.75, 42, 2.8, '#fff6dc'); disc(m, x + 8, 41.2, 1.1, '#ffffff'); R(m, x + 7.5, 38.6, 2.5, 1, IR[1]);
+    }
+    var MX = 168, MY = 52;
+    R(m, MX - 1, MY + 6, 2, WB - MY - 6, IR[1]); R(m, MX - 1, MY + 6, HP, WB - MY - 6, IR[2]); R(m, MX - 2.5, WB - 3, 5, 3, IR[1]);
+    disc(m, MX + 0.5, MY + 0.5, 7, '#123020'); disc(m, MX, MY, 7, IR[1]); disc(m, MX, MY, 5.6, '#f4ecd0'); disc(m, MX - 1.5, MY - 1.5, 2, '#fffaf0');
+    [[-3, -3, -3, 3], [-3, -3, 0, 0.5], [0, 0.5, 3, -3], [3, -3, 3, 3]].forEach(function (q) { line(m, MX + q[0], MY + q[1], MX + q[2], MY + q[3], 1, '#1e4a36'); });
+    L.push({ c: md, f: 0.12 });
+
+    // in front: two great iron columns, and lamps hanging from the vault on long stems
+    var nr = strip(), n = nr.getContext('2d');
+    var NI = ['#10281e', '#1e4a36', '#3e7a5c', '#7ab496'];
+    [120, 376].forEach(function (cx) {
+      R(n, cx - 4, 0, 8, 128, NI[1]); R(n, cx - 4, 0, 1.5, 128, NI[2]); R(n, cx + 2.5, 0, 1.5, 128, NI[0]);
+      for (x = cx - 2; x < cx + 3; x += 2) R(n, x, 0, HP, 128, mix(NI[1], NI[0], 0.5));
+      R(n, cx - 6, 116, 12, 12, NI[1]); R(n, cx - 6, 116, 12, HP, NI[3]); R(n, cx - 5, 112, 10, 4, NI[1]); R(n, cx - 5, 112, 10, HP, NI[2]);
+      R(n, cx - 6, 22, 12, 3, NI[1]); R(n, cx - 6, 22, 12, HP, NI[3]); oval(n, cx, 25, 6, 2, NI[1]);
+      [-1, 1].forEach(function (d) { for (var t = 0; t < 1; t += 0.025) { var a2 = t * Math.PI * 1.7, rr = 7 * (1 - t * 0.55); R(n, cx + d * (7 - Math.cos(a2) * rr) - 0.75, 22 - Math.sin(a2) * rr, 1.5, 1.5, t < 0.25 ? NI[2] : NI[1]); } });
+    });
+    [248, 504].forEach(function (lx) {
+      R(n, lx - HP / 2, 0, HP, 26, NI[1]);
+      glow(n, lx, 31, 22, '#fff2cc', 0.9); R(n, lx - 3.5, 26, 7, 1.5, NI[1]); disc(n, lx, 31, 4, '#fff8e4'); disc(n, lx - 1.2, 29.8, 1.6, '#ffffff');
+    });
+    L.push({ c: nr, f: 0.3 });
+    return L;
+  };
+
+  /* A lattice girder of the Eiffel Tower: two flanged rails laced between
+     with criss-cross diagonals, a rivet at every joint. It runs from y0 down
+     to y1 and leans (x drifts by lean for each pixel up). Nothing in it lies
+     level, so on a climb it never looks like a floor. c = [shade, body, light, rivet] */
+  var girder = function (g, x, y0, y1, w, lean, c) {
+    var X = function (yy) { return x + (y1 - yy) * lean; }, step = w * 1.15, yy;
+    for (yy = y1; yy > y0 - step; yy -= step) {
+      line(g, X(yy) + 1.5, yy, X(yy - step) + w - 2, yy - step, 1, c[1]);
+      line(g, X(yy) + w - 2, yy, X(yy - step) + 1.5, yy - step, 1, c[0]);
+      line(g, X(yy) + 1.5, yy - 0.5, X(yy - step) + w - 2, yy - step - 0.5, HP, c[2]);
+    }
+    for (yy = y0; yy < y1; yy += 1) { var xl = X(yy + 0.5); R(g, xl, yy, 2, 1, c[1]); R(g, xl, yy, HP, 1, c[2]); R(g, xl + w - 2, yy, 2, 1, c[1]); R(g, xl + w - HP, yy, HP, 1, c[0]); }
+    for (yy = y1; yy > y0; yy -= step) { R(g, X(yy) + 0.5, yy - 0.5, HP, HP, c[3]); R(g, X(yy) + w - 1.5, yy - 0.5, HP, HP, c[3]); }
+  };
+
+  GEN.tower = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, j, x, y, k;
+    /* The climb: the level is about 40 rows tall, so as the camera rises a
+       long way, drawBackdrop slides every layer down (its lift). LIFT is the
+       most it can rise (48 rows, with room to spare); the sky and the
+       ironwork reach up above the screen that far, so nothing comes loose at
+       the top, and the city layers, each opaque all the way to the bottom of
+       its strip, slide down past one another: the city falls away below. */
+    var LIFT = 240;
+    var far = tallStrip(0.025, LIFT), g = far.c.getContext('2d');
+    sun(g, 70, 20, 10, ['#fff8d8', '#fff4c0', '#fffbea']);
+    var CB = [mix('#a8cdee', hz, 0.12), '#ffffff', '#ffffff'];
+    for (i = 0; i < 9; i++) cloud(g, i * 57 + rnd() * 26, -far.e + 6 + rnd() * (far.e + 64), 0.55 + rnd() * 0.6, CB);
+    L.push(far);
+
+    // clouds at our own height, sliding down past as we climb up through them
+    var cl = tallStrip(0.12, LIFT), cg = cl.c.getContext('2d');
+    for (i = 0; i < 6; i++) cloud(cg, i * 85 + rnd() * 40, -cl.e + 8 + rnd() * (cl.e + 40), 0.5 + rnd() * 0.45, [mix('#b4d4f2', hz, 0.2), mix('#ffffff', hz, 0.1), '#ffffff']);
+
+    /* The whole city spread out under the haze to the far hills: row on row
+       of cream fronts under blue-grey roofs, parks, the white basilica on its
+       hill, and the Seine winding through under its bridges. This layer moves
+       least, so it is what stays in view, far below, at the top of the climb. */
+    var hzn = strip(), h = hzn.getContext('2d');
+    var hh = function (c, a) { return mix(c, hz, a); };
+    land(h, function (xx) { return 94 + Math.sin(xx * TAU * 2 + 1) * 2.5 + Math.sin(xx * TAU * 7) * 1; }, [hh('#7c94b8', 0.58), hh('#90a6c8', 0.6), hh('#c8d8ec', 0.5)], 4);
+    var MH = function (xx) { var u = (xx - 300) / 30; return 96 - 10 * Math.exp(-u * u * 1.5); };
+    for (x = 256; x < 344; x += HP) { y = MH(x); R(h, x, y, HP, H - y, hh('#8a9cbc', 0.56)); R(h, x, y, HP, HP, hh('#d8e4f0', 0.5)); }
+    basilica(h, 300, MH(300) + 1, 0.6, [hh('#b8c4d8', 0.42), hh('#ffffff', 0.32), '#ffffff']);
+    var WA = [], WB = [], WS = [], RF = [], RL = [];
+    for (j = 0; j < 16; j++) { a = Math.max(0.2, 0.56 - j * 0.026); WA.push(hh('#f2e6cc', a)); WB.push(hh('#e4d2b4', a)); WS.push(hh('#bca88c', a)); RF.push(hh('#8696b4', a)); RL.push(hh('#d0dcf0', a)); }
+    for (j = 0; j < 16; j++) {
+      var ry = 97 + j * (1.8 + j * 0.26), a = Math.max(0.2, 0.56 - j * 0.026), sc = 0.6 + j * 0.09;
+      if (ry - 3 > H) break;
+      for (x = rnd() * 3; x < SW;) {
+        var bw = (2 + rnd() * 4) * sc, bh = (1.2 + rnd() * 1.4) * sc;
+        if (rnd() < 0.08) { oval(h, x + bw / 2 + 0.3, ry - bh * 0.4, bw * 0.6, bh * 0.9 + 0.5, hh('#4e8a4a', a)); oval(h, x + bw / 2, ry - bh * 0.5, bw * 0.5, bh * 0.75 + 0.4, hh('#6aa858', a)); R(h, x + bw * 0.3, ry - bh * 1.1, bw * 0.3, HP, hh('#b4e090', a)); x += bw + 1; continue; }
+        // (the farthest rows are too small for a lit edge and a shaded side)
+        R(h, x, ry - bh, bw, bh + 3 * sc, rnd() > 0.35 ? WA[j] : WB[j]); if (j > 5) { R(h, x + bw - 0.6 * sc, ry - bh, 0.6 * sc, bh + 3 * sc, WS[j]); R(h, x, ry - bh - 0.9 * sc, bw, HP, RL[j]); }
+        R(h, x, ry - bh - 0.9 * sc + (j > 5 ? HP : 0), bw, 0.9 * sc, RF[j]);
+        x += bw + (rnd() > 0.85 ? 2.5 * sc : 0.4);
+      }
+    }
+    var RV = function (xx) { return 112 + Math.sin(xx * TAU * 2 + 0.5) * 3 + Math.sin(xx * TAU * 3) * 1.4; };
+    var RC = [hh('#e8dcc0', 0.3), hh('#5c96c4', 0.28), hh('#b8dcf4', 0.25), hh('#d8ccb0', 0.3), hh('#5a9a50', 0.3)];
+    for (x = 0; x < SW; x += 1) { y = RV(x); R(h, x, y - 1, 1, 1, RC[0]); R(h, x, y, 1, 3.5, RC[1]); R(h, x, y, 1, HP, RC[2]); R(h, x, y + 3.5, 1, 1, RC[3]); R(h, x, y + 4.5, 1, HP, RC[4]); }
+    for (i = 0; i < 50; i++) { x = rnd() * SW; R(h, x, RV(x) + 0.8 + rnd() * 2, 0.8 + rnd() * 2.5, HP, hh('#e8f6ff', 0.2)); }
+    for (x = 18; x < SW; x += 46 + Math.floor(rnd() * 3) * 8) { y = RV(x); R(h, x - 1, y - 1, 2.5, 5.5, hh('#f0e6d0', 0.28)); R(h, x + 1, y - 1, HP, 5.5, hh('#b4a890', 0.3)); R(h, x + 1.5, y + 0.5, 1, 1, hh('#3a6a94', 0.3)); R(h, x + 1.5, y + 2.2, 1, 1, hh('#3a6a94', 0.3)); }
+    [[120, 1], [262, -1], [400, 1]].forEach(function (q) { R(h, q[0], RV(q[0]) + 1.2, 3.5, 1, hh('#ffffff', 0.15)); h.globalAlpha = 0.5; R(h, q[0] + (q[1] > 0 ? -5 : 3.5), RV(q[0]) + 1.8, 5, HP, '#ffffff'); h.globalAlpha = 1; });
+    L.push({ c: hzn, f: 0.04 });
+    L.splice(L.length - 1, 0, cl);
+
+    /* Nearer, the blocks round the tower: cream stone under blue-grey roofs,
+       avenues of trees between them, a golden dome. It drops away first. */
+    var ct = strip(), c = ct.getContext('2d');
+    var hc = function (col) { return mix(col, hz, 0.24); };
+    for (var yy = 118, rr = 0; yy < H + 6; yy += 6.5, rr++) {
+      if (rr % 2) {
+        // an avenue: a band of tree crowns, bumpy along its top, lit on each crown's left
+        for (x = 0; x < SW; x += HP) { var ph = (x + rr * 1.5) % 4 / 4, tt = yy - 1.5 - Math.sin(ph * Math.PI) * 1.6; R(c, x, tt, HP, 4.5, hc('#5aa048')); R(c, x, tt + 3, HP, 1.5, hc('#3e7a3a')); if (ph < 0.45) R(c, x, tt, HP, HP, hc('#a4d878')); }
+        continue;
+      }
+      for (x = rnd() * 4; x < SW;) {
+        var bw2 = 6 + rnd() * 8, bh2 = 2.5 + rnd() * 2;
+        R(c, x, yy - bh2, bw2, bh2 + 6, hc('#f0e2c6')); R(c, x + bw2 - 1, yy - bh2, 1, bh2 + 6, hc('#c4b090')); R(c, x, yy - bh2, HP, bh2 + 6, hc('#fff8ea'));
+        R(c, x - 0.3, yy - bh2 - 1.6, bw2 + 0.6, 1.6, hc('#7c8cac')); R(c, x - 0.3, yy - bh2 - 1.6, bw2 + 0.6, HP, hc('#c8d4ea'));
+        for (var wx = x + 1; wx < x + bw2 - 1.5; wx += 1.6) R(c, wx, yy - bh2 + 1, HP, 1, hc('#7a7c94'));
+        x += bw2 + (rnd() > 0.8 ? 3 : 0.5);
+      }
+    }
+    var DX = 156, DY = 120;
+    R(c, DX - 10, DY - 2, 20, 8, hc('#f6ecd6')); R(c, DX + 7, DY - 2, 3, 8, hc('#d0c4ac'));
+    R(c, DX - 4, DY - 6.5, 8, 4.5, hc('#f6ecd6')); for (x = DX - 3.5; x < DX + 4; x += 1.2) R(c, x, DY - 6, HP, 3.5, hc('#c8bca4'));
+    oval(c, DX + 0.3, DY - 6.5, 4.6, 5.6, hc('#c8962e'), true); oval(c, DX - 0.2, DY - 6.5, 4, 5.2, hc('#f2c450'), true); oval(c, DX - 1.6, DY - 9.2, 1.1, 1.6, hc('#fff2a8'));
+    R(c, DX - HP / 2, DY - 14.5, HP, 3, hc('#c8962e'));
+    L.push({ c: ct, f: 0.09 });
+
+    // the foot of the tower: the gardens' clipped trees, in rows
+    var pk = strip(), p = pk.getContext('2d');
+    var hp = function (col) { return mix(col, hz, 0.14); };
+    R(p, 0, 122, SW, H, hp('#7ab85a'));
+    for (y = 122; y < H; y += 3) R(p, 0, y, SW, 1.5, hp('#86c464'));
+    for (x = 0; x < SW; x += 64) { R(p, x + 26, 122, 12, H, hp('#efe4c8')); R(p, x + 26, 122, 12, HP, hp('#fff8e4')); }
+    for (x = 3; x < SW; x += 8) { if ((x % 64) > 22 && (x % 64) < 40) continue; R(p, x - 0.5, 120, 1, 4, hp('#6a5038')); ball(p, x, 117, 4.2, [hp('#3e7a3a'), hp('#5aa048'), hp('#9ad070')]); }
+    L.push({ c: pk, f: 0.15 });
+
+    /* The tower's own ironwork: far girders across the gap, blue with the
+       air between, and the near ones close by, bronze-brown and riveted.
+       All upright or leaning, never level. */
+    var gf = tallStrip(0.2, LIFT), q2 = gf.c.getContext('2d');
+    var GF = [mix('#6a5040', hz, 0.5), mix('#8a6a54', hz, 0.5), mix('#c0a088', hz, 0.45), mix('#d8bca0', hz, 0.45)];
+    [[40, 0.07, 11], [214, -0.06, 10], [398, 0.06, 11]].forEach(function (q) { girder(q2, q[0], -gf.e, H, q[2], q[1], GF); });
+    L.push(gf);
+    var gn = tallStrip(0.34, LIFT), r2 = gn.c.getContext('2d');
+    var GN = [mix('#4e3628', hz, 0.1), mix('#7e5a42', hz, 0.1), mix('#b88c6a', hz, 0.08), mix('#e0b890', hz, 0.08)];
+    [[84, -0.09, 18], [338, 0.08, 17]].forEach(function (q) { girder(r2, q[0], -gn.e, H, q[2], q[1], GN); });
+    L.push(gn);
+    return L;
+  };
+
+  // a low clipped hedge along the edge f, a row of rounded humps lit on their left. c = [shade, body, light]
+  var hedge = function (g, f, c) {
+    for (var x = 0; x < SW; x += HP) {
+      var ph = (x % 8) / 8, t = f(x) - 2.5 - Math.sin(ph * Math.PI) * 2.4;
+      R(g, x, t, HP, 6, c[1]); R(g, x, t + 4, HP, 2, c[0]); if (ph < 0.42) R(g, x, t, HP, ph < 0.2 ? 1 : HP, c[2]);
+    }
+  };
+  /* The fairground castle, our own design, shared by day (magic) and night:
+     a rose-pink palace behind a crenellated wall, crowded with slim round
+     towers, each under a tall slate-blue cone with a gold tip, the tallest
+     spire in the middle. Lit from the top left. P = {wall, roof: [shade,
+     body, light], gold: [body, light], win, glint, door, glow (night only)} */
+  var castle = function (g, cx, B, P) {
+    var W = P.wall, RF = P.roof, GD = P.gold, x, y;
+    var win = function (x, y, w, h) {
+      if (P.glow) glow(g, x + w / 2, y + h / 2, w * 2.6 + 2, P.glow, 0.55);
+      R(g, x, y + w / 2, w, h - w / 2, P.win); disc(g, x + w / 2, y + w / 2, w / 2, P.win);
+      if (P.glint) R(g, x + HP / 2, y + w / 2, HP, h * 0.45, P.glint);
+      R(g, x - HP, y + h, w + HP * 2, HP, W[2]);
+    };
+    var cone = function (x, base, r, h, flag) {
+      for (var y = 0; y < h; y += HP) {
+        var k = y / h, hw = r * Math.pow(k, 1.3) + (k > 0.92 ? (k - 0.92) * 9 : 0), yy = base - h + y;
+        R(g, x - hw, yy, hw * 2, HP, RF[1]); R(g, x - hw, yy, hw * 0.5, HP, RF[2]); R(g, x + hw * 0.4, yy, hw * 0.6, HP, RF[0]);
+      }
+      for (y = base - h + 5; y < base - 1; y += 3.5) { var w2 = r * Math.pow((y - base + h) / h, 1.3); R(g, x - w2 + 0.5, y, w2 * 2 - 1, HP, mix(RF[1], RF[0], 0.45)); }
+      var mt = flag ? 8 : 3.5;
+      R(g, x - HP / 2, base - h - mt, HP, mt, GD[0]); disc(g, x, base - h - 1.5, 0.9, GD[0]); R(g, x - HP, base - h - 2, HP, HP, GD[1]);
+      if (flag) span(g, base - h - 8, base - h - 5, function () { return x; }, function (yy) { return x + 5 * (1 - Math.abs(yy - (base - h - 6.5)) / 1.5); }, flag);
+    };
+    var tower = function (x, top, bot, r, wins) {
+      R(g, x - r, top, r * 2, bot - top, W[1]); R(g, x - r, top, r * 0.5, bot - top, W[2]); R(g, x + r * 0.4, top, r * 0.6, bot - top, W[0]);
+      for (var y = top + 5; y < bot; y += 5) R(g, x - r, y, r * 2, HP, mix(W[1], W[0], 0.3));
+      R(g, x - r - 0.6, top, r * 2 + 1.2, 1.5, W[2]); R(g, x - r - 0.6, top + 1.5, r * 2 + 1.2, HP, W[0]);
+      for (var i = 0; i < (wins || 0); i++) win(x - 0.75 - (r > 4 ? 0.25 : 0), top + 4 + i * 9, r > 4 ? 2 : 1.5, 4);
+    };
+    // at the back: the keep and its great spire, the towers either side, two slim turrets
+    tower(cx - 24, B - 60, B - 30, 5.5, 2); cone(cx - 24, B - 60, 6.8, 21, P.flag);
+    tower(cx + 23, B - 56, B - 30, 5, 2); cone(cx + 23, B - 56, 6.2, 19);
+    tower(cx, B - 68, B - 40, 7, 2); cone(cx, B - 68, 8.6, 28, P.flag);
+    tower(cx - 12, B - 62, B - 44, 2.6, 1); cone(cx - 12, B - 62, 3.3, 14);
+    tower(cx + 13, B - 57, B - 44, 2.4, 1); cone(cx + 13, B - 57, 3.1, 12);
+    // the palace: a steep slate roof with dormers, two rows of tall windows, a rose window
+    var PW = 30, PT = B - 46;
+    span(g, PT - 9, PT, function (yy) { return cx - PW + 1 + (PT - yy) * 0.9; }, function (yy) { return cx + PW - 1 - (PT - yy) * 0.9; }, RF[1]);
+    span(g, PT - 9, PT, function (yy) { return cx - PW + 1 + (PT - yy) * 0.9; }, function (yy) { return cx - PW + 4 + (PT - yy) * 0.9; }, RF[2]);
+    R(g, cx - PW + 9, PT - 9.5, PW * 2 - 18, 1, GD[0]);
+    [cx - 15, cx + 15].forEach(function (dx) { R(g, dx - 2, PT - 6, 4, 5, W[1]); span(g, PT - 9, PT - 5.5, function (yy) { return dx - 2.6 * (yy - PT + 9) / 3.5; }, function (yy) { return dx + 2.6 * (yy - PT + 9) / 3.5; }, RF[1]); win(dx - 1, PT - 4.8, 2, 3.5); });
+    R(g, cx - PW, PT, PW * 2, 32, W[1]); R(g, cx - PW, PT, 1.5, 32, W[2]); R(g, cx + PW - 5, PT, 5, 32, W[0]);
+    for (y = PT + 6; y < B - 14; y += 6) R(g, cx - PW, y, PW * 2, HP, mix(W[1], W[0], 0.3));
+    R(g, cx - PW - 1, PT, PW * 2 + 2, 1.5, W[2]); R(g, cx - PW - 1, PT + 1.5, PW * 2 + 2, HP, W[0]);
+    for (var wx = cx - PW + 4; wx < cx + PW - 4; wx += 7.5) { if (Math.abs(wx + 1.25 - cx) < 5) continue; win(wx, PT + 5, 2.5, 7); win(wx, PT + 18, 2.5, 6); }
+    disc(g, cx, PT + 9, 4.2, W[2]); disc(g, cx, PT + 9, 3.4, P.win); for (var a = 0; a < 8; a++) R(g, cx + Math.cos(a * Math.PI / 4) * 2 - HP / 2, PT + 9 + Math.sin(a * Math.PI / 4) * 2 - HP / 2, HP, HP, GD[1]);
+    if (P.glow) glow(g, cx, PT + 9, 9, P.glow, 0.5);
+    R(g, cx - 3.5, PT + 18, 7, 1, W[2]); for (var bx = cx - 3.5; bx < cx + 3.5; bx += 1.5) R(g, bx, PT + 19, HP, 2, W[2]);
+    // corbelled bartizans on the palace's corners
+    [cx - PW - 1, cx + PW + 1].forEach(function (bx2) { span(g, PT + 2, PT + 7, function (yy) { return bx2 - 2.4 * (1 - (yy - PT - 2) / 5); }, function (yy) { return bx2 + 2.4 * (1 - (yy - PT - 2) / 5); }, W[0]); tower(bx2, PT - 5, PT + 2, 2.4, 0); cone(bx2, PT - 5, 3, 9); });
+    // the towers on the wall, the wall itself with its gate, and the corner towers
+    tower(cx - 44, B - 40, B, 4.5, 2); cone(cx - 44, B - 40, 5.6, 17);
+    tower(cx + 44, B - 38, B, 4.5, 2); cone(cx + 44, B - 38, 5.6, 16);
+    R(g, cx - 64, B - 15, 128, 15, W[1]); R(g, cx - 64, B - 15, 128, HP, W[2]); R(g, cx - 64, B - 3, 128, 3, W[0]);
+    for (y = B - 10; y < B - 3; y += 5) R(g, cx - 64, y, 128, HP, mix(W[1], W[0], 0.3));
+    for (x = cx - 64; x < cx + 64; x += 4) { R(g, x, B - 17.5, 2.2, 2.5, W[1]); R(g, x, B - 17.5, 2.2, HP, W[2]); R(g, x + 1.7, B - 17.5, HP, 2.5, W[0]); }
+    ring(g, cx, B - 8, 6, 8, W[2], B - 8); R(g, cx - 8, B - 8, 2, 8, W[2]); R(g, cx + 6, B - 8, 2, 8, W[0]);
+    R(g, cx - 6, B - 8, 12, 8, P.door); disc(g, cx, B - 8, 6, P.door);
+    if (P.glow) glow(g, cx, B - 6, 14, P.glow, 0.7);
+    else { for (y = B - 11; y < B; y += 2.5) R(g, cx - 5, y, 10, HP, mix(P.door, '#000000', 0.25)); for (x = cx - 4; x < cx + 5; x += 2.5) R(g, x, B - 13, HP, 13, mix(P.door, '#000000', 0.25)); }
+    R(g, cx - 1, B - 15.5, 2, 2, GD[0]); R(g, cx - 1, B - 15.5, 1, 1, GD[1]);
+    tower(cx - 64, B - 28, B, 5, 1); cone(cx - 64, B - 28, 6.2, 16, P.flag);
+    tower(cx + 64, B - 26, B, 5, 1); cone(cx + 64, B - 26, 6.2, 15, P.flag);
+  };
+
+  /* Main street, shared by day and night: a row of little shops in
+     sugared-almond colours — white trims, awnings, a flag on each roof —
+     and the carousel under its striped canopy. Its own seed, so the street
+     is the same street after dark. */
+  var mainStreet = function (g, hz, night) {
+    var rs = BB.rng(2929), i, x, y;
+    var dim = function (c, a) { return night ? mix(mix(c, '#2a2050', 0.62), hz, 0.1) : mix(c, hz, a === undefined ? 0.22 : a); };
+    var WARM = '#ffd27a', B = 124;
+    var FAC = ['#bfead8', '#ffc8d8', '#fff0b0', '#dcc8f4', '#ffd4b0', '#c8e4ff'], ROOF = ['#e05a6a', '#4a9ad0', '#5ab48a', '#9a6ad0'];
+    var AWN = [['#ff6a8a', '#ffffff'], ['#4ab0e0', '#ffffff'], ['#ffc040', '#ffffff'], ['#8ad06a', '#ffffff']];
+    var px0 = 0;
+    var shop = function (x0, w, h, ci) {
+      var top = B - h, fc = dim(FAC[ci % FAC.length]), sh = dim(mix(FAC[ci % FAC.length], '#7a5a8a', 0.25)), trim = dim('#ffffff', 0.15), rf = dim(ROOF[ci % ROOF.length]);
+      R(g, x0, top, w, h, fc); R(g, x0 + w - 1.5, top, 1.5, h, sh);
+      // the roof: a curved mansard with iron cresting, or a gable; a flag on a pole
+      if (ci % 3) { span(g, top - 6, top, function (yy) { return x0 + 1 + Math.pow((top - yy) / 6, 2) * 3; }, function (yy) { return x0 + w - 1 - Math.pow((top - yy) / 6, 2) * 3; }, rf); R(g, x0 + 1, top - 2, w - 2, HP, mix(rf, '#ffffff', 0.3)); for (x = x0 + 4; x < x0 + w - 4; x += 2) R(g, x, top - 7.5, HP, 1.5, dim('#3a3a5a', 0.2)); }
+      else { span(g, top - 9, top, function (yy) { return x0 + w / 2 - (yy - top + 9) / 9 * (w / 2 + 1); }, function (yy) { return x0 + w / 2 + (yy - top + 9) / 9 * (w / 2 + 1); }, rf); disc(g, x0 + w / 2, top - 4, 1.6, trim); disc(g, x0 + w / 2, top - 4, 1, dim('#7ab8e8')); }
+      var fx = x0 + w / 2 + (ci % 3 ? 0 : 0), fy = top - (ci % 3 ? 7 : 10);
+      R(g, fx - HP / 2, fy - 7, HP, 7, dim('#c8a050', 0.1));
+      span(g, fy - 7, fy - 4, function () { return fx; }, function (yy) { return fx + 5 * (1 - Math.abs(yy - fy + 5.5) / 1.5); }, dim(AWN[(ci + 1) % 4][0], 0.1));
+      // a cornice of white trims with little dentils
+      R(g, x0 - 1, top, w + 2, 1.5, trim); for (x = x0; x < x0 + w; x += 2) R(g, x, top + 1.5, 1, 1, trim);
+      R(g, x0 - 0.5, top + h * 0.45, w + 1, 1, trim);
+      // the windows upstairs, and a bay window on the wider fronts
+      for (x = x0 + 4; x < x0 + w - 5; x += 7) {
+        var wy = top + 5;
+        if (night) glow(g, x + 1.5, wy + 3, 6, WARM, 0.5);
+        R(g, x - 0.5, wy - 0.5, 4, 7, trim); R(g, x, wy, 3, 6, night ? WARM : dim('#6a8ac8')); if (!night) R(g, x, wy, 1, 2.5, dim('#d8ecff'));
+        R(g, x + 1.25, wy, HP, 6, trim);
+      }
+      // the shop below: a big window, a door, an awning over them
+      var sy = top + h * 0.45 + 4;
+      if (night) glow(g, x0 + w / 2, sy + 5, w * 0.5, WARM, 0.6);
+      R(g, x0 + 2, sy, w - 10, B - sy, trim); R(g, x0 + 3, sy + 1, w - 12, B - sy - 3, night ? '#ffe2a0' : dim('#a8d4f0')); if (!night) R(g, x0 + 3, sy + 1, 2, B - sy - 3, dim('#e8f6ff'));
+      for (x = x0 + 3 + (w - 12) / 3; x < x0 + w - 9; x += (w - 12) / 3) R(g, x, sy + 1, HP, B - sy - 3, trim);
+      R(g, x0 + w - 7, sy + 1, 5, B - sy - 1, dim(ROOF[(ci + 2) % 4])); R(g, x0 + w - 3.5, sy + 5, HP, 1, trim);
+      awning(g, x0 + 1, sy - 4, w - 2, 3, [dim(AWN[ci % 4][0], 0.15), dim(AWN[ci % 4][1], 0.15), dim('#4a3a5a')], 2.5);
+      if (night) { for (x = x0; x < x0 + w; x += 3) { g.globalAlpha = 0.3; disc(g, x + 1, top - 0.5, 1.8, WARM); g.globalAlpha = 1; R(g, x + 0.5, top - 1, 1, 1, '#fff2b0'); } }
+    };
+    // shops up to a little plaza, which leaves the castle framed at the start
+    var px = 0, ci = 0;
+    while (px < 120) { var w = 26 + Math.floor(rs() * 3) * 5, h = 34 + Math.floor(rs() * 3) * 5; shop(px, w, h, ci++); px += w + 1; }
+    px0 = px;
+    px = 376;
+    while (px < SW - 20) { w = Math.min(26 + Math.floor(rs() * 3) * 5, SW - px); h = 34 + Math.floor(rs() * 3) * 5; shop(px, w, h, ci++); px += w + 1; }
+    // the carousel: a striped canopy with a gold rim of lamps, horses on brass poles
+    var CX = 306, CT = 70, CR = 90, CW = 32;
+    if (night) glow(g, CX, 104, 40, WARM, 0.6);
+    R(g, CX - CW + 2, 116, CW * 2 - 4, 8, dim('#7a4a8a')); R(g, CX - CW, 115, CW * 2, 2.5, dim('#ffd060', 0.1)); R(g, CX - CW, 115, CW * 2, HP, dim('#fff4c0', 0.1));
+    for (x = CX - CW + 2; x < CX + CW - 2; x += 4) disc(g, x + 2, 118, 1.6, dim('#ff8ab8'));
+    R(g, CX - 2, CR, 4, 26, dim('#ffe080', 0.1)); R(g, CX - 2, CR, 1, 26, dim('#fff8d0', 0.1));
+    [-24, -16, -8, 8, 16, 24].forEach(function (d, di) {
+      R(g, CX + d - HP / 2, CR + 2, HP, 25, dim('#f0c040', 0.1));
+      var hy = 104 + (di % 2) * 4, hc = dim(['#ffffff', '#ffd0e4', '#fff0c8'][di % 3], 0.12), hd = d < 0 ? 1 : -1, hx = CX + d;
+      oval(g, hx, hy, 3.2, 1.6, hc); R(g, hx + hd * 2.2 - 0.6, hy - 3.2, 1.4, 2.5, hc); oval(g, hx + hd * 3, hy - 3.4, 1.4, 0.9, hc);
+      R(g, hx + hd * 2.8 - 0.25, hy - 4.6, HP, 1, hc); R(g, hx - hd * 3.4, hy - 0.6, 1, 2, dim('#e8b0d0'));
+      [-2, -0.8, 0.8, 2].forEach(function (lx) { R(g, hx + lx, hy + 1, HP, 2.4, hc); });
+      R(g, hx - 1, hy - 1.8, 2, 1, dim('#e84a6a')); R(g, hx + hd * 3.6, hy - 3.6, HP, HP, dim('#3a2a3a'));
+    });
+    for (y = CT; y < CR; y += HP) {
+      var k = (y - CT) / (CR - CT), hw = 3 + Math.pow(k, 0.85) * (CW - 3);
+      for (var s = -6; s < 6; s++) { var x0 = CX + hw * s / 6, x1 = CX + hw * (s + 1) / 6; R(g, x0, y, x1 - x0, HP, dim(s % 2 ? '#ff7aa8' : '#fff4f8', 0.12)); }
+      R(g, CX - hw, y, hw * 0.25, HP, dim('#ffffff', 0.3)); g.globalAlpha = 0.25; R(g, CX + hw * 0.55, y, hw * 0.45, HP, dim('#8a3a6a')); g.globalAlpha = 1;
+    }
+    R(g, CX - CW - 1, CR, CW * 2 + 2, 3, dim('#ffd060', 0.1)); R(g, CX - CW - 1, CR, CW * 2 + 2, HP, dim('#fff4c0', 0.1));
+    for (x = CX - CW + 1; x < CX + CW; x += 3) { if (night) glow(g, x, CR + 1.5, 3, WARM, 0.8); R(g, x - HP, CR + 1, 1, 1, night ? '#fff6c0' : dim('#ffffff', 0.05)); }
+    for (x = CX - CW; x < CX + CW; x += 4) { oval(g, x + 2, CR + 3, 2, 1.6, dim(((x - CX) / 4) % 2 ? '#ff7aa8' : '#7ac8f0', 0.12)); }
+    disc(g, CX, CT - 1, 1.6, dim('#ffd060', 0.1)); R(g, CX - HP / 2, CT - 8, HP, 7, dim('#ffd060', 0.1));
+    span(g, CT - 8, CT - 5, function () { return CX; }, function (yy) { return CX + 5 * (1 - Math.abs(yy - CT + 6.5) / 1.5); }, dim('#ff6a8a', 0.1));
+    // a balloon seller's bunch, every colour, heaped any old how
+    var BX = 352, BY = 100;
+    R(g, BX - HP / 2, BY, HP, B - BY, dim('#8a6a4a'));
+    [[0, 0, '#ff5a7a'], [4.5, -1.5, '#ffd040'], [-4.2, -1, '#5ac0f0'], [1.8, -5.5, '#8ad860'], [-2.6, -5.2, '#c08aff'], [6, -6, '#ff9a40'], [-6.5, -5.5, '#ff7ad0'], [0.6, -10, '#40d0c0'], [3.8, -9.4, '#ff5a7a']].forEach(function (b) {
+      line(g, BX, BY, BX + b[0], BY - 6 + b[1] + 2.6, HP, dim('#e8e0f0', 0.2));
+      var bc = night ? mix(b[2], '#2a2050', 0.35) : dim(b[2], 0.12);
+      oval(g, BX + b[0] + 0.3, BY - 6 + b[1] + 0.3, 2.3, 2.8, mix(bc, '#4a2a5a', 0.25)); oval(g, BX + b[0], BY - 6 + b[1], 2.1, 2.6, bc); R(g, BX + b[0] - 1, BY - 6 + b[1] - 1.5, 1, 1, mix(bc, '#ffffff', 0.6));
+    });
+    // little round trees between, and the flower beds at the shops' feet
+    [px0 + 8, 234, 368].forEach(function (tx) { R(g, tx - 0.75, 108, 1.5, 16, dim('#8a6a4a')); canopy(g, tx, 100, 7, 8, rs, [dim('#4aa058'), dim('#6ac070'), dim('#b0eca0'), dim('#e8ffd0')]); });
+    // the plaza: a fountain between two lamps
+    var FX = (px0 + 234) / 2 + 4;
+    R(g, FX - 12, 118, 24, 6, dim('#f0e4f0')); R(g, FX - 12, 118, 24, HP, dim('#ffffff', 0.1)); R(g, FX - 11, 119.5, 22, 2, dim('#7ac8f0'));
+    R(g, FX - 1, 108, 2, 10, dim('#f0e4f0')); oval(g, FX, 108, 5, 1.4, dim('#f0e4f0')); R(g, FX - 4, 107.5, 8, 1, dim('#7ac8f0'));
+    // the jet, and the water falling from it in two arcs into the basin
+    var WTR = night ? '#c8d8ff' : dim('#e0f6ff', 0.05);
+    R(g, FX - HP / 2, 99, 1, 9, WTR);
+    for (var t = 0; t <= 1; t += 0.04) [-1, 1].forEach(function (d) { R(g, FX + d * (0.5 + t * 9), 99.5 - Math.sin(t * Math.PI * 0.55) * 3 + t * t * 20, HP, HP, WTR); });
+    for (i = 0; i < 6; i++) R(g, FX - 9 + i * 3.6, 117 - (i % 2), HP, HP, WTR);
+    [FX - 22, FX + 22].forEach(function (lx) { R(g, lx - 0.5, 100, 1, 24, dim('#3a3a5a', 0.1)); if (night) glow(g, lx, 98.5, 10, WARM, 0.8); R(g, lx - 2, 96, 4, 4, night ? '#ffe8a0' : dim('#fff8e0', 0.1)); R(g, lx - 2.5, 95, 5, 1.2, dim('#3a3a5a', 0.1)); });
+  };
+
+  GEN.magic = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, x, y;
+    // a happy sky: the sun, fat clouds, and the odd balloon that got away
+    var far = strip(), g = far.getContext('2d');
+    sun(g, 64, 22, 10, ['#fff8d8', '#fff2b8', '#fffbea']);
+    for (i = 0; i < 6; i++) cloud(g, i * 86 + rnd() * 40, 12 + rnd() * 34, 0.6 + rnd() * 0.5, [mix('#e8c0e0', hz, 0.2), '#ffffff', '#ffffff']);
+    [[140, 40, '#ff6a8a'], [262, 22, '#5ac0f0'], [430, 34, '#ffd040']].forEach(function (b) { line(g, b[0], b[1] + 2.4, b[0] + 1, b[1] + 8, HP, mix('#9a8aa8', hz, 0.4)); oval(g, b[0], b[1], 1.7, 2.2, mix(b[2], hz, 0.3)); R(g, b[0] - 0.8, b[1] - 1, HP, HP, '#ffffff'); });
+    for (i = 0; i < 5; i++) bird(g, 300 + rnd() * 180, 20 + rnd() * 30, mix('#6a5a8a', hz, 0.4));
+    L.push({ c: far, f: 0.025 });
+
+    /* The castle on its green rise, trees round its feet, and over on a
+       hill of its own a little steam train puffing round. */
+    var cs = strip(), c = cs.getContext('2d');
+    var hc = function (col, a) { return mix(col, hz, a === undefined ? 0.3 : a); };
+    land(c, function (xx) { return 104 + Math.sin(xx * TAU * 2 + 0.3) * 3 + Math.sin(xx * TAU * 5) * 1.2; }, [hc('#6ab878', 0.45), hc('#8ad08a', 0.45), hc('#c8f0b0', 0.4)], 6);
+    var TH = function (xx) { var u = (xx - 400) / 60; return 104 - 16 * Math.exp(-u * u * 1.4); };
+    for (x = 320; x < 486; x += HP) { y = TH(x); R(c, x, y, HP, H - y, hc('#7ac484', 0.38)); R(c, x, y, HP, HP, hc('#d0f4b8', 0.32)); }
+    drawTrain(c, 372, 94, function (col) { return hc(col, 0.3); }, false);
+    castle(c, 190, 110, {
+      wall: [hc('#e098b4', 0.18), hc('#f8bcd0', 0.18), hc('#ffe2ec', 0.12)], roof: [hc('#34509c', 0.2), hc('#5274c4', 0.2), hc('#8cacec', 0.15)],
+      gold: [hc('#f0b830', 0.12), hc('#fff0a0', 0.1)], win: hc('#5a58a8', 0.2), glint: hc('#c8d0ff', 0.15), door: hc('#5a4a8a', 0.2), flag: hc('#ff5a8a', 0.12)
+    });
+    for (i = 0; i < 14; i++) { x = i < 7 ? 108 + i * 9 + rnd() * 4 : 220 + (i - 7) * 9 + rnd() * 4; if (Math.abs(x - 190) < 10) continue; canopy(c, x, 108 + rnd() * 2, 4.5 + rnd() * 2, 3.5, rnd, [hc('#4a9a5a', 0.3), hc('#6ab870', 0.3), hc('#b0e8a0', 0.25)]); }
+    R(c, 186, 110, 8, H, hc('#fff0f4', 0.2));
+    L.push({ c: cs, f: 0.05 });
+
+    var ms = strip(), m = ms.getContext('2d');
+    mainStreet(m, hz, false);
+    L.push({ c: ms, f: 0.13 });
+
+    // in front: flower beds in bloom along the bottom, and bunting in every colour across the top
+    var nr = strip(), n = nr.getContext('2d');
+    var nf = function (xx) { return 121 + Math.sin(xx * TAU * 4) * 1.5; };
+    land(n, nf, ['#4a9a4a', '#6abc58', '#a8e47a'], 6);
+    var FL = ['#ff6a9a', '#ffd040', '#ffffff', '#b07aff', '#ff9a50', '#7ad0ff'];
+    hedge(n, nf, ['#3a8a44', '#5aac50', '#8ad46a']);
+    for (i = 0; i < 150; i++) { x = rnd() * SW; y = nf(x) - 2.8 + rnd() * 4; var fc = FL[i % FL.length]; R(n, x, y, 1, 1, fc); R(n, x, y, HP, HP, mix(fc, '#ffffff', 0.6)); }
+    var BT = ['#ff6a8a', '#ffd040', '#5ac0f0', '#8ad860', '#c08aff'];
+    [[0, 128], [128, 256], [256, 384], [384, 512]].forEach(function (q, qi) { bunting(n, q[0], 3, q[1], 3, 10 + (qi % 2) * 2, BT, 3.2, '#8a7a9a'); });
+    L.push({ c: nr, f: 0.3 });
+    return L;
+  };
+
+  // a little steam train: an engine with a tall chimney, three coaches, puffs of steam; lit up at night
+  var drawTrain = function (g, x, y, tone, night) {
+    var WARM = '#ffd27a';
+    R(g, x - 52, y + 2, 66, 1.5, tone('#a89a8a')); R(g, x - 52, y + 2, 66, HP, tone('#e8dcc8'));
+    [['#ffd040', '#e8a020'], ['#5ac0c0', '#3a9a9a'], ['#ff8ab0', '#d86a90']].forEach(function (cc, i) {
+      var cx = x - 50 + i * 12;
+      R(g, cx, y - 5, 10.5, 5.5, tone(cc[0])); R(g, cx + 9, y - 5, 1.5, 5.5, tone(cc[1])); R(g, cx - 0.5, y - 6, 11.5, 1.2, tone('#7a5a8a'));
+      for (var wx = cx + 1.5; wx < cx + 9; wx += 2.5) { if (night) glow(g, wx + 0.75, y - 3.2, 2.5, WARM, 0.7); R(g, wx, y - 4, 1.5, 1.6, night ? '#fff0b0' : tone('#e8f6ff')); }
+      disc(g, cx + 2.5, y + 1.2, 1.1, tone('#3a2a3a')); disc(g, cx + 8, y + 1.2, 1.1, tone('#3a2a3a'));
+    });
+    R(g, x - 13, y - 9, 6, 9.5, tone('#3aa060')); R(g, x - 14, y - 10, 8, 1.4, tone('#2a4a3a')); R(g, x - 12, y - 7.5, 3, 2.5, night ? '#fff0b0' : tone('#e8f6ff'));
+    R(g, x - 7, y - 6, 12, 5, tone('#e84a4a')); R(g, x - 7, y - 6, 12, HP, tone('#ff8a7a')); R(g, x - 2, y - 6, 1, 5, tone('#ffd040')); R(g, x + 2, y - 6, 1, 5, tone('#ffd040'));
+    R(g, x + 5, y - 6, 2, 5, tone('#3a2a3a')); R(g, x + 1, y - 10, 2.2, 4, tone('#3a2a3a')); R(g, x + 0.5, y - 11, 3.2, 1.2, tone('#3a2a3a')); R(g, x - 4, y - 8, 2, 2, tone('#ffd040'));
+    [[-10, 2], [-3, 1.8], [3, 1.4]].forEach(function (w) { disc(g, x + w[0], y + 0.6, w[1], tone('#3a2a3a')); disc(g, x + w[0], y + 0.6, w[1] * 0.45, tone('#e84a4a')); });
+    if (night) { glow(g, x + 7.5, y - 3, 6, WARM, 0.8); R(g, x + 6.5, y - 4, 1.2, 1.2, '#fff6c8'); }
+    [[2, -14, 1.8], [-1, -17, 2.4], [-6, -19, 2.8], [-12, -20, 3]].forEach(function (p, i) { var sc = night ? mix('#c8c0e0', '#2a2050', 0.3) : tone('#ffffff'); disc(g, x + p[0] + 0.4, y + p[1] + 0.5, p[2], night ? mix(sc, '#2a2050', 0.3) : tone('#d8d4ec')); disc(g, x + p[0], y + p[1], p[2] * 0.92, sc); });
+  };
+
+  GEN.night = function (rnd, th) {
+    var hz = th.sky[2], L = [], i, x, y;
+    /* A clear night: stars, and a big moon away to the left. The sky over
+       and round the castle is left open — the game sets off fireworks there. */
+    var far = strip(), g = far.getContext('2d');
+    stars(g, 150, 2, 92, rnd, ['#ffffff', '#ffe8ff', '#d0e0ff', '#fff4c8']);
+    var MX = 52, MY = 30;
+    glow(g, MX, MY, 40, '#d8c8ff', 0.6);
+    disc(g, MX + 1.2, MY + 1.2, 14, '#c8b8e4'); disc(g, MX, MY, 14, '#fff6e0'); disc(g, MX - 4, MY - 4, 6.5, '#fffcf2');
+    [[MX + 4, MY + 3, 3], [MX - 3, MY + 6, 2], [MX + 6, MY - 5, 1.8], [MX - 7, MY, 1.5]].forEach(function (q) { crater(g, q[0], q[1], q[2], q[2] * 0.9, ['#ece0c8', '#fff6e0', '#fffcf2']); });
+    for (i = 0; i < 3; i++) streak(g, 360 + i * 50 + rnd() * 20, 76 + rnd() * 10, 40 + rnd() * 30, 1.5 + rnd(), [mix('#3a2a6a', hz, 0.3), mix('#4a3a7a', hz, 0.35), mix('#8a78c0', hz, 0.3)]);
+    L.push({ c: far, f: 0.02 });
+
+    /* The castle lit up for the night: soft spotlights reaching up from its
+       feet, every window glowing, the gold tips catching the light, and the
+       little train going round its hill with its windows lit. */
+    var cs = strip(), c = cs.getContext('2d');
+    var hc = function (col, a) { return mix(col, hz, a === undefined ? 0.3 : a); };
+    land(c, function (xx) { return 104 + Math.sin(xx * TAU * 2 + 0.3) * 3 + Math.sin(xx * TAU * 5) * 1.2; }, [hc('#1c1640', 0.25), hc('#261e50', 0.25), hc('#4a3c7a', 0.25)], 6);
+    var TH = function (xx) { var u = (xx - 400) / 60; return 104 - 16 * Math.exp(-u * u * 1.4); };
+    for (x = 320; x < 486; x += HP) { y = TH(x); R(c, x, y, HP, H - y, hc('#221a4a', 0.22)); R(c, x, y, HP, HP, hc('#5a4a8a', 0.22)); }
+    drawTrain(c, 372, 94, function (col) { return mix(mix(col, '#2a2050', 0.6), hz, 0.12); }, true);
+    [[150, '#ffb0e0', -0.32], [230, '#a8c8ff', 0.3], [178, '#fff0c0', -0.08], [204, '#ffc8f0', 0.12]].forEach(function (q) { beam(c, q[0], 110, q[0] + q[2] * 90, 14, 5, 24, q[1], 0.45); });
+    castle(c, 190, 110, {
+      wall: [hc('#5e4684', 0.12), hc('#8a6aac', 0.12), hc('#b898d0', 0.1)], roof: [hc('#1a2058', 0.12), hc('#2a3878', 0.12), hc('#4a5ca8', 0.1)],
+      gold: ['#e0b040', '#fff0a0'], win: '#ffd878', door: '#ffcf70', glow: '#ffc860', flag: hc('#ff6a9a', 0.1)
+    });
+    glow(c, 190, 104, 70, '#ffb0e8', 0.35);
+    for (i = 0; i < 14; i++) { x = i < 7 ? 108 + i * 9 + rnd() * 4 : 220 + (i - 7) * 9 + rnd() * 4; if (Math.abs(x - 190) < 10) continue; canopy(c, x, 108 + rnd() * 2, 4.5 + rnd() * 2, 3.5, rnd, [hc('#141a38', 0.1), hc('#1e2a50', 0.1), hc('#3a5080', 0.1)]); }
+    R(c, 186, 110, 8, H, hc('#6a5a8a', 0.2));
+    for (i = 0; i < 9; i++) { x = 120 + i * 18; glow(c, x, 112, 4, '#ffd27a', 0.8); R(c, x - HP / 2, 111.5, 1, 1, '#fff6c8'); }
+    L.push({ c: cs, f: 0.05 });
+
+    var ms = strip(), m = ms.getContext('2d');
+    mainStreet(m, hz, true);
+    L.push({ c: ms, f: 0.13 });
+
+    // in front, kept low: dark hedges and flower beds, lanterns on posts, a string of paper lanterns
+    var nr = strip(), n = nr.getContext('2d');
+    var nf = function (xx) { return 121 + Math.sin(xx * TAU * 4) * 1.5; };
+    land(n, nf, ['#120e2c', '#1c1640', '#3a2e66'], 6);
+    hedge(n, nf, ['#100c28', '#1a1640', '#2e2a5c']);
+    for (i = 0; i < 70; i++) { x = rnd() * SW; y = nf(x) - 2.5 + rnd() * 4; R(n, x, y, 1, 1, ['#c88ae0', '#e8d0ff', '#8a9ae8'][i % 3]); }
+    var LC = ['#ff8a6a', '#ffd060', '#ff6aa0', '#ffb050'];
+    [64, 192, 320, 448].forEach(function (px, pi) {
+      R(n, px - 0.75, 100, 1.5, 22, '#2a2448'); R(n, px - 0.75, 100, HP, 22, '#4a4278');
+      glow(n, px, 97, 16, '#ffd27a', 0.9);
+      R(n, px - 2.5, 93, 5, 1.2, '#2a2448'); R(n, px - 2, 94, 4, 5, '#ffe090'); R(n, px - 1.5, 94.5, 1.5, 2, '#fffbe0'); R(n, px - 2.5, 99, 5, 1, '#2a2448');
+      var x1 = px + 128;
+      line(n, px + 1, 101, x1 - 1, 101, HP, '#3a3460', 6);
+      for (var t = 1; t < 8; t++) { var lx = px + 1 + (x1 - px - 2) * t / 8, ly = 101 + 6 * 4 * (t / 8) * (1 - t / 8), lc = LC[(t + pi) % 4]; glow(n, lx, ly + 2.5, 5, lc, 0.7); oval(n, lx, ly + 2.5, 1.8, 2, lc); R(n, lx - 0.5, ly + 1, 1, 0.8, '#3a3460'); R(n, lx - 0.8, ly + 1.8, HP, HP, '#fff4d0'); }
+    });
+    L.push({ c: nr, f: 0.3 });
+    return L;
+  };
+
   BB.backdrop = function (name, th) {
     var rnd = BB.rng(name.length * 977 + 13);
     // the sky: a graded wash from the theme's top colour through its middle

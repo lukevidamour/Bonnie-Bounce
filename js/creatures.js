@@ -909,4 +909,785 @@
       return Math.abs(y - (10.6 + Math.sin(x * 0.6) * 1.1 * t)) < 5.6 * (1 - t) + 0.5;
     }, function (x, y) { var w = Math.cos(x * 0.6), t = orb(6, 7, 10, 7, RED)(x, y); return t === 'z' || t === 'y' ? t : w > 0.5 ? 'y' : w < -0.5 ? 'v' : 'x'; }, 'u')
   ], [[6, 8, ['..D..', 'DDDCB', '.DCB.', '.D.B.']]]);
+
+  /* ==========================================================================
+     THE BIG TRIP — the third land, levels 21–30. Rascal the Fox has run
+     off with Brocco, and the family chase him all the way to Paris: the
+     ferry, the fields, a market village, a bakery, the cheese caves, the
+     rooftops, the Metro, the tower, and the park at the end of it all.
+     Its locals, its springs, the things Bonnie rides, and its scenery.
+     ========================================================================== */
+  /* Five more ramps, deep to shine. Every printable ASCII character is a
+     colour by now, so these are accented letters (fitting, for France).
+     They're real UTF-8 characters in string literals, so every page that
+     loads this file must keep its <meta charset="utf-8">. Textures mostly
+     use the ramps' names rather than the letters. */
+  var ramp = function (chars, cols) { for (var i = 0; i < cols.length; i++) PAL[chars.charAt(i)] = cols[i]; return chars; };
+  var CRUST = ramp('àáâão', ['#7a3a10', '#b8661e', '#e09a3c', '#f8c870']);           // baked bread (shine is 'o')
+  var METRO = ramp('èéêëì', ['#0e3222', '#1a5236', '#2a744a', '#50a06c', '#b0e2c0']); // Metro green paint and ironwork
+  var TERRA = ramp('òóôõö', ['#6a2414', '#a4432a', '#d06a40', '#ee9a6c', '#ffd8bc']); // terracotta
+  var STRAW = ramp('ùúûüF', ['#7a5a18', '#b48c30', '#dcb850', '#f2da84']);           // hay and wicker (shine is 'F')
+  var MINT = ramp('ÀÁÂÃÄ', ['#2a7a6a', '#52b29c', '#88d6c2', '#c2f0e2', '#f0fffa']); // a fairground pastel
+  var DOUGH = 'VZXYw', CREAM = 'ZZYYw', FOX = 'klmno', NAVY = ';;_|?', SOCK = 'SSTTU';
+  // a dimple: shadowed inside on its upper left, lit on its lower right,
+  // with a bright lip below (t: inside dark, inside light, lip)
+  var dent = function (cx, cy, rx, ry, t) {
+    var inside = ell(cx, cy, rx, ry), lip = ell(cx + 0.5, cy + 0.6, rx + 0.5, ry + 0.5);
+    return function (x, y) {
+      var X = x + 0.5, Y = y + 0.5;
+      if (inside(X, Y)) return (X - cx) / rx + (Y - cy) / ry < 0.25 ? t.charAt(0) : t.charAt(1);
+      return lip(X, Y) && Y > cy ? t.charAt(2) : null;
+    };
+  };
+  var firstOf = function (fs, x, y) { for (var i = 0; i < fs.length; i++) { var t = fs[i](x, y); if (t) return t; } return null; };
+  // a stamp that follows a part turned by a about (px, py)
+  var turnedAt = function (x, y, px, py, a) {
+    var c = Math.cos(a), s = Math.sin(a);
+    return [Math.round(px + (x - px) * c - (y - py) * s), Math.round(py + (x - px) * s + (y - py) * c)];
+  };
+
+  /* Pigeon: a plump Paris pigeon flapping along, soft dove-grey, a green
+     and purple sheen round his neck, a round orange eye and pink toes.
+     Wings up, wings down. */
+  var PIG_EYE = ['.##.', '#nw#', '#En#', '#Em#', '.##.'];
+  /* A pigeon's wing: a fan of long flight feathers from the shoulder
+     (sx, sy) out to their tips, each its own feather with a dark end, and
+     over their roots the pale coverts crossed by the pigeon's two dark
+     bars. `far` is the wing on the other side, in shadow. */
+  var pigWing = function (sx, sy, tips, far) {
+    var mid = tips[tips.length >> 1], ax = mid[0] - sx, ay = mid[1] - sy, L = Math.sqrt(ax * ax + ay * ay), ux = ax / L, uy = ay / L;
+    var lit = orb(sx + ux * 3 - 2, sy + uy * 3 - 2, L, L, far ? 'NNOOP' : 'PQQRR'), dk = orb(sx + ux * 3 - 2, sy + uy * 3 - 2, L, L, far ? 'NNNNO' : 'NNOOP');
+    var parts = tips.map(function (tp) {
+      var bx = sx + (tp[0] - sx) * 0.25, by = sy + (tp[1] - sy) * 0.25, fx = tp[0] - bx, fy = tp[1] - by, fl = fx * fx + fy * fy;
+      return P('Q', cap(bx, by, tp[0], tp[1], 1.3), function (x, y) {
+        return ((x + 0.5 - bx) * fx + (y + 0.5 - by) * fy) / fl > 0.68 ? dk(x, y) : lit(x, y);
+      }, 'O');
+    });
+    var cx = sx + ux * 3.2, cy = sy + uy * 3.2;
+    parts.push(P('Q', turned(ell(cx, cy, 4.8, 3.3), cx, cy, Math.atan2(uy, ux)), function (x, y) {
+      var al = (x + 0.5 - sx) * ux + (y + 0.5 - sy) * uy;
+      return !far && (Math.abs(al - 3.6) < 0.6 || Math.abs(al - 5.8) < 0.6) ? dk(x, y) : lit(x, y);
+    }, 'O'));
+    return parts;
+  };
+  // the neck's sheen: green over the nape, a lilac-purple at the throat
+  var sheen = function (cx, cy, rx, ry) {
+    var gr = orb(cx, cy, rx, ry, 'èéêëì'), pu = orb(cx, cy, rx, ry, 'hij`e');
+    return function (x, y) { return (x + 0.5 - cx) * 0.8 - (y + 0.5 - cy) > 0.8 ? gr(x, y) : pu(x, y); };
+  };
+  E.pigeon = [0, 1].map(function (f) {
+    return build(26, 22, (f ? [] : pigWing(17.6, 10, [[22.2, 2.6], [24.4, 4.6], [25.4, 7.4]], true)).concat([
+      P('O', or(tri(18.5, 12.8, 25.8, 9.6, 25.8, 16.2), ell(25, 12.9, 1, 3.3)), function (x, y) { var t = orb(20, 11, 7, 5, IRON)(x, y); return x > 22.5 ? step(IRON, t, -2) : t; }, 'N'),
+      O(14.4, 13, 8.6, 6.4, 'NNOPQ'),
+      P('r', or(ell(12.4, 19.8, 1.7, 1.2), ell(15.8, 20.2, 1.7, 1.2)), orb(13, 19, 4, 2, PINK), 'p'),
+      P('j', ell(9.4, 10.6, 4, 4.6), sheen(9.4, 10.6, 4, 4.6)),
+      O(6.6, 7.4, 4.3, 4.1, 'NNOPQ'),
+      P('O', tri(0.3, 9, 3.4, 7.1, 3.4, 9.9), orb(2, 8.6, 3, 2, IRON), 'N'),
+      P('W', ell(3.4, 7.4, 1.1, 0.9))
+    ]).concat(f ? pigWing(14.6, 11.4, [[13.4, 20.6], [16.4, 21], [19.3, 20.4], [21.8, 18.6]]) : pigWing(14.4, 10.8, [[14.8, 1.4], [17.8, 0.8], [20.8, 1.6], [23.4, 3.8]])), [[4, 5, PIG_EYE]]);
+  });
+
+  /* Croissant: a little walking croissant, all crisp curled layers, big
+     eyes on its middle, toddling on two stubby legs */
+  E.croissant = [0, 1].map(function (f) {
+    var k = f ? 1.2 : -1.2;
+    // the layers, the tips first, so each one curls over the one outside it
+    var layers = [[3.4, 12.2, 3, 3.3, -0.8], [22.6, 12.2, 3, 3.3, 0.8], [7.2, 9.2, 4.4, 4.9, -0.45], [18.8, 9.2, 4.4, 4.9, 0.45], [13, 7.4, 6.2, 6.6, 0]];
+    var parts = [
+      P('á', or(cap(10.4, 12.6, 9.6 + k, 16.2, 1.6), cap(15.6, 12.6, 16.4 - k, 16.2, 1.6)), orb(13, 13, 6, 4, 'ààááâ'), 'à'),
+      P('á', or(ell(8.8 + k, 16.8, 2.5, 1.2), ell(15.4 - k, 16.8, 2.5, 1.2)), orb(12, 16, 7, 2, 'ààááâ'), 'à')
+    ];
+    layers.forEach(function (s) {
+      parts.push(P('â', turned(ell(s[0], s[1], s[2], s[3]), s[0], s[1], s[4]), orb(s[0] - 0.4, s[1] - 0.8, s[2] + 0.8, s[3] + 0.6, CRUST), 'à'));
+    });
+    return build(26, 18, parts, [[8, 4, EYE], [13, 4, EYE], [10, 10, ['#..#', '.##.']], [7, 9, ['3']], [17, 9, ['3']]]);
+  });
+
+  /* Cheese: a whole round cheese bowling along and grumpy about it. The
+     holes and the rind turn as it rolls; the face stays the right way up */
+  E.cheese = [0, 1].map(function (f) {
+    var th = f * Math.PI / 5, cx = 12, cy = 12, CHZ = 'BCDDF', RIND = 'ABBCD', lit = orb(cx, cy, 11.6, 11.6, CHZ), rl = orb(cx, cy, 11.6, 11.6, RIND);
+    var holes = [[0.4, 7.4, 1.9, 1.7], [1.6, 7.8, 1.4, 1.2], [2.6, 7, 2.1, 1.9], [3.8, 7.8, 1.3, 1.2], [4.6, 7.2, 1.9, 1.7], [5.6, 8, 1.2, 1.1]].map(function (h) {
+      var a = h[0] + th; return dent(cx + Math.cos(a) * h[1], cy + Math.sin(a) * h[1], h[2], h[3], 'BCF');
+    });
+    return build(24, 24, [
+      P('D', ell(cx, cy, 11.6, 11.6), function (x, y) {
+        var dx = x + 0.5 - cx, dy = y + 0.5 - cy, r = Math.sqrt(dx * dx + dy * dy);
+        // the rind: a band round the edge, in eight panels that turn with it
+        if (r > 9.6) { var t = rl(x, y); return Math.floor((Math.atan2(dy, dx) - th) / (Math.PI / 4) + 16) % 2 ? t : step(RIND, t, -1); }
+        return firstOf(holes, x, y) || lit(x, y);
+      }, 'A')
+    ], [[5, 7, ['##..']], [15, 7, ['..##']], [7, 8, ['#']], [16, 8, ['#']], [5, 9, EYE], [15, 9, EYE], [10, 15, ['.##.', '#..#']], [4, 14, ['3']], [19, 14, ['3']]]);
+  });
+
+  /* Toy soldier: a painted wooden parade soldier, marching stiff-legged:
+     a tall black hat with a red pompom, red coat, white cross-belts, gold
+     buttons and epaulettes, painted rosy cheeks and a smile. Friendly. */
+  var SKIN = 'VZXXY';
+  E.soldier = [0, 1].map(function (f) {
+    // stiff wooden legs: a long stride, then the near leg kicked up high
+    var s = f ? 1 : -1, nf = f ? [5.4, 28.4] : [6, 30], ff = f ? [10.6, 30] : [13.6, 30];
+    var leg = function (hx, ft) { return P('_', cap(hx, 25, ft[0], ft[1], 1.9), orb(hx - 1, 26, 3, 6, NAVY), ';'); };
+    var boot = function (ft) { return P('g', ell(ft[0] - 0.6, ft[1] + 0.9, 2.5, 1.2), orb(ft[0] - 1, ft[1], 3, 2, INK), 'f'); };
+    var coat = rrect(5.2, 17.4, 14.8, 25.6, 2.4);
+    return build(20, 32, [
+      // the far arm swings behind him, against the near one
+      P('v', cap(12.6, 19, 12.6 + s * 2.2, 23.8, 1.7), orb(12, 19, 3, 5, RED), 'u'), O(12.6 + s * 2.4, 24.2, 1.6, 1.5, SNOW, '2'),
+      leg(11.4, ff), boot(ff),
+      leg(8.4, nf), boot(nf),
+      P('x', coat, function (x, y) {
+        var X = x + 0.5, Y = y + 0.5;
+        // cross-belts, a gold buckle where they meet, a dark belt round his middle
+        if (Y > 23.6) return orb(9, 23, 6, 3, INK)(x, y);
+        if (Math.abs((X - 10) - (Y - 20.8) * 0.95) < 0.95 || Math.abs((X - 10) + (Y - 20.8) * 0.95) < 0.95) return Math.abs(X - 10) < 1.3 && Math.abs(Y - 20.8) < 1.3 ? 'C' : orb(8, 18, 8, 7, SNOW)(x, y);
+        return orb(8.5, 19, 8, 8, RED)(x, y);
+      }, 'u'),
+      P('C', ell(7.6, 18, 2.6, 1.3), orb(7, 17.6, 3, 2, GOLD), 'A'),
+      P('x', cap(7.6, 19, 7.6 - s * 2.2, 23.8, 1.7), orb(7, 19, 3, 5, RED), 'u'), O(7.6 - s * 2.4, 24.2, 1.6, 1.5, SNOW, '2'),
+      O(10, 14, 5.4, 4.6, SKIN, 'V'),
+      P('g', rrect(5.4, 1.6, 14.6, 10.4, 2.6), function (x, y) { return y > 8.2 ? orb(8, 9, 6, 2, GOLD)(x, y) : orb(8, 4, 8, 8, INK)(x, y); }, 'f'),
+      O(7, 2.2, 1.9, 1.8, RED, 'u')
+    ], [[8, 4, ['DC', 'CB']], [7, 12, ['Ew', 'EE']], [11, 12, ['Ew', 'EE']], [6, 14, ['3']], [13, 14, ['3']], [8, 15, ['#..#', '.##.']]]);
+  });
+
+  /* Suitcase: a hopping caramel suitcase covered in travel stickers, with
+     a handle, brass corners and two straps. Shut, then mid-hop with its
+     lid flung open like a mouth (red lining, a stray sock for a tongue). */
+  var CASE = 'TUVVX';
+  E.suitcase = [0, 1].map(function (f) {
+    var a = f ? 0.3 : 0, hx = 24.4, hy = 12.2;
+    var lid = function (g) { return a ? turned(g, hx, hy, a) : g; };
+    var leather = orb(8, 9, 17, 13, CASE);
+    var straps = function (x) { return (x >= 14 && x < 15.6) || (x >= 20 && x < 21.6); };
+    var corner = function (x, y, c) { return c.some(function (p) { return Math.abs(x + 0.5 - p[0]) + Math.abs(y + 0.5 - p[1]) < 2.6; }); };
+    var parts = [];
+    if (a) {
+      // inside: the lining, darker towards the back
+      var lip = turnedAt(1.4, hy, hx, hy, a);
+      parts.push(P('v', tri(hx, hy + 0.4, 1.4, hy + 0.4, lip[0], lip[1]), orb(4, hy - 2, 16, 6, RED), 'u'));
+    }
+    parts.push(
+      P('U', rrect(1.4, hy - 0.4, 24.6, 21.6, 2.4), function (x, y) {
+        if (corner(x, y, [[1.4, 21.6], [24.6, 21.6]])) return orb(4, 18, 6, 6, GOLD)(x, y);
+        if (straps(x)) return y === 13 ? orb(15, 13, 2, 2, GOLD)(x, y) : step(CASE, leather(x, y), -2);
+        return leather(x, y);
+      }, 'S'),
+      // stickers: a round one with a heart, a blue label, a yellow star
+      P('w', ell(6.2, 16.8, 2.8, 2.8), function (x, y) { return ell(6.2, 16.8, 1.7, 1.7)(x + 0.5, y + 0.5) ? orb(6, 16.6, 2, 2, PINK)(x, y) : orb(5, 15.6, 4, 4, SNOW)(x, y); }, 'P'),
+      P('|', rrect(9.2, 14, 12.8, 19.8, 0.6), function (x, y) { return y === 16 || y === 18 ? 'W' : orb(10, 15, 5, 6, COAT)(x, y); }, '_'),
+      P('C', starShape(18, 17.4, 2.7, 1.2, -Math.PI / 2), starTex(18, 17.4, -Math.PI / 2, GOLD), 'A')
+    );
+    // a sock hanging out over the front, for a tongue
+    if (a) parts.push(P('r', limb([[4.6, 12.4], [3, 14.2], [3.4, 16.4]], 1.3), function (x, y) { return y === 14 ? 'w' : orb(3, 13, 3, 3, PINK)(x, y); }, 'p'));
+    parts.push(
+      P('U', lid(rrect(1.4, 6, 24.6, hy, 2.4)), lid(function (x, y) {
+        if (corner(x, y, [[1.4, 6], [24.6, 6]])) return orb(4, 6, 6, 6, GOLD)(x, y);
+        if (straps(x)) return Math.abs(y - 10.5) < 1 ? orb(15, 10, 2, 2, GOLD)(x, y) : step(CASE, leather(x, y), -2);
+        return y > hy - 1 ? 'T' : leather(x, y);
+      }), 'S'),
+      P('g', lid(but(rrect(9.4, 2.2, 16.6, 6.6, 2.2), rrect(11.2, 4, 14.8, 7, 0.8))), lid(orb(12, 2, 6, 4, INK)), 'f')
+    );
+    var e1 = a ? turnedAt(3, 7, hx, hy, a) : [3, 7], e2 = a ? turnedAt(8, 7, hx, hy, a) : [8, 7];
+    return build(26, 22, parts, [[e1[0], e1[1], EYE], [e2[0], e2[1], EYE]].concat(a ? [] : [[4, 13, ['.#....#', '..####.']]]));
+  });
+
+  // Baguette: a whole one, thrown end over end; long pale slashes where
+  // the baker scored it
+  E.baguette = build(28, 8, [
+    P('â', or(ell(14, 4, 13.6, 3.3), rrect(4, 0.8, 24, 7.2, 3.2)), function (x, y) {
+      var X = x + 0.5, Y = y + 0.5, t = orb(11, 2, 16, 5, CRUST)(x, y);
+      for (var k = 0; k < 4; k++) {
+        var xc = 6.4 + k * 5, d = (Y - 3.6) + (X - xc) * 0.36;
+        if (Math.abs(X - xc) > 2.8) continue;
+        if (Math.abs(d) < 0.7) return X < xc ? 'o' : 'ã';
+        if (d >= 0.7 && d < 1.5) return 'á';
+      }
+      return t;
+    }, 'à')
+  ], [[2, 5, ['o']], [25, 3, ['o']]]);
+
+  /* Rascal the Fox, who ran off with Brocco: a cheeky, friendly orange
+     fox in a navy-and-white striped top and a red beret, with a great
+     bushy tail tipped white. A mischief-maker, never scary: a grin and a
+     cocked brow. He's built as a puppet (a head, a body, striped sleeves
+     and legs on joints) and each frame is a pose: standing with a paw on
+     his hip, two running strides, a jump, a throw (a baguette cocked
+     behind his ear, the other paw pointing), and dizzy (bumped: eyes
+     spinning, wobbly, his beret knocked sideways). */
+  // dizzy eyes: a spiral of a turn and a half, drawn straight on the fur
+  var SWIRL = ['..###.', '.#...#', '#..#.#', '#.#..#', '#..##.', '.#....'];
+  // a limb along pts, in stripes round it (`every` long) — the top's sleeves
+  var stripedLimb = function (pts, r, every, a, b) {
+    var segs = [], acc = [0];
+    for (var i = 0; i < pts.length - 1; i++) {
+      var dx = pts[i + 1][0] - pts[i][0], dy = pts[i + 1][1] - pts[i][1];
+      segs.push([pts[i][0], pts[i][1], dx, dy, dx * dx + dy * dy]); acc.push(acc[i] + Math.sqrt(dx * dx + dy * dy));
+    }
+    var along = function (x, y) {
+      var best = 1e9, at = 0;
+      segs.forEach(function (s, i) {
+        var t = s[4] ? Math.max(0, Math.min(1, ((x - s[0]) * s[2] + (y - s[1]) * s[3]) / s[4])) : 0;
+        var px = s[0] + s[2] * t - x, py = s[1] + s[3] * t - y, d = px * px + py * py;
+        if (d < best) { best = d; at = acc[i] + t * Math.sqrt(s[4]); }
+      });
+      return at;
+    };
+    var la = orb(pts[0][0] - 2, pts[0][1] - 2, 8, 8, a), lb = orb(pts[0][0] - 2, pts[0][1] - 2, 8, 8, b);
+    return { f: limb(pts, r), tex: function (x, y) { return Math.floor(along(x + 0.5, y + 0.5) / every) % 2 ? la(x, y) : lb(x, y); } };
+  };
+  var FOX_POSE = {
+    idle: { H: [18, 15.5], B: [24, 33],
+      legs: [[[27.5, 39.6], [28, 45], [28.8, 49.6]], [[21, 39.6], [20, 45], [18.6, 49.6]]],
+      arms: [[[28.4, 27.6], [33.4, 32], [29.8, 36.6]], [[20.6, 27.6], [12.6, 32.4], [17.6, 37.4]]],
+      tail: [[30.6, 39.6], [44, 42], [49.6, 30], [42.6, 17.6]], eyes: 'open', mouth: 'grin', beret: [0, 0, 0.22] },
+    run0: { H: [16.4, 16.4], B: [23.4, 33.2],
+      legs: [[[27, 39.6], [31.6, 44.4], [36, 46.6]], [[21, 39.6], [16, 43.6], [12.8, 49.6]]],
+      arms: [[[28, 27.8], [24, 32.4], [21, 35]], [[20.6, 28], [24.6, 33.2], [29, 34.6]]],
+      tail: [[30, 39], [39.4, 41.6], [46.6, 37], [47, 26.4]], eyes: 'open', mouth: 'grin', beret: [0, 0, 0.34] },
+    run1: { H: [16.4, 15.6], B: [23.4, 32.6],
+      legs: [[[27, 39.2], [22.4, 42.6], [24.6, 47.2]], [[21, 39.2], [21.4, 44.6], [20.4, 49.6]]],
+      arms: [[[28, 27.4], [31.6, 31.6], [34.6, 33.4]], [[20.6, 27.6], [15, 30.6], [11.4, 28]]],
+      tail: [[30, 38.6], [39.4, 40], [46.6, 34], [46, 24]], eyes: 'open', mouth: 'grin', beret: [0, 0, 0.3] },
+    jump: { H: [18, 14.4], B: [24, 31.6],
+      legs: [[[27, 38.6], [31.4, 41.6], [28.4, 46.4]], [[21, 38.6], [16, 41], [17.6, 46.2]]],
+      arms: [[[28.4, 26.4], [33.6, 21.6], [35.4, 15.6]], [[20.6, 26.8], [14.4, 27.6], [8.6, 25.2]]],
+      tail: [[30.6, 38], [42, 39.6], [47.4, 28], [42, 16.6]], eyes: 'open', mouth: 'open', beret: [0, -0.6, 0.12] },
+    throw: { H: [17.4, 15.6], B: [24, 33],
+      legs: [[[27.5, 39.6], [29.6, 45], [31.6, 49.6]], [[21, 39.6], [18, 45], [15.6, 49.6]]],
+      arms: [[[28.4, 27.4], [34, 24.4], [32.4, 18]], [[20.6, 27.8], [14.6, 29.6], [8.8, 28.4]]],
+      tail: [[30.6, 39.6], [43.4, 42.6], [49.4, 32], [44.6, 19]], eyes: 'open', mouth: 'grin', beret: [0, 0, 0.22], bread: true },
+    dizzy: { H: [20, 16.8], B: [24.6, 33.4], tilt: -0.16,
+      legs: [[[27.4, 39.6], [25.2, 45], [30.4, 49.6]], [[21.4, 39.6], [23.6, 45], [18.6, 49.6]]],
+      arms: [[[28.6, 28], [32.4, 33], [34, 38.2]], [[20.6, 28.2], [16.6, 33], [14.6, 38.2]]],
+      tail: [[31, 40], [42.6, 44], [48.6, 38.4], [47, 29.6]], eyes: 'swirl', mouth: 'tongue', beret: [4.4, 2.2, 0.95] }
+  };
+  var foxPose = function (o) {
+    var hx = o.H[0], hy = o.H[1], bx = o.B[0], by = o.B[1], tilt = o.tilt || 0;
+    var tl = function (f) { return tilt ? turned(f, hx, hy + 6, tilt) : f; };
+    var HP = function (c, f, tex, line) { return P(c, tl(f), tex && tl(tex), line); };
+    var at = function (x, y) { return tilt ? turnedAt(x, y, hx, hy + 6, tilt) : [Math.round(x), Math.round(y)]; };
+    var parts = [];
+    // the tail: a fat brush along a curve, white at the tip
+    var tp = o.tail, smp = [];
+    for (var i = 0; i <= 24; i++) {
+      var t = i / 24, u = 1 - t, X = u * u * u * tp[0][0] + 3 * u * u * t * tp[1][0] + 3 * u * t * t * tp[2][0] + t * t * t * tp[3][0];
+      var Y = u * u * u * tp[0][1] + 3 * u * u * t * tp[1][1] + 3 * u * t * t * tp[2][1] + t * t * t * tp[3][1];
+      smp.push([X, Y, 2.4 + 4.4 * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.1)), 0.8) + 1.6 * t, t]);
+    }
+    var near = function (x, y) {
+      var best = 1e9, k = null;
+      smp.forEach(function (s) { var dx = x - s[0], dy = y - s[1], d = Math.sqrt(dx * dx + dy * dy) - s[2]; if (d < best) { best = d; k = s; } });
+      return k;
+    };
+    var tlit = orb(tp[2][0] - 4, tp[2][1] - 4, 13, 13, FOX), tw = orb(tp[3][0] - 2, tp[3][1] - 2, 7, 7, CREAM);
+    parts.push(P('m', function (x, y) { return smp.some(function (s) { var dx = x - s[0], dy = y - s[1]; return dx * dx + dy * dy <= s[2] * s[2]; }); }, function (x, y) {
+      var k = near(x + 0.5, y + 0.5), a = Math.atan2(y + 0.5 - k[1], x + 0.5 - k[0]);
+      if (k[3] > 0.87 + Math.sin(a * 3) * 0.04) return tw(x, y);
+      // a few darker strands combed along it
+      return Math.abs(Math.sin(k[3] * 26 + a * 2)) > 0.94 ? step(FOX, tlit(x, y), -1) : tlit(x, y);
+    }, 'k'));
+    // legs: orange above, dark stockings from the knee, a dark paw of a foot
+    var leg = function (L, far) {
+      var dk = far ? 'SSSTT' : SOCK, fur = far ? 'kklmn' : FOX;
+      return [
+        P('T', or(cap(L[1][0], L[1][1], L[2][0], L[2][1], 2), ell(L[2][0] - 1.6, L[2][1] + 0.7, 3.2, 1.6)), orb(L[1][0] - 2, L[1][1], 5, 7, dk), 'S'),
+        P('m', cap(L[0][0], L[0][1], L[1][0], L[1][1], 2.5), orb(L[0][0] - 2, L[0][1], 5, 7, fur), 'k')
+      ];
+    };
+    var arm = function (A, far) {
+      var sl = stripedLimb([A[0], A[1], [A[1][0] + (A[2][0] - A[1][0]) * 0.72, A[1][1] + (A[2][1] - A[1][1]) * 0.72]], 1.9, 2.2, far ? ';;;__' : NAVY, far ? '1122W' : SNOW);
+      return [P('_', sl.f, sl.tex, ';'), P('T', ell(A[2][0], A[2][1], 2.1, 2), orb(A[2][0] - 1, A[2][1] - 1, 3, 3, far ? 'SSSTT' : SOCK), 'S')];
+    };
+    if (o.bread) {
+      var pw = o.arms[0][2];
+      parts.push(P('â', cap(pw[0] - 3, pw[1] - 10, pw[0] + 3.4, pw[1] + 7.4, 2.5), function (x, y) {
+        var d = (y + 0.5 - pw[1]) - (x + 0.5 - pw[0]) * 2.7, t = orb(pw[0] - 5, pw[1] - 9, 12, 12, CRUST)(x, y);
+        return (Math.abs(Math.abs(d + 1) - 6) < 0.9 || Math.abs(d + 1) < 0.8) && x + 0.5 < pw[0] - (y + 0.5 - pw[1]) * 0.37 + 0.4 ? 'o' : t;
+      }, 'à'));
+    }
+    parts = parts.concat(leg(o.legs[0], true), arm(o.arms[0], true), leg(o.legs[1]));
+    // the striped top, a plain navy hem, the white of his chest at the neck
+    parts.push(P('W', both(ell(bx, by, 8.4, 8.8), function (x, y) { return y < by + 8.4; }), function (x, y) {
+      var band = Math.floor((y + 0.5 - (by - 8.8)) / 2.4) % 2;
+      return y + 0.5 > by + 6.6 || band ? orb(bx - 3, by - 4, 11, 11, NAVY)(x, y) : orb(bx - 3, by - 4, 11, 11, SNOW)(x, y);
+    }, '2'));
+    parts.push(P('Y', ell(bx - 5.4, by - 7.6, 4.4, 3), orb(bx - 6, by - 9, 5, 4, CREAM), 'Z'));
+    // the head: ears, a round face, white cheeks and jaw, a long snout
+    var earT = function (pts, inner) {
+      return [HP('m', tri.apply(null, pts), function (x, y) { return y + 0.5 < pts[3] + 3.4 ? orb(pts[2], pts[3], 4, 4, SOCK)(x, y) : orb(hx, hy - 8, 9, 8, FOX)(x, y); }, 'k'),
+        HP('Y', tri.apply(null, inner), orb(inner[2], inner[3] + 4, 4, 6, CREAM))];
+    };
+    parts = parts.concat(earT([hx + 1.6, hy - 6.6, hx + 8.8, hy - 15.6, hx + 9.8, hy - 3.6], [hx + 3.6, hy - 6.4, hx + 8.2, hy - 12.2, hx + 8.4, hy - 5.2]));
+    parts.push(
+      HP('m', ell(hx, hy, 9.6, 8.6), function (x, y) {
+        return y + 0.5 > hy + 2.4 - (x + 0.5 - hx) * 0.18 ? orb(hx - 2, hy, 9.6, 8.6, CREAM)(x, y) : orb(hx - 1, hy, 9.6, 8.6, FOX)(x, y);
+      }, 'k'),
+      HP('Y', tri(hx + 4, hy + 2.6, hx + 11.6, hy + 6.6, hx + 4.6, hy + 8.4), orb(hx + 6, hy + 4, 6, 5, CREAM), 'Z'),
+      HP('m', ell(hx - 9.4, hy + 3.4, 6.6, 3.6), function (x, y) { return y + 0.5 > hy + 3.8 ? orb(hx - 11, hy + 3, 7, 4, CREAM)(x, y) : orb(hx - 11, hy + 1, 7, 4, FOX)(x, y); }, 'k'),
+      HP('g', ell(hx - 15.2, hy + 2.6, 1.9, 1.6), orb(hx - 16, hy + 2, 2, 2, INK), 'f')
+    );
+    // the beret, at an angle of its own; a little stalk on top
+    var bc = [hx + 3.2 + o.beret[0], hy - 8.6 + o.beret[1]], ba = o.beret[2];
+    var bt = function (f) { return tl(turned(f, bc[0], bc[1], ba)); };
+    parts.push(P('x', bt(or(ell(bc[0], bc[1], 8.6, 3.4), cap(bc[0] - 0.4, bc[1] - 3, bc[0] + 0.4, bc[1] - 4.8, 0.9))), bt(function (x, y) {
+      return y + 0.5 > bc[1] + 2.2 ? 'v' : orb(bc[0] - 4, bc[1] - 3, 10, 5, RED)(x, y);
+    }), 'u'));
+    parts = parts.concat(earT([hx - 8.4, hy - 3.6, hx - 6.6, hy - 15, hx + 0.4, hy - 7.4], [hx - 6.8, hy - 5, hx - 5.8, hy - 12.4, hx - 1.8, hy - 7.6]));
+    parts = parts.concat(arm(o.arms[1]));
+    // the face
+    var st = [];
+    var e1 = at(hx - 9.6, hy - 4.2), e2 = at(hx - 3.2, hy - 4.2);
+    if (o.eyes === 'swirl') st.push([e1[0], e1[1], SWIRL], [e2[0], e2[1], SWIRL]);
+    else {
+      var b1 = at(hx - 10, hy - 6.4), b2 = at(hx - 3.4, hy - 8);
+      st.push([e1[0], e1[1], EYE_L], [e2[0], e2[1], EYE_L], [b1[0], b1[1], ['.###.']], [b2[0], b2[1], ['..##.', '##..#']]);
+    }
+    var m = at(hx - 14.2, hy + 4.4);
+    st.push([m[0], m[1], {
+      grin: ['#........#', '.#......#.', '..######..'],
+      open: ['#.........#', '.#wwwwwww#.', '..#rrrrr#..', '...#####...'],
+      tongue: ['.##...##..', '#..###..#.', '....#rr#..', '.....##...']
+    }[o.mouth]]);
+    var ch = at(hx - 4.4, hy + 3.4);
+    st.push([ch[0], ch[1], ['33']]);
+    return build(52, 52, parts, st);
+  };
+  E.fox = {
+    idle: foxPose(FOX_POSE.idle),
+    run: [foxPose(FOX_POSE.run0), foxPose(FOX_POSE.run1)],
+    jump: foxPose(FOX_POSE.jump),
+    throw: foxPose(FOX_POSE.throw),
+    dizzy: foxPose(FOX_POSE.dizzy)
+  };
+
+  /* ---- springs ----------------------------------------------------------
+     Three more things to bounce on, each the spring's own size (16 x 10)
+     and its two frames, [ready, squashed], so any of them drops in where
+     a spring goes: the top row is where Bonnie lands, and squashed they
+     sit lower, on the same feet. */
+  // a market stall's stripy awning: a domed canopy, a scalloped valance
+  // hanging off its front edge, two wooden poles
+  var awning = function (sq) {
+    var k = sq ? 0.5 : 1, Y = function (y) { return 20 - (20 - y) * k; }, sw = 32 / 6, hem = Y(7.6);
+    var top = function (x) { var u = (x - 16) / 16; return Y(0) + (sq ? 1.4 : 3.2) * u * u; };
+    var band = function (x) { return Math.floor(Math.max(0, x) / sw) % 2; };
+    return build(32, 20, [
+      P('U', or(rrect(2.6, hem, 5.4, 19.4, 0.8), rrect(26.6, hem, 29.4, 19.4, 0.8), ell(4, 19.4, 2.8, 0.9), ell(28, 19.4, 2.8, 0.9)), orb(3, hem, 4, 14, 'TUVXY'), 'S'),
+      P('x', function (x, y) {
+        if (x < 0.3 || x > 31.7) return false;
+        if (y < hem) return y > top(x);
+        var c = (Math.floor(x / sw) + 0.5) * sw;
+        return ell(c, hem, sw / 2 + 0.1, sq ? 2.2 : 3.4)(x, y);
+      }, function (x, y) {
+        var X = x + 0.5, Y2 = y + 0.5, t = orb(10, -3, 24, 16, band(X) ? SNOW : RED)(x, y);
+        // the hem, where the valance hangs from the canopy, a tone down
+        return Math.abs(Y2 - hem) < 0.6 || Y2 > hem + 1.6 ? step(band(X) ? SNOW : RED, t, -1) : t;
+      }, 'u')
+    ]);
+  };
+  A.awning = [awning(false), awning(true)];
+
+  // a soft round bread roll, golden on top, scored, dusted with flour
+  var roll = function (sq) {
+    var cy = sq ? 14.2 : 10.1, ry = sq ? 5.9 : 10, rx = sq ? 15.8 : 15;
+    return build(32, 20, [P('â', both(ell(16, cy, rx, ry), function (x, y) { return y < 19.8; }), function (x, y) {
+      var X = x + 0.5, Y = y + 0.5, d = (Y - (cy - ry * 0.5)) - Math.pow((X - 16) / rx, 2) * ry * 0.6;
+      // the score across its top, opened out pale
+      if (Math.abs(X - 16) < rx * 0.6 && Math.abs(d) < (sq ? 0.8 : 0.7)) return 'Y';
+      if (Math.abs(X - 16) < rx * 0.6 && d >= 0.7 && d < 1.6) return 'á';
+      if (Y > cy + ry * 0.55) return orb(12, cy - ry * 0.4, rx * 1.1, ry * 1.1, DOUGH)(x, y);
+      return orb(11, cy - ry * 0.6, rx * 1.1, ry * 1.2, CRUST)(x, y);
+    }, 'à')], sq ? [[7, 10, ['w']], [22, 11, ['w']], [12, 11, ['w']]] : [[8, 4, ['w']], [21, 3, ['w']], [12, 7, ['w']], [25, 8, ['w']]]);
+  };
+  A.dough = [roll(false), roll(true)];
+
+  // a little bouncy castle: puffy walls, a turret at each end, a doorway
+  var puffy = function (x0, x1, y0, y1, n, ramps) {
+    var w = (x1 - x0) / n;
+    return function (x, y) {
+      var k = Math.max(0, Math.min(n - 1, Math.floor((x + 0.5 - x0) / w))), cx = x0 + w * (k + 0.5);
+      return orb(cx - w * 0.15, (y0 + y1) / 2 - 1, w * 0.62, (y1 - y0) * 0.62, ramps[k % ramps.length])(x, y);
+    };
+  };
+  var bouncy = function (sq) {
+    var k = sq ? 0.55 : 1, Y = function (y) { return 20 - (20 - y) * k; };
+    var dome = function (cx) { return ell(cx, Y(4), 3.6, 3.4 * k + 0.4); };
+    return build(32, 20, [
+      P('|', or(rrect(0.6, Y(15.4), 31.4, 19.6, 2), ell(16, 19, 16, 1.2)), puffy(0.6, 31.4, Y(15.4), 19.6, 4, [COAT, '_|??/']), ';'),
+      P('C', rrect(4.6, Y(5.6), 27.4, Y(16), 1.6), function (x, y) {
+        // the doorway, an arch of shadow in the middle
+        if (rrect(12.6, Y(9.2), 19.4, Y(16) + 1, 3.2)(x + 0.5, y + 0.5)) return y + 0.5 < Y(10.4) ? 'h' : 'g';
+        return puffy(4.6, 27.4, Y(5.6), Y(16), 4, [RED, GOLD])(x, y);
+      }, 'A'),
+      P('C', or(ell(10, Y(6), 2.8, 2.4 * k + 0.3), ell(16, Y(6), 2.8, 2.4 * k + 0.3), ell(22, Y(6), 2.8, 2.4 * k + 0.3)), puffy(7.2, 24.8, Y(3.4), Y(8.4), 3, [GOLD, RED, GOLD]), 'A'),
+      P('x', or(rrect(0.6, Y(3.4), 6.8, Y(16), 2.4), rrect(25.2, Y(3.4), 31.4, Y(16), 2.4)), puffy(0.6, 31.4, Y(3.4), Y(16), 2, [RED]), 'u'),
+      P('|', or(dome(3.7), dome(28.3)), puffy(0.1, 31.9, Y(0.6), Y(7.4), 2, [COAT]), ';')
+    ], sq ? [] : [[3, 1, ['w']], [27, 1, ['w']]]);
+  };
+  A.bouncy = [bouncy(false), bouncy(true)];
+
+  /* ---- moving platforms --------------------------------------------------
+     What a moving platform can look like, in place of its plain tiles. The
+     sprite is the platform's width; its `top` is how many game pixels down
+     from the sprite's top edge Bonnie stands (0 for most: the top row is
+     the surface; the carousel horse's pole and head, and the float's
+     crown, rise above it). Anything else hangs below. Draw at (x, y - top). */
+  var LK = A.looks = A.looks || {};
+  var look = function (sp, top) { sp.top = top || 0; return sp; };
+  // a Metro carriage, side on: Bonnie rides on its flat roof. Cream above
+  // with a row of windows, green below, two pairs of sliding doors
+  LK.train = look(build(96, 36, (function () {
+    var doors = [[22, 33], [63, 74]], wins = [6.4, 39.4, 48.2, 57, 82];
+    var parts = [];
+    [9.6, 19.6, 76.4, 86.4].forEach(function (wx) { parts.push(O(wx, 31.6, 3.6, 3.6, INK, 'f')); });
+    parts.push(P('g', or(rrect(6, 28.4, 23.4, 31.6, 1), rrect(72.6, 28.4, 90, 31.6, 1)), orb(10, 28, 20, 6, INK), 'f'));
+    parts.push(P('ê', rrect(0.6, 0, 95.4, 29.6, 3.4), function (x, y) {
+      var X = x + 0.5, Y = y + 0.5;
+      var win = wins.some(function (w) { return rrect(w, 7.4, w + 7.4, 15.4, 1.4)(X, Y); });
+      var door = doors.filter(function (d) { return X > d[0] && X < d[1] && Y > 5.4; })[0];
+      if (door) {
+        var m = (door[0] + door[1]) / 2;
+        // a door: two green leaves, each with a tall window
+        if (Math.abs(X - m) < 0.6 || X < door[0] + 0.8 || X > door[1] - 0.8) return 'è';
+        if (rrect(door[0] + 1.8, 7.4, m - 1, 18, 1)(X, Y) || rrect(m + 1, 7.4, door[1] - 1.8, 18, 1)(X, Y)) win = true;
+        else return orb(door[0], 6, 14, 30, METRO)(x, y);
+      }
+      if (win) return (X + Y * 0.8) % 9 < 2.2 ? 'L' : Y < 10 ? 'i' : 'h';
+      if (Y < 4.4) return orb(30, -2, 60, 10, IRON)(x, y);
+      if (Y < 19) return orb(30, 4, 70, 24, CREAM)(x, y);
+      if (Y < 20.4) return 'C';
+      return orb(30, 14, 70, 22, METRO)(x, y);
+    }, 'è'));
+    parts.push(P('D', or(ell(2.4, 23.6, 1.2, 1.4), ell(93.6, 23.6, 1.2, 1.4)), function (x) { return x < 48 ? 'D' : 'x'; }));
+    return parts;
+  })()));
+  // an orange lifeboat: a white gunwale to stand on, a long curved bow, a
+  // rope looped along her side, round windows, a red bottom
+  LK.lifeboat = look(build(48, 20, [
+    P('m', function (x, y) {
+      if (x < 0.2 || x > 47.8) return false;
+      var d = Math.min(1, x / 17, (48 - x) / 8), bot = 2.6 + 16.4 * Math.sqrt(Math.max(0, 1 - (1 - d) * (1 - d)));
+      return y > 2 && y < bot;
+    }, function (x, y) {
+      var X = x + 0.5, Y = y + 0.5, t = orb(20, -6, 44, 30, FOX)(x, y);
+      // the rope hangs in loops between brass eyes
+      var u = (((X - 4) % 8) + 8) % 8 / 8;
+      if (X > 4 && X < 44 && Math.abs(Y - (4.8 + 2.6 * Math.sin(Math.PI * u))) < 0.7) return 'Y';
+      if (Y > 3.6 && Y < 4.6) return 'w';
+      if (Y > 15.4) return orb(18, 10, 40, 12, RED)(x, y);
+      if (Y > 14.2) return 'w';
+      return t;
+    }, 'k'),
+    P('W', rrect(0.4, 0, 47.6, 3.4, 1.4), orb(14, -1, 30, 6, SNOW), '2'),
+    P('C', or(ell(4, 4.6, 0.9, 0.9), ell(12, 4.6, 0.9, 0.9), ell(20, 4.6, 0.9, 0.9), ell(28, 4.6, 0.9, 0.9), ell(36, 4.6, 0.9, 0.9), ell(44, 4.6, 0.9, 0.9))),
+    P('C', or(ell(16, 10.4, 2.4, 2.4), ell(24, 10.4, 2.4, 2.4), ell(32, 10.4, 2.4, 2.4)), function (x, y) {
+      // brass-rimmed round windows
+      var dx = (x + 0.5 - 16) % 8, dy = y + 0.5 - 10.4;
+      return dx * dx + dy * dy < 2.2 ? (dx + dy < 0 ? 'L' : 'M') : 'C';
+    }, 'A')
+  ]));
+  // one sail of a windmill: the long whip on top, a ladder of bars and
+  // rails, canvas spread in the cells over most of it, the rest open
+  LK.sail = look(build(48, 12, [
+    P('Y', rrect(2, 2, 34, 9.8, 0.4), function (x, y) { return orb(6, 1, 34, 9, CREAM)(x, y); }),
+    P('U', function (x, y) {
+      if (rrect(0.4, 0, 47.6, 3, 1.2)(x, y) || rrect(1.4, 9.2, 46.6, 11.6, 1)(x, y)) return true;
+      if (y < 2 || y > 10) return false;
+      return ((x - 1.6) % 4.8 + 4.8) % 4.8 < 1.2 || x > 45.6;
+    }, function (x, y) {
+      return y + 0.5 < 3 ? orb(10, -1, 40, 6, WOOD)(x, y) : orb(10, 4, 40, 10, 'STTUV')(x, y);
+    })
+  ]));
+  // a teacup from the spinning-teacup ride: a wide rim to stand on, a
+  // round bowl on a gold foot, a saucer, a curly handle; dots in a second pastel
+  var teacup = function (W, tone, dots, wheel) {
+    var cx = W / 2, rx = W / 2 - 3, top = wheel ? 8 : 0, H = top + 24;
+    var parts = [
+      P(tone.charAt(2), ell(cx, H - 2.6, W / 2 - 3, 2.6), orb(cx - 6, H - 4, W / 2, 4, tone), tone.charAt(0)),
+      P('C', rrect(cx - 7, H - 7, cx + 7, H - 3.6, 1.2), orb(cx - 4, H - 7, 8, 4, GOLD), 'A'),
+      P(tone.charAt(2), function (x, y) { return x > W - 7.4 && but(ell(W - 4.6, top + 7.8, 3.6, 4.4), ell(W - 4.6, top + 7.8, 1.6, 2.4))(x, y); }, orb(W - 6, top + 5, 5, 6, tone), tone.charAt(0)),
+      P(tone.charAt(2), both(ell(cx, top + 1.6, rx, 17.4), function (x, y) { return y > top + 1; }), function (x, y) {
+        var X = x + 0.5, Y = y + 0.5, t = orb(cx - rx * 0.4, top - 2, rx * 1.2, 18, tone)(x, y);
+        // polka dots in rows
+        var row = Math.round((Y - top - 6) / 5), dx = ((X - cx + (row % 2) * 3.5 + 70) % 7) - 3.5, dy = Y - (top + 6 + row * 5);
+        return row >= 0 && row < 3 && dx * dx + dy * dy < 3.3 ? dots : t;
+      }, tone.charAt(0)),
+      P('C', rrect(0.6, top, W - 0.6, top + 3, 1.4), function (x, y) { return y + 0.5 > top + 2.2 ? 'B' : orb(cx - 8, top - 1, W / 2, 4, GOLD)(x, y); }, 'A')
+    ];
+    // the ride's wheel in the middle of the cup, for spinning it
+    if (wheel) parts.unshift(P('O', rrect(cx - 0.8, 3, cx + 0.8, top + 1, 0.4), null, 'N'), P('C', but(ell(cx, 3.6, 4.6, 2.2), ell(cx, 3.6, 2.6, 1)), orb(cx - 2, 2, 5, 3, GOLD), 'A'));
+    return build(W, Math.ceil(H), parts);
+  };
+  LK.teacup = look(teacup(48, PINK, 'w'));
+
+  /* A carousel horse on its twisted brass pole: white, prancing, a gold
+     mane and tail, a red saddle and blanket, a breast-collar of roses.
+     S is the saddle's top (where Bonnie stands); the pole runs from the
+     top of the sprite to H, finished with a brass knob at each end, or
+     planted in a round base when it's scenery. */
+  var carousel = function (S, H, base) {
+    var POLE = function (x, y) { return Math.floor(x * 0.7 + y * 0.5) % 3 === 0 ? 'B' : orb(15, 0, 4, 60, GOLD)(x, y); };
+    var parts = [P('C', or(rrect(14.6, 1.6, 17.8, H - 2.4, 0.8), ell(16.2, 2.2, 2.4, 2.1), base ? ell(16.2, H - 2.4, 9.4, 2.4) : ell(16.2, H - 2.2, 2.4, 2.1)), function (x, y) {
+      if (base && y + 0.5 > H - 4.8) return orb(10, H - 6, 14, 5, GOLD)(x, y);
+      return y + 0.5 < 4.4 || (!base && y + 0.5 > H - 4.2) ? orb(15, 0.6, 3, 3, GOLD)(x, y) : POLE(x, y);
+    }, 'A')];
+    var hoof = function (pts, far) {
+      var last = pts[pts.length - 1], prev = pts[pts.length - 2];
+      return [P('W', limb(pts, 1.5), orb(pts[0][0] - 2, pts[0][1], 5, 8, far ? '2211W' : SNOW), '2'),
+        P('C', cap(prev[0] + (last[0] - prev[0]) * 0.7, prev[1] + (last[1] - prev[1]) * 0.7, last[0], last[1], 1.5), null, 'A')];
+    };
+    parts = parts.concat(hoof([[24, S + 10.6], [27.4, S + 15], [30.2, S + 18.4]], true), hoof([[9, S + 10], [5.6, S + 13.6], [7.6, S + 17.2]], true));
+    parts.push(P('C', limb([[27, S + 3], [30.4, S + 7], [30, S + 12], [28, S + 16]], 1.7), function (x, y) { return Math.floor(y * 0.6 + x * 0.3) % 2 ? orb(27, S + 4, 5, 10, GOLD)(x, y) : 'B'; }, 'A'));
+    parts = parts.concat(hoof([[21.6, S + 11], [24.4, S + 16.4], [27.2, S + 20.6]]), hoof([[11.6, S + 11], [10, S + 16], [8.6, S + 20.6]]));
+    parts.push(
+      P('W', or(rrect(6, S + 1.2, 28, S + 12.4, 5.4), cap(9.6, S + 5, 6.6, S - 5.6, 3.4)), orb(12, S - 2, 18, 14, SNOW), '2'),
+      P('W', cap(7.2, S - 8.2, 2.4, S - 4.4, 2.5), orb(4, S - 9, 6, 5, SNOW), '2'),
+      P('W', tri(6.6, S - 9.4, 8.4, S - 13.6, 9.6, S - 8.6), orb(7, S - 12, 3, 3, SNOW), '2'),
+      P('C', limb([[8.6, S - 10.4], [11.2, S - 6.6], [10.8, S - 3.4], [12.8, S - 0.4]], 1.6), function (x, y) { return Math.floor(y * 0.6 - x * 0.3) % 2 ? orb(8, S - 10, 6, 10, GOLD)(x, y) : 'B'; }, 'A'),
+      // the saddle and its blanket, gold-edged with a heart
+      P('x', rrect(10.4, S + 1, 21.8, S + 7.8, 1.4), function (x, y) {
+        var X = x + 0.5, Y = y + 0.5;
+        if (X < 11.6 || X > 20.6 || Y > S + 6.8) return 'C';
+        return orb(13, S, 10, 8, RED)(x, y);
+      }, 'u'),
+      P('x', rrect(11.4, S, 20.8, S + 2.6, 1.2), orb(13, S - 1, 8, 4, RED), 'u'),
+      P('x', cap(2.8, S - 7, 7.8, S - 9.6, 0.6), null, 'u')
+    );
+    var st = [[3, S - 9, EYE_S], [1, S - 5, ['G']], [14, S + 3, ['D.D', 'DDC', '.C.']]];
+    // roses on the breast-collar
+    [[7.6, S + 2.6, 'x'], [8.6, S + 5, 'r'], [10, S + 7.2, 'x']].forEach(function (r) { st.push([Math.round(r[0]), Math.round(r[1]), ['.' + r[2] + '.', r[2] + 'w' + r[2], '.' + r[2] + '.']]); });
+    return build(32, H, parts, st);
+  };
+  LK.horse = look(carousel(14, 44), 7);
+
+  // a parade float: a deck with a gold rail, a pleated skirt hung with
+  // flowers and ribbons, wheels peeping out below, and a crown on top
+  LK.float = look(build(80, 44, (function () {
+    var deck = 12, parts = [];
+    [12, 30, 50, 68].forEach(function (wx) { parts.push(O(wx, 40.6, 3.2, 3.2, INK, 'f')); });
+    parts.push(P('r', function (x, y) {
+      if (y < deck + 2 || x < 1.2 || x > 78.8) return false;
+      if (y < 37) return rrect(1.2, deck + 2, 78.8, 37, 2.4)(x, y);
+      // a scalloped hem
+      var c = Math.floor(x / 4) * 4 + 2; return ell(c, 37, 2.2, 2.4)(x, y);
+    }, function (x, y) {
+      var X = x + 0.5, Y = y + 0.5, t = orb(24, deck, 60, 30, PINK)(x, y);
+      if (Y > 36.4) return orb(24, 36, 60, 6, GOLD)(x, y);
+      // ribbon swags between gold rosettes
+      for (var k = 0; k < 5; k++) {
+        var x0 = 4 + k * 18, u = (X - x0) / 18;
+        if (u >= 0 && u <= 1 && Math.abs(Y - (21.6 + 5.4 * Math.sin(Math.PI * u))) < 1.1) return orb(30, 18, 60, 14, '_|??/')(x, y);
+      }
+      return Math.floor(X / 4) % 2 ? step(PINK, t, -1) : t;
+    }, 'p'));
+    // gold rosettes where the ribbons meet
+    [4, 22, 40, 58, 76].forEach(function (rx) { parts.push(P('C', but(ell(rx, 21.4, 2.4, 2.4), ell(rx, 21.4, 0.9, 0.9)), orb(rx - 1, 20, 3, 3, GOLD), 'A')); });
+    // the crown, sitting on the deck
+    parts.push(P('C', or(rrect(28.4, 6.6, 51.6, deck + 0.6, 1.2), tri(28.4, 8, 30.6, 3, 36.4, 8), tri(34.6, 8, 40, 2, 45.4, 8), tri(43.6, 8, 49.4, 3, 51.6, 8),
+      ell(30.4, 2.8, 1.6, 1.6), ell(40, 1.8, 1.7, 1.7), ell(49.6, 2.8, 1.6, 1.6)), function (x, y) {
+      return y + 0.5 > 6.6 && y + 0.5 < 7.8 ? 'D' : orb(34, 2, 16, 10, GOLD)(x, y);
+    }, 'A'));
+    parts.push(P('C', rrect(0.6, deck, 79.4, deck + 3, 1.4), function (x, y) { return y + 0.5 > deck + 2.2 ? 'B' : orb(20, deck - 2, 60, 5, GOLD)(x, y); }, 'A'));
+    // a garland of flowers along the top of the skirt
+    var garland = [];
+    for (var gk = 0; gk < 13; gk++) garland.push([4 + gk * 6, 17 + (gk % 2 ? 0.6 : -0.4), ['x', 'w', 'D'][gk % 3]]);
+    garland.forEach(function (g) { parts.push(P(g[2], bloom(g[0], g[1], 5, 1.2, 1.3, 1, -Math.PI / 2), g[2] === 'w' ? orb(g[0] - 1, g[1] - 1, 3, 3, SNOW) : g[2] === 'x' ? orb(g[0] - 1, g[1] - 1, 3, 3, RED) : orb(g[0] - 1, g[1] - 1, 3, 3, GOLD), g[2] === 'w' ? '2' : g[2] === 'x' ? 'u' : 'A')); });
+    return parts;
+  })(), [[31, 9, ['x']], [35, 9, ['|']], [39, 9, ['xx']], [44, 9, ['|']], [48, 9, ['x']], [29, 2, ['w']], [39, 1, ['w']], [49, 2, ['w']]]), 6);
+
+  /* ---- the Big Trip's scenery ------------------------------------------- */
+  var GREEN = 'HHIJJ', MARBLE = 'PQRRw', STONE = 'OPQRR';
+  // weave: alternate tones in a basket-weave of little blocks
+  var weave = function (t, cx, cy, rx, ry) {
+    var lit = orb(cx, cy, rx, ry, t);
+    return function (x, y) { var c = lit(x, y); return (Math.floor(x / 2) + Math.floor(y / 2)) % 2 ? step(t, c, -1) : c; };
+  };
+
+  // Ferry: a ship's mooring bollard, two stout iron posts on a plate with
+  // a rope wound round them in a figure of eight
+  var ROPE = function (x, y) { return (x + y) % 3 ? 'V' : 'U'; };
+  D.bollard = build(20, 18, [
+    P('g', rrect(0.6, 14.4, 19.4, 17.6, 1.2), orb(6, 13, 12, 6, INK), 'f'),
+    P('g', or(rrect(2.4, 5, 7.6, 15, 1.4), rrect(12.4, 5, 17.6, 15, 1.4)), function (x, y) { return orb(x < 10 ? 4 : 14, 6, 4, 10, INK)(x, y); }, 'f'),
+    P('g', or(ell(5, 5, 4, 2), ell(15, 5, 4, 2)), function (x, y) { return orb(x < 10 ? 3.6 : 13.6, 3.6, 4, 2.6, INK)(x, y); }, 'f'),
+    P('V', or(cap(3.6, 9, 16.4, 11.6, 1.1), cap(3.6, 11.6, 16.4, 9, 1.1), ell(3.6, 10.3, 1.6, 2.1), ell(16.4, 10.3, 1.6, 2.1)), ROPE, 'T'),
+    P('V', limb([[16.6, 11], [18.6, 13], [18.8, 17.4]], 1.1), ROPE, 'T')
+  ]);
+
+  // Ferry: a lifebuoy ring hung on a white post
+  D.lifering = build(20, 32, [
+    P('W', or(rrect(8.4, 2.4, 11.6, 31.6, 0.8), rrect(6, 30, 14, 31.8, 0.8)), orb(9, 8, 3, 24, SNOW), '2'),
+    P('x', rrect(7.2, 0.6, 12.8, 3.4, 1), orb(8, 0, 5, 3, RED), 'u'),
+    P('x', but(ell(10, 15, 8.8, 8.8), ell(10, 15, 4, 4)), function (x, y) {
+      var dx = x + 0.5 - 10, dy = y + 0.5 - 15, q = (Math.atan2(dy, dx) + Math.PI / 4) / (Math.PI / 2) + 8, fr = q % 1;
+      // rope bound round it where the colours meet
+      if (fr < 0.08 || fr > 0.92) return (x + y) % 2 ? 'V' : 'U';
+      return orb(7, 10, 10, 10, Math.floor(q) % 2 ? SNOW : RED)(x, y);
+    }, 'u')
+  ]);
+
+  // Fields: a tall sunflower, its face to the sun, two big leaves
+  D.sunflower = build(20, 60, [
+    P('I', limb([[10.6, 60], [11, 44], [10.2, 28], [10, 16]], 1.8), orb(9, 36, 3, 24, GREEN), 'H'),
+    P('I', or(petal(10.8, 44, -2.75, 5.4, 5.8, 2.8), petal(10.4, 32, -0.4, 5.2, 5.6, 2.7)), function (x, y) {
+      // each leaf with a paler vein down its middle
+      var t = orb(8, 34, 10, 14, GREEN)(x, y);
+      return Math.abs((y + 0.5) - (44 - (10.8 - x - 0.5) * 0.4)) < 0.5 && x < 10 || Math.abs((y + 0.5) - (32 + (x + 0.5 - 10.4) * 0.42)) < 0.5 && x > 11 ? 'J' : t;
+    }, 'H'),
+    P('C', bloom(10, 10.4, 13, 6.2, 3.4, 1.7, 0.1), orb(8, 7, 11, 11, GOLD), 'A'),
+    P('T', ell(10, 10.4, 4.6, 4.6), function (x, y) {
+      var t = orb(9, 9, 5, 5, 'STTUV')(x, y);
+      return (x * 3 + y * 5) % 4 === 0 ? step('STTUV', t, -1) : t;
+    }, 'S')
+  ], [[8, 8, ['V']]]);
+
+  // Fields: a round hay bale on its side, rolled up in a spiral
+  D.haybale = build(32, 24, [
+    P('û', rrect(9, 1, 31, 23.6, 6), function (x, y) {
+      var t = orb(16, 4, 22, 22, STRAW)(x, y);
+      // straw strands round its curve, and a band of twine
+      if (x === 22 || x === 23) return 'v';
+      return (x * 7 + y * 3) % 11 === 0 || (x + Math.floor(y / 3)) % 5 === 0 ? step(STRAW, t, -1) : t;
+    }, 'ù'),
+    P('û', ell(10.4, 12.2, 9.6, 11.4), function (x, y) {
+      var t = orb(7, 8, 11, 13, STRAW)(x, y);
+      return spiral(10.4, 12.2, 0.6)(x, y) ? step(STRAW, t, -2) : t;
+    }, 'ù')
+  ], [[14, 0, ['F.F', '.F.']], [26, 0, ['.F', 'F.']]]);
+
+  // Village: an old Paris street lamp, a glass lantern on a fluted post
+  D.lamppost = build(18, 64, [
+    P('é', or(rrect(7.4, 18, 10.6, 56, 1), rrect(5.4, 52, 12.6, 60, 1.6), rrect(3.6, 59, 14.4, 63.6, 1.4), rrect(2.4, 17.6, 15.6, 19.6, 0.8), ell(2.6, 18.6, 1.4, 1.4), ell(15.4, 18.6, 1.4, 1.4),
+      rrect(6.6, 30, 11.4, 32, 0.8), rrect(6.6, 44, 11.4, 46, 0.8), rrect(7.4, 14.4, 10.6, 18, 0.6)), function (x, y) {
+      var t = orb(7, 30, 6, 40, 'èèéêë')(x, y);
+      // the post is fluted: a lit groove down it
+      return y > 19 && y < 52 && x === 8 ? 'ê' : t;
+    }, 'è'),
+    P('7', function (x, y) { var u = (y - 4.6) / 10; return y > 4.6 && y < 14.8 && Math.abs(x - 9) < 5.4 - u * 2; }, function (x, y) {
+      // four panes in a dark frame
+      return x === 8 || x === 9 || y === 9 ? 'é' : orb(7, 6, 6, 10, '67788')(x, y);
+    }, 'è'),
+    P('é', or(ell(9, 4.6, 6.6, 2.4), tri(4, 4.6, 9, 0.8, 14, 4.6), ell(9, 1.6, 1.3, 1.3), rrect(5, 14.2, 13, 15.8, 0.6)), orb(7, 2, 7, 5, 'èèéêë'), 'è')
+  ]);
+
+  // Village: a round bistro table and two chairs; a coffee and a croissant
+  var chair = function (s) {
+    var X = function (x) { return s > 0 ? x : 44 - x; };
+    return [
+      P('U', or(cap(X(2.4), 6, X(2.4), 25.4, 0.8), cap(X(9.6), 17, X(10.6), 25.4, 0.8), cap(X(4.4), 17, X(3.6), 25.4, 0.8)), orb(X(3), 8, 4, 18, WOOD), 'S'),
+      P('û', rrect(Math.min(X(1.6), X(11.4)), 15.6, Math.max(X(1.6), X(11.4)), 17.8, 1), weave(STRAW, X(5), 14, 8, 4), 'ù'),
+      P('û', rrect(Math.min(X(1.4), X(3.8)), 4.6, Math.max(X(1.4), X(3.8)), 15.6, 1.2), weave(STRAW, X(2), 6, 4, 10), 'ù')
+    ];
+  };
+  D.cafetable = build(44, 26, chair(1).concat(chair(-1)).concat([
+    P('g', or(rrect(21, 10, 23, 23.6, 0.6), ell(22, 24.6, 6.4, 1.4)), orb(20, 14, 4, 12, INK), 'f'),
+    P('R', rrect(11, 8.2, 33, 11, 1.4), orb(16, 6, 20, 5, MARBLE), 'P'),
+    P('w', or(rrect(15.4, 4.6, 19.4, 8.6, 1), ell(17.4, 8.2, 3.4, 0.9)), orb(16, 4, 4, 5, SNOW), '2'),
+    P('â', or(ell(26.4, 7.2, 3.6, 1.6), ell(24, 7.8, 1.4, 1), ell(28.8, 7.8, 1.4, 1)), orb(25, 6, 4, 3, CRUST), 'à')
+  ]), [[16, 5, ['TT']], [20, 5, ['w']]]);
+
+  // Village: a window box of red geraniums
+  D.flowerbox = build(32, 20, [
+    P('<', or(ell(6, 9.6, 5, 3.4), ell(13, 8.6, 5, 3.4), ell(20, 9, 5, 3.4), ell(26.4, 9.6, 5, 3.4)), orb(12, 6, 18, 6, LEAF), '('),
+    P('ô', or(rrect(1.6, 11.4, 30.4, 19.6, 1.4), rrect(0.6, 10.2, 31.4, 13, 1)), function (x, y) {
+      var t = orb(10, 9, 24, 12, TERRA)(x, y);
+      return y > 12 && (x === 8 || x === 16 || x === 24) ? step(TERRA, t, -1) : t;
+    }, 'ó')
+  ].concat([[6.6, 5.4], [13, 3.6], [19.6, 4.6], [26, 5.6]].map(function (c) {
+    return P('x', ell(c[0], c[1], 3.4, 3), function (x, y) { var t = orb(c[0] - 1, c[1] - 1, 3.4, 3, RED)(x, y); return (x + y) % 3 === 0 ? step(RED, t, 1) : t; }, 'u');
+  })));
+
+  // Village: a little stone fountain, its water splashing two ways
+  D.fountain = [0, 1].map(function (f) {
+    var j = f ? 1.4 : 0, water = '1MLww';
+    return build(48, 40, [
+      // a jet from the top, and water spilling over the bowl's rim into the basin
+      P('M', or(cap(24, 2.4 + j, 24, 7, 1.7), ell(24, 2 + j, 3, 1.6), limb([[16, 12], [13.4 - j * 0.4, 14.6], [12.2 - j * 0.4, 20], [11.8, 29]], 1.8), limb([[32, 12], [34.6 + j * 0.4, 14.6], [35.8 + j * 0.4, 20], [36.2, 29]], 1.8)),
+        function (x, y) { return (y + j * 2) % 4 === 0 ? 'w' : x % 3 === 0 ? 'L' : 'M'; }, '2'),
+      P('Q', or(rrect(21.6, 14, 26.4, 31, 1), ell(24, 6.4, 1.6, 2)), orb(22, 10, 5, 22, STONE), 'O'),
+      P('Q', both(ell(24, 12.4, 9.4, 4.4), function (x, y) { return y > 11.6; }), orb(20, 10, 10, 6, STONE), 'O'),
+      P('M', ell(24, 12.2, 8.8, 1.2), orb(20, 11, 9, 2, water), '1'),
+      P('Q', or(rrect(1, 29.6, 47, 39.6, 3), ell(24, 30.6, 23, 2.8)), function (x, y) {
+        var t = orb(14, 26, 34, 16, STONE)(x, y);
+        // stone blocks round the basin
+        return y > 32 && ((x + (y > 35 ? 4 : 0)) % 8 === 0 || y === 35) ? step(STONE, t, -1) : t;
+      }, 'O'),
+      P('M', ell(24, 30.4, 20.6, 1.8), orb(18, 29, 22, 3, water), '1')
+    ], f ? [[21, 2, ['w']], [26, 0, ['w']], [9, 26, ['w']], [38, 27, ['w']]] : [[20, 0, ['w']], [27, 2, ['w']], [14, 27, ['w']], [34, 26, ['w']]]);
+  });
+
+  // Bakery: a wicker basket of round loaves under a gingham cloth
+  D.breadbasket = build(28, 18, [
+    O(7.4, 8.6, 5, 4.6, CRUST, 'à'), O(20.6, 8.6, 5, 4.6, CRUST, 'à'), O(14, 6.6, 5.8, 5.2, CRUST, 'à'),
+    P('û', or(rrect(1.4, 9.6, 26.6, 17.6, 3), rrect(0.6, 9, 27.4, 11.4, 1.2)), weave(STRAW, 9, 7, 20, 12), 'ù'),
+    P('x', tri(1, 9.4, 9, 9.4, 3, 16.6), function (x, y) { return (Math.floor(x / 2) + Math.floor(y / 2)) % 2 ? 'w' : 'x'; }, 'u')
+  ], [[12, 4, ['ãã..', '..ãã']], [5, 7, ['ã.', '.ã']], [19, 7, ['ã.', '.ã']]]);
+
+  // Bakery: baguettes standing up in a tall basket
+  D.baguettes = build(20, 36, [
+    P('â', cap(5.4, 24, 3.6, 3.6, 2.2), orb(3, 5, 5, 20, CRUST), 'à'),
+    P('â', cap(13.6, 24, 16.2, 6.4, 2.2), orb(14, 8, 5, 20, CRUST), 'à'),
+    P('â', cap(9.4, 24, 9.6, 1.4, 2.3), orb(8, 3, 5, 20, CRUST), 'à'),
+    P('û', or(rrect(3.4, 18.6, 16.6, 35.6, 2.4), rrect(2.6, 18, 17.4, 20.6, 1.2)), weave(STRAW, 7, 18, 12, 18), 'ù')
+  ], [[3, 6, ['o', '.o']], [3, 11, ['o', '.o']], [8, 4, ['o', 'o']], [8, 9, ['o', 'o']], [8, 14, ['o', 'o']], [15, 9, ['o.', '.o']], [14, 14, ['o.', '.o']]]);
+
+  // Bakery: a fancy layered cake on a stand, cherries on top
+  D.cake = build(28, 40, [
+    P('R', or(ell(14, 33.4, 13.2, 1.8), rrect(12.4, 33, 15.6, 38, 0.6), ell(14, 38.6, 6, 1.4)), orb(10, 32, 14, 6, MARBLE), 'P'),
+    P('r', rrect(2.6, 22.4, 25.4, 33, 2), orb(9, 22, 20, 12, PINK), 'p'),
+    P('Y', rrect(5.4, 13.4, 22.6, 22.8, 2), orb(10, 13, 16, 10, CREAM), 'Z'),
+    P('r', rrect(8.4, 6, 19.6, 13.8, 2), orb(11, 5, 10, 8, PINK), 'p'),
+    // icing dripping over each tier's edge
+    P('w', or(
+      function (x, y) { return x > 2.6 && x < 25.4 && y > 22.4 && y < 24.4 + Math.max(0, Math.sin(x * 1.3)) * 1.6; },
+      function (x, y) { return x > 8.4 && x < 19.6 && y > 6 && y < 7.8 + Math.max(0, Math.sin(x * 1.5)) * 1.4; }), orb(10, 20, 20, 20, SNOW), '2'),
+    O(11.4, 4, 2.2, 2.1, RED, 'u'), O(16.4, 4.2, 2.2, 2.1, RED, 'u'),
+    P('I', or(cap(11.6, 2, 13, 0.6, 0.5), cap(16.2, 2.2, 15, 0.6, 0.5)), null, 'H')
+  ], [[7, 15, ['r.r.r.r.r.r']], [5, 27, ['C...C...C...C...C']], [6, 30, ['..x...x...x...x']]]);
+
+  // Cheese caves: a wedge of cheese, holes and a rind
+  D.cheesewedge = build(28, 18, [
+    P('D', or(tri(0.6, 17.6, 27.4, 6.4, 27.4, 17.6), tri(0.6, 17.6, 27.4, 6.4, 22.4, 2.4)), function (x, y) {
+      var X = x + 0.5, Y = y + 0.5;
+      // the rind down the back, the top face catching the light, the cut face in shade
+      if (X > 25.8) return orb(26, 6, 3, 12, 'ABBCC')(x, y);
+      var onTop = (Y - 17.6) * (27.4 - 0.6) - (X - 0.6) * (6.4 - 17.6) < 0;
+      if (onTop) return firstOf([dent(16, 7.6, 1.6, 0.8, 'BCF')], x, y) || orb(12, 4, 16, 8, 'CDDFF')(x, y);
+      return firstOf([dent(12.6, 15, 1.6, 1.4, 'BCD'), dent(19.6, 12.2, 2, 1.7, 'BCD'), dent(23.4, 15.6, 1.3, 1.1, 'BCD')], x, y) || orb(14, 10, 18, 10, 'BCCDD')(x, y);
+    }, 'A')
+  ]);
+
+  // Rooftops: a chimney stack crowned with terracotta pots
+  D.chimneypot = build(30, 36, [
+    P('ô', or(rrect(4, 3.6, 8.8, 13, 0.6), rrect(10.4, 1.4, 15.2, 13, 0.6), rrect(16.8, 4.6, 21.6, 13, 0.6), rrect(22.6, 6.6, 26.6, 13, 0.6),
+      rrect(3.4, 3, 9.4, 4.8, 0.6), rrect(9.8, 0.6, 15.8, 2.6, 0.6), rrect(16.2, 4, 22.2, 5.8, 0.6), rrect(22, 6, 27.2, 7.6, 0.6)), function (x, y) {
+      var k = x < 9.6 ? 6 : x < 16 ? 12.6 : x < 22 ? 19 : 24.6;
+      return orb(k - 1.6, 4, 3.4, 14, TERRA)(x, y);
+    }, 'ó'),
+    P('Q', rrect(1.4, 12.2, 28.6, 15.6, 1), orb(10, 11, 20, 5, STONE), 'O'),
+    P('Y', rrect(3, 15, 27, 35.6, 1), function (x, y) {
+      var t = orb(10, 14, 22, 24, 'VZZYY')(x, y);
+      // courses of dressed stone, staggered
+      if ((y - 15) % 5 === 4) return step('VZZYY', t, -1);
+      return (x + (Math.floor((y - 15) / 5) % 2) * 4) % 8 === 0 ? step('VZZYY', t, -1) : t;
+    }, 'V')
+  ]);
+
+  // Metro: an Art Nouveau lamp on a stem that curls like a plant, an amber
+  // bud of a light, and a round sign with an M on it (our own, no logo)
+  D.metrosign = build(24, 64, [
+    P('é', or(limb([[13, 63], [13.2, 44], [12.6, 26], [10.6, 14], [7.6, 8.4], [4.6, 7.6], [3.2, 9.4]], 1.4), petal(13, 50, -2.5, 3, 3.6, 1.4), petal(13, 46, -0.6, 3, 3.6, 1.4),
+      rrect(9.4, 57, 16.6, 63.6, 1.6), ell(13, 63, 6.4, 1.2)), orb(10, 30, 8, 40, 'èèéêë'), 'è'),
+    P('6', ell(3.6, 13, 2.8, 3.4), orb(2.6, 11.6, 3, 4, '45678'), '4'),
+    P('é', rrect(12.6, 29.4, 16, 31, 0.6), null, 'è'),
+    P('Y', ell(17, 30.2, 6.2, 6.2), function (x, y) {
+      var dx = x + 0.5 - 17, dy = y + 0.5 - 30.2;
+      return dx * dx + dy * dy > 4.6 * 4.6 ? orb(15, 28, 7, 7, 'èéêëì')(x, y) : orb(15, 28, 6, 6, CREAM)(x, y);
+    }, 'è')
+  ], [[14, 28, ['è...è', 'èè.èè', 'è.è.è', 'è...è', 'è...è']]]);
+
+  // the Park: a teacup ride car standing about, its little wheel in the
+  // middle; and a carousel horse planted on its pole
+  D.teacup = teacup(40, MINT, 's', true);
+  D.carouselhorse = carousel(24, 60, true);
 })();

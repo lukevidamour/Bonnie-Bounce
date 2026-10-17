@@ -1,5 +1,5 @@
 /* ==========================================================================
-   levels.js — the ten worlds, built from a small set of commands.
+   levels.js — the thirty worlds, built from a small set of commands.
 
    A level is a grid of 8x8 tiles, 18 rows tall unless it says otherwise
    (Cloud Kingdom climbs, so it is 36). Each world's build() lays out its
@@ -139,6 +139,8 @@
   /* A signpost that teaches by doing: when Bonnie walks up to it, a
      bubble pops up showing the real control for the player's device (the
      Space bar, or the A button) next to a word or two. */
+  // a steam vent on the ground (or on row `base`): its plume lifts Bonnie h rows
+  B.steam = function (x, h, base) { this.e('steam', x, base === undefined ? this.gr : base, { h: h }); this.noDeco.push([x - 1, x + 3]); };
   B.tip = function (x, kind, row) { this.e('tip', x, row, { tip: kind }); this.noDeco.push([x - 1, x + 3]); };
   /* Bear, the family cat: one in every level, somewhere off the main way —
      up on a bonus route or a ledge you have to look for. Touch him and he
@@ -1009,6 +1011,383 @@
       L.box(183, 12, 187, 16, TL.CRATE);
       L.e('captain', 184, 12, { ax0: 172, ax1: 200 });
       L.e('sack', 200);
+      L.box(206, 2, 212, 16, TL.HARD);
+    }
+  });
+
+  /* ==========================================================================
+     THE THIRD LAND — THE BIG TRIP (levels 21–30)
+     The family's off to Disneyland Paris in the Yeti, and Rascal the Fox
+     has snatched Brocco. Each level ends at the car, with Luke and Lucy
+     waiting; one of them cheers at every checkpoint. The tricks: steam
+     that lifts you, a windmill to ride, market awnings to bounce on,
+     conveyor belts and croissants, rolling cheeses, chimneys over the
+     roofs, trains to ride, the Eiffel Tower to climb, the park's carousel,
+     teacups and parade — and Rascal at the castle, under the fireworks.
+     (A little harder than the first two lands: Bonnie asked for it.)
+     ========================================================================== */
+
+  /* 21 — The Ferry. Across the deck, past the funnels: their steam lifts
+     Bonnie up to the high decks; lifeboats bob over the gaps. */
+  add({
+    name: 'THE FERRY', theme: 'ferry', w: 220, seed: 211,
+    build: function (L) {
+      L.ground(0, 38);
+      L.row(9, R1, '?P?');
+      L.e('crab', 18);
+      // the first vent, on safe ground: up to a ledge of stars
+      L.steam(24, 7); L.semi(20, 30, 9); L.coins(21, 8, 3); L.coins(27, 8, 3);
+      L.e('gull', 33, 9);
+      L.plat(39, 14, 3, { bob: true, look: 'lifeboat' });
+      L.ground(43, 77);
+      L.row(48, 15, 'cc'); L.row(48, 14, 'cc');
+      L.e('crab', 55);
+      L.pipe(59, 3);
+      L.e('gull', 64, 9);
+      L.row(66, R1, 'B?B');
+      L.steam(71, 9); L.semi(68, 76, 7); L.coins(69, 6, 6);
+      L.plat(78, 14, 3, { bob: true, look: 'lifeboat', dx: 2, speed: 0.4 });
+      L.ground(83, 121);
+      L.e('crab', 89);
+      L.check(95);
+      L.e('gull', 100, 9);
+      L.row(103, R1, '?L?');
+      L.e('crab', 108);
+      // Bear: up on the high deck by the funnel — the steam takes you there
+      L.pipe(116, 4); L.steam(112, 9); L.semi(109, 116, 7); L.bear(110, 7);
+      L.plat(122, 14, 3, { bob: true, look: 'lifeboat', dx: 2, speed: 0.4 });
+      L.ground(127, 220);
+      L.e('gull', 133, 9); L.e('crab', 138);
+      L.row(142, R1, 'BMB');
+      L.steam(150, 8); L.semi(147, 155, 8); L.coins(148, 7, 6);
+      L.e('crab', 158); L.e('crab', 166);
+      L.pipe(162, 3);
+      L.e('gull', 170, 9);
+      L.row(172, R1, 'B?B');
+      L.stairs(178, 5);
+      L.goal(192);
+    }
+  });
+
+  /* 22 — Sunflower Fields. Hay bales, bees and hedgehogs — and a windmill
+     whose sails you ride round and up onto the high meadow. */
+  add({
+    name: 'SUNFLOWER FIELDS', theme: 'fields', w: 220, seed: 222,
+    build: function (L) {
+      L.ground(0, 70);
+      L.row(8, R1, '?P?');
+      L.e('snail', 18); L.e('bee', 26, 9);
+      L.row(30, R1, 'B?B');
+      L.e('hog', 36);
+      L.row(42, 15, 'cc'); L.row(42, 14, 'cc'); L.row(42, 13, 'c');
+      L.e('grumbug', 50);
+      // the windmill: four sails turning round the hub, up to the meadow
+      [0, 1.5708, 3.1416, 4.7124].forEach(function (ph) { L.plat(63, 9, 3, { circle: 4, phase: ph, speed: 0.011, spokes: true, look: 'sail' }); });
+      L.ground(70, 108, 8);
+      L.coins(73, 7, 5);
+      L.e('hog', 84, 8);
+      L.row(88, 4, 'B?B');
+      L.e('bee', 95, 5);
+      L.check(98, 8);
+      // Bear: on the roof of the hay barn, a hop up from the meadow
+      L.semi(101, 107, 4); L.bear(103, 4);
+      L.ground(108, 140);
+      L.e('snail', 116);
+      L.row(120, R1, 'BMB');
+      L.e('bee', 126, 9);
+      L.e('hog', 134);
+      L.ground(144, 175);
+      L.e('grumbug', 150); L.e('snail', 160);
+      L.row(164, R1, '?L?');
+      // a second windmill, over a stream
+      [0, 2.0944, 4.1888].forEach(function (ph) { L.plat(180, 10, 3, { circle: 4, phase: ph, speed: 0.012, spokes: true, look: 'sail' }); });
+      L.ground(186, 220);
+      L.e('hog', 190);
+      L.goal(196);
+    }
+  });
+
+  /* 23 — Market Village. Cobbles, cafés and snails; the market's stripy
+     awnings bounce you up to the balconies; pigeons everywhere. */
+  add({
+    name: 'MARKET VILLAGE', theme: 'village', w: 220, seed: 233,
+    build: function (L) {
+      L.ground(0, 40);
+      L.row(9, R1, '?P?');
+      L.e('snail', 18);
+      L.spring(24); L.semi(21, 30, 8); L.coins(22, 7, 6);
+      L.e('pigeon', 33, 9);
+      L.ground(44, 80);
+      L.e('snail', 50);
+      L.row(54, R1, 'B?B');
+      L.spring(61); L.row(59, 4, 'BMB');
+      L.e('pigeon', 66, 8);
+      L.pipe(70, 3);
+      L.e('grumbug', 76);
+      L.ground(85, 125);
+      L.check(90);
+      L.e('snail', 96);
+      // Bear: on a flower balcony — the awning below bounces you up
+      L.spring(102); L.semi(99, 107, 6); L.bear(101, 6);
+      L.e('pigeon', 109, 9);
+      L.row(112, R1, '?L?');
+      L.e('snail', 118);
+      L.ground(129, 220);
+      L.e('grumbug', 136);
+      L.spring(142); L.semi(146, 153, 9); L.spring(149, 9); L.coins(152, 3, 4);
+      L.e('pigeon', 156, 9);
+      L.e('snail', 164);
+      L.row(168, R1, 'B?B');
+      L.e('grumbug', 176);
+      L.stairs(179, 4);
+      L.goal(192);
+    }
+  });
+
+  /* 24 — The Bakery. Conveyor belts of bread, dough that bounces, shelves
+     to hop between — and croissants on the run. */
+  add({
+    name: 'THE BAKERY', theme: 'bakery', w: 210, seed: 244,
+    build: function (L) {
+      L.ground(0, 34);
+      L.row(8, R1, '?P?');
+      L.e('croissant', 18);
+      L.conveyor(22, 32, 1);
+      L.e('croissant', 28);
+      L.ground(38, 70);
+      L.conveyor(42, 52, -1);
+      L.spring(56); L.semi(53, 62, 9); L.coins(54, 8, 7);
+      L.e('croissant', 62);
+      L.row(64, R1, 'B?B');
+      L.plat(71, 14, 3, { fall: true });
+      L.ground(75, 116);
+      L.check(79);
+      L.e('croissant', 85); L.e('croissant', 92);
+      L.conveyor(96, 108, 1);
+      L.row(100, R1, 'BMB');
+      // Bear: on the top shelf, up from the dough
+      L.spring(111); L.semi(108, 115, 7); L.bear(110, 7);
+      L.ground(120, 210);
+      L.e('croissant', 126);
+      L.row(132, R1, '?L?');
+      L.e('croissant', 140);
+      L.conveyor(146, 160, -1);
+      L.e('croissant', 152);
+      L.spring(164); L.semi(161, 170, 9); L.coins(162, 8, 7);
+      L.e('croissant', 172);
+      L.stairs(174, 4);
+      L.goal(186);
+    }
+  });
+
+  /* 25 — Cheese Caves. Down in the cellars: wheels of cheese come rolling,
+     bats flit, and grumpy rocks wait under the roof. */
+  add({
+    name: 'CHEESE CAVES', theme: 'cheese', w: 210, seed: 255,
+    build: function (L) {
+      L.ceiling(0, 210, 2);
+      L.ground(0, 36);
+      L.row(8, R1, '?P?');
+      L.e('cheese', 20); L.e('bat', 28, 7);
+      L.ground(40, 74);
+      L.e('cheese', 48);
+      L.row(52, R1, 'B?B');
+      L.e('rock', 58, 2);
+      L.e('cheese', 62);
+      L.pipe(68, 2);
+      L.plat(75, 14, 3, { dx: 3, speed: 0.4 });
+      L.ground(82, 118);
+      L.check(86);
+      L.e('cheese', 94); L.e('bat', 100, 6);
+      L.row(104, R1, 'BMB');
+      // Bear: on a rack of cheeses — up the blocks, then a hop
+      L.row(108, R1, 'BB'); L.semi(110, 116, 7); L.bear(112, 7);
+      L.ground(122, 210);
+      L.e('cheese', 130);
+      L.row(136, R1, '?L?');
+      L.e('rock', 140, 2);
+      L.e('cheese', 144);
+      L.e('bat', 150, 7);
+      L.e('cheese', 158);
+      L.stairs(164, 4);
+      L.e('cheese', 172);
+      L.goal(186);
+    }
+  });
+
+  /* 26 — Paris Rooftops. From roof to roof over the streets below, with
+     pigeons; a chimney's steam lifts you to the tallest roof. */
+  add({
+    name: 'PARIS ROOFTOPS', theme: 'roofs', w: 220, seed: 266,
+    build: function (L) {
+      L.ground(0, 30, 14);
+      L.row(8, 9, '?P?');
+      L.e('pigeon', 22, 8);
+      L.ground(34, 56, 12);
+      L.pipe(40, 2, false, 12);
+      L.e('grumbug', 46, 12);
+      L.e('pigeon', 50, 6);
+      L.ground(60, 74, 15);
+      // the chimney's steam, right beside the tall house: up, and step across onto its roof
+      L.steam(72, 9, 15);
+      L.ground(74, 96, 7);
+      L.coins(76, 6, 5);
+      L.e('pigeon', 86, 3);
+      L.e('grumbug', 90, 7);
+      L.ground(100, 130, 12);
+      L.check(103, 12);
+      L.e('pigeon', 110, 6);
+      L.row(112, 7, 'BMB');
+      // Bear: on top of a chimney stack, a hop from its pots
+      L.pipe(120, 3, false, 12); L.semi(122, 128, 6); L.bear(124, 6);
+      L.ground(134, 160, 14);
+      L.e('grumbug', 140, 14);
+      L.steam(146, 7, 14); L.semi(143, 151, 7); L.coins(144, 6, 6);
+      L.e('pigeon', 154, 8);
+      L.ground(164, 184, 13);
+      L.row(170, 8, '?L?');
+      L.e('grumbug', 178, 13);
+      // down from the roofs to the street, where the Yeti's waiting
+      L.ground(184, 220);
+      L.goal(194);
+    }
+  });
+
+  /* 27 — The Metro. Under the city: platforms, and trains to ride across
+     the tracks between them; suitcases hop about, looking for their owners. */
+  add({
+    name: 'THE METRO', theme: 'metro', w: 230, seed: 277,
+    build: function (L) {
+      L.ceiling(0, 196, 3);
+      L.ground(0, 40);
+      L.row(9, R1, '?P?');
+      L.e('suitcase', 20); L.e('suitcase', 32);
+      L.plat(40, 14, 6, { dx: 6, speed: 0.55, look: 'train' });
+      L.ground(52, 86);
+      L.e('suitcase', 60);
+      L.row(64, R1, 'B?B');
+      L.e('grumbug', 72);
+      L.pipe(78, 2);
+      L.plat(86, 14, 6, { dx: 4, speed: 0.6, look: 'train' });
+      L.ground(96, 132);
+      L.check(100);
+      L.e('suitcase', 108);
+      L.row(112, R1, 'BMB');
+      // Bear: on top of the ticket machines
+      L.row(116, R1, 'BB'); L.semi(118, 124, 7); L.bear(120, 7);
+      L.plat(132, 14, 6, { dx: 6, speed: 0.55, look: 'train' });
+      L.ground(144, 230);
+      L.e('suitcase', 152); L.e('grumbug', 160);
+      L.row(166, R1, '?L?');
+      L.e('suitcase', 174); L.e('suitcase', 184);
+      // up the steps and out into the street
+      L.stairs(196, 4);
+      L.goal(206);
+    }
+  });
+
+  /* 28 — The Eiffel Tower. All the way up: girders to climb, a lift to
+     ride, pigeons at every level — and the Yeti somehow at the top. */
+  add({
+    name: 'EIFFEL TOWER', theme: 'tower', w: 124, h: 44, gr: 42, seed: 288,
+    build: function (L) {
+      var g = 42;
+      L.start = { x: 3, row: g };
+      // the ground only at the foot: beyond it, nothing but the city far below
+      L.ground(0, 34, g);
+      L.row(8, g - 5, '?P?');
+      L.e('grumbug', 26, g);
+      // the first climb: girders three rows apart, each overlapping the next
+      L.semi(14, 23, 39); L.semi(21, 30, 36); L.semi(14, 23, 33); L.semi(21, 30, 30);
+      L.coins(16, 38, 4); L.coins(23, 35, 4); L.coins(16, 32, 4);
+      // the first deck
+      L.box(30, 27, 60, 29);
+      L.e('pigeon', 40, 22);
+      L.e('grumbug', 48, 27);
+      L.row(44, 22, 'B?B');
+      // Bear: on a girder out over the deck's edge
+      L.semi(52, 58, 23); L.bear(54, 23);
+      // the lift, up to the second deck
+      L.plat(61, 26, 3, { dy: -8, speed: 0.4 });
+      L.box(65, 18, 96, 20);
+      L.check(68, 18);
+      L.e('pigeon', 76, 13);
+      L.e('grumbug', 82, 18);
+      L.row(78, 13, '?L?');
+      // the last climb, to the very top
+      L.semi(88, 97, 15); L.semi(95, 104, 12); L.semi(88, 97, 9);
+      L.coins(90, 14, 4); L.coins(97, 11, 4);
+      L.box(97, 9, 124, 11);
+      L.e('pigeon', 104, 4);
+      L.goal(102, 9);
+    }
+  });
+
+  /* 29 — Disneyland Paris. The park! Bouncy castles, carousel horses
+     riding up and down, spinning teacups, a parade float to ride, toy
+     soldiers marching — and Bear up on the carousel's roof. */
+  add({
+    name: 'DISNEYLAND PARIS', theme: 'magic', w: 230, seed: 299,
+    build: function (L) {
+      L.ground(0, 64);
+      L.row(9, R1, '?P?');
+      L.e('soldier', 20);
+      L.spring(26); L.semi(23, 32, 8); L.coins(24, 7, 7);
+      L.e('soldier', 34);
+      // the carousel: horses going up and down, and its roof to climb to
+      [44, 48, 52, 56].forEach(function (x) { L.plat(x, 12, 2, { wave: 1.5, look: 'horse' }); });
+      L.semi(42, 60, 6); L.coins(44, 5, 4); L.bear(52, 6);
+      // the teacups, spinning over the pond
+      [0, 2.0944, 4.1888].forEach(function (ph) { L.plat(70, 12, 3, { circle: 3, phase: ph, speed: 0.014, look: 'teacup' }); });
+      L.ground(77, 110);
+      L.check(81);
+      L.e('soldier', 88); L.e('pigeon', 94, 9);
+      L.row(96, R1, 'BMB');
+      L.e('soldier', 104);
+      // the parade float, back and forth along the parade route
+      L.plat(110, 13, 5, { dx: 11, speed: 0.5, look: 'float' });
+      L.ground(126, 230);
+      L.e('soldier', 134);
+      L.spring(140); L.semi(137, 146, 8); L.coins(138, 7, 7);
+      L.row(150, R1, '?L?');
+      L.e('pigeon', 156, 9);
+      L.e('soldier', 162); L.e('soldier', 172);
+      L.row(176, R1, 'B?B');
+      L.stairs(184, 5);
+      L.goal(200);
+    }
+  });
+
+  /* 30 — Fireworks Night. The castle at night, fireworks overhead, toy
+     soldiers on guard — and in the courtyard, Rascal the Fox with Brocco.
+     He scampers and throws baguettes; when he leaps and lands in a dizzy
+     heap, stomp him. Three stomps and Brocco is free. */
+  add({
+    name: 'FIREWORKS NIGHT', theme: 'night', w: 212, seed: 3030, boss: true,
+    build: function (L) {
+      L.ground(0, 36);
+      L.row(8, R1, '?P?');
+      L.e('soldier', 20);
+      L.spring(28); L.semi(25, 33, 8); L.coins(26, 7, 6);
+      L.plat(37, 14, 3, { wave: 1 });
+      L.ground(42, 80);
+      L.e('soldier', 48); L.e('pigeon', 56, 9);
+      L.row(60, R1, 'BB?BB');
+      L.e('soldier', 68);
+      L.plat(81, 13, 3, { dx: 4, speed: 0.45 });
+      L.ground(90, 120);
+      L.check(94);
+      L.e('soldier', 100); L.e('soldier', 110);
+      L.row(104, R1, 'BSB');
+      // Bear: on the castle's balcony, a hop from the blocks
+      L.row(114, R1, 'BB'); L.semi(116, 120, 7); L.bear(117, 7);
+      L.plat(121, 14, 3, { wave: 1 });
+      L.ground(126, 212);
+      L.row(132, R1, 'P'); L.row(136, R1, 'L');
+      L.e('soldier', 146); L.e('pigeon', 152, 9);
+      // the courtyard: the gate shuts behind you, and there's Rascal
+      L.e('gate', 166, 15);
+      L.e('fox', 196, 16, { ax0: 168, ax1: 206 });
       L.box(206, 2, 212, 16, TL.HARD);
     }
   });

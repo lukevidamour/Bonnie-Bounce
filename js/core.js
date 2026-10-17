@@ -701,6 +701,8 @@
     // Bear, found: a little meow that rises and falls
     // half a heart back: three soft rising notes
     heal: function () { arp(['E6', 'G#6', 'B6'], 0.06, { duty: 0.5, vol: 0.03 }); },
+    // the family car's horn: a friendly two-note toot-toot
+    toot: function () { voice(392, 392, 0.09, { duty: 0.5, vol: 0.035 }); voice(330, 330, 0.14, { duty: 0.5, vol: 0.035, at: 0.13 }); },
     meow: function () { voice(560, 860, 0.12, { duty: 0.25, vol: 0.035, vib: 1 }); voice(860, 470, 0.26, { duty: 0.25, vol: 0.035, at: 0.12, vib: 1 }); },
     purr: function () { voice(1.2, 0.9, 0.35, { noise: 0, vol: 0.025, sustain: 0.25 }); }
   };

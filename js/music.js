@@ -354,6 +354,201 @@
           r('C2 . . C2 . . C2 C3', 2), r('G2 . . G2 . . G2 G3', 2), 'Eb2 . . Eb2 . . Eb2 Eb3 D2 . . D2 . . D2 D3', r('D2 . . D2 . . D2 D3', 2)) },
         { noise: 0, vol: 0.011, notes: r('X . x X . x X x', 16) }
       ]
+    },
+
+    /* ---- The Big Trip: the third land, levels 21 to 30 ----------------- */
+
+    // the Big Trip's map: a slow café waltz in G, three beats to the bar
+    // (twelve steps, as on the reef), the calmest tune in the land. The
+    // tune wavers like an accordion, a reedier voice follows just under
+    // it, and the left hand goes oom-pah-pah. C to C minor is the Paris in it
+    map3: {
+      step: 0.13,
+      tracks: [
+        { duty: 0.5, vol: 0.024, vib: true, notes: j('B5 - - - - - D6 - - - B5 -', 'G5 - - - - - - - E5 - G5 -', 'A5 - - - - - C6 - - - E6 -', 'Eb6 - - - - - - - C6 - G5 -',
+          'D6 - - - - - B5 - - - G5 -', 'G#5 - - - - - B5 - - - D6 -', 'C6 - - - - - A5 - - - F#5 -', 'G5 - - - - - - - . . . .') },
+        { duty: 0.25, vol: 0.009, notes: j('G5 - - - - - B5 - - - G5 -', 'E5 - - - - - - - B4 - E5 -', 'E5 - - - - - G5 - - - C6 -', 'C6 - - - - - - - G5 - Eb5 -',
+          'B5 - - - - - G5 - - - D5 -', 'E5 - - - - - G#5 - - - B5 -', 'A5 - - - - - F#5 - - - D5 -', 'B4 - - - - - - - . . . .') },
+        { duty: 0.125, vol: 0.009, notes: j('. . . . G4 . . . B4 . . .', '. . . . G4 . . . B4 . . .', '. . . . E4 . . . G4 . . .', '. . . . Eb4 . . . G4 . . .',
+          '. . . . D4 . . . G4 . . .', '. . . . D4 . . . G#4 . . .', '. . . . E4 . . . F#4 . . .', '. . . . G4 . . . B4 . . .') },
+        { wave: 'tri', vol: 0.085, notes: j('G2 - - . . . . . . . . .', 'E2 - - . . . . . . . . .', 'C3 - - . . . . . . . . .', 'C3 - - . . . . . . . . .',
+          'B2 - - . . . . . . . . .', 'E2 - - . . . . . . . . .', 'A2 - - . . . . . D3 - - .', 'G2 - - . . . . . D3 - - .') }
+      ]
+    },
+    // The Ferry: a bright, breezy 6/8 in E, quicker than the harbour's
+    // shanty. The tune climbs like a gust and coasts down again, and the
+    // thin voice rolls up and down the chord all the way, the swell
+    // under the deck
+    ferry: {
+      step: 0.095,
+      tracks: [
+        { duty: 0.25, vol: 0.026, notes: j('E5 - G#5 - B5 - - - A5 - G#5 -', 'C#6 - - - B5 - A5 - - - E5 -', 'G#5 - - - - - F#5 - G#5 - B5 -', 'F#5 - - - - - - - - - . .',
+          'E5 - G#5 - B5 - C#6 - - - B5 -', 'E6 - - - C#6 - A5 - - - C#6 -', 'D#6 - - - F#6 - B5 - - - A5 -', 'G#5 - - - - - E5 - - - . .') },
+        { duty: 0.125, vol: 0.01, notes: j('E4 - G#4 - B4 - E5 - B4 - G#4 -', 'E4 - A4 - C#5 - E5 - C#5 - A4 -', 'E4 - G#4 - B4 - E5 - B4 - G#4 -', 'D#4 - F#4 - B4 - D#5 - B4 - F#4 -',
+          'E4 - G#4 - B4 - E5 - B4 - G#4 -', 'E4 - A4 - C#5 - E5 - C#5 - A4 -', 'D#4 - F#4 - A4 - B4 - A4 - F#4 -', 'E4 - G#4 - B4 - E5 - B4 - G#4 -') },
+        { wave: 'tri', vol: 0.09, notes: j('E2 - - - - . B2 - - - - .', 'A2 - - - - . E2 - - - - .', 'G#2 - - - - . B2 - - - - .', 'B2 - - - - . F#2 - - - - .',
+          'E2 - - - - . B2 - - - - .', 'A2 - - - - . C#3 - - - - .', 'B2 - - - - . A2 - - - - .', 'G#2 - - - - . E2 - - - - .') },
+        { noise: 1, vol: 0.011, notes: r('x . x . x . X . . . x .', 8) }
+      ]
+    },
+    // Sunflower Fields: a skipping tune in F, every beat a long note and
+    // a short one, over a bass as steady as a farm track. The thin voice
+    // turns three notes against four, the windmill's sails
+    fields: {
+      step: 0.1,
+      tracks: [
+        { duty: 0.5, vol: 0.026, notes: j('A5 - - G5 A5 - - C6 F6 - - - - - C6 -', 'Bb5 - - D6 F6 - - Eb6 D6 - - Bb5 G5 - - -', 'C6 - - A5 F6 - - E6 C6 - - Bb5 A5 - - -', 'G5 - - - - - . . E5 - - G5 Bb5 - C6 -',
+          'A5 - - G5 A5 - - C6 F6 - - - - - C6 -', 'D6 - - A5 F6 - - E6 D6 - - - A5 - - -', 'Bb5 - - A5 G5 - - Bb5 C6 - - Bb5 G5 - E5 -', 'F5 - - - - - - - . . . . . . . .') },
+        { duty: 0.125, vol: 0.01, notes: j('F4 . A4 . C5 . F4 . A4 . C5 . F4 . A4 .', 'F4 . Bb4 . D5 . F4 . Bb4 . D5 . F4 . Bb4 .', 'F4 . A4 . C5 . F4 . A4 . C5 . F4 . A4 .', 'E4 . G4 . Bb4 . E4 . G4 . Bb4 . E4 . G4 .',
+          'F4 . A4 . C5 . F4 . A4 . C5 . F4 . A4 .', 'F4 . A4 . D5 . F4 . A4 . D5 . F4 . A4 .', 'G4 . Bb4 . D5 . G4 . E4 . G4 . Bb4 . E4 .', 'F4 . A4 . C5 . F4 . A4 . C5 . F4 . A4 .') },
+        { wave: 'tri', vol: 0.09, notes: j('F2 - - . C3 - - . F2 - - . C3 - - .', 'Bb2 - - . F2 - - . Bb2 - - . F2 - - .', 'F2 - - . C3 - - . F2 - - . C3 - - .', 'C3 - - . G2 - - . C3 - - . Bb2 - - .',
+          'F2 - - . C3 - - . F2 - - . C3 - - .', 'D3 - - . A2 - - . D3 - - . A2 - - .', 'G2 - - . D3 - - . C3 - - . G2 - - .', 'F2 - - . C3 - - . F2 - - . . . . .') },
+        { noise: 1, vol: 0.012, notes: r('x . . x X . . . x . . x X . . .', 8) }
+      ]
+    },
+    // Market Village: a bouncy musette in C. The bass walks every beat
+    // and the thin voice answers on every 'and', like an accordion's left
+    // hand; the tune keeps hopping up to its notes from a step below, and
+    // F to F minor gives it a wink near the end
+    village: {
+      step: 0.09,
+      tracks: [
+        { duty: 0.25, vol: 0.026, notes: j('E5 - - G5 C6 . . B5 C6 . G6 . E6 . C6 .', 'G5 - - B5 D6 . . C#6 D6 . F6 . D6 . B5 .', 'A5 - - C6 E6 . . D#6 E6 . C6 . A5 . . .', 'F#5 - - A5 C6 . . A5 B5 . D6 . F6 . D6 .',
+          'E5 - - G5 C6 . . B5 C6 . G6 . E6 . C6 .', 'F5 - - A5 C6 . . B5 C6 . F6 . Ab5 . . .', 'G5 - - C6 E6 . . G6 F6 . . . D6 . B5 .', 'C6 - . . G5 . C6 . E6 . . . . . . .') },
+        { duty: 0.125, vol: 0.01, notes: j('. . E4 . . . G4 . . . E4 . . . G4 .', '. . D4 . . . F4 . . . D4 . . . F4 .', '. . E4 . . . A4 . . . E4 . . . A4 .', '. . F#4 . . . C5 . . . F4 . . . B4 .',
+          '. . E4 . . . G4 . . . E4 . . . G4 .', '. . F4 . . . A4 . . . F4 . . . Ab4 .', '. . E4 . . . G4 . . . F4 . . . B4 .', '. . E4 . . . G4 . . . E4 . . . . .') },
+        { wave: 'tri', vol: 0.09, notes: j('C3 - . . G2 - . . C3 - . . G2 - . .', 'G2 - . . D3 - . . G2 - . . B2 - . .', 'A2 - . . E3 - . . A2 - . . E3 - . .', 'D3 - . . A2 - . . G2 - . . B2 - . .',
+          'C3 - . . G2 - . . C3 - . . G2 - . .', 'F2 - . . C3 - . . F2 - . . Ab2 - . .', 'G2 - . . C3 - . . G2 - . . B2 - . .', 'C3 - . . G2 - . . C2 - . . . . . .') },
+        { noise: 1, vol: 0.013, notes: r('x . . x X . x . x . . x X . x .', 8) }
+      ]
+    },
+    // The Bakery: warm and a bit silly, in Bb. The tune kneads the same
+    // note three times and then pops up like dough, the bass plops down
+    // and bounces up the octave, and the thin voice never stops working
+    // the dough: push, fold, push
+    bakery: {
+      step: 0.095,
+      tracks: [
+        { duty: 0.5, vol: 0.024, notes: j('D5 . D5 . D5 - . F5 - . Bb5 - - - . .', 'C5 . C5 . C5 - . Eb5 - . A5 - - - . .', 'D5 . D5 . D5 - . F5 - . Bb5 - D6 - F6 -', 'Eb6 - . . Bb5 - . G5 A5 - . . C6 - . .',
+          'D5 . D5 . D5 - . G5 - . Bb5 - - - . .', 'Eb5 . Eb5 . Eb5 - . G5 - . C6 - - - . .', 'F5 . A5 . C6 - . Eb6 - . D6 - C6 - A5 -', 'Bb5 - . . F5 - . . Bb4 - - - . . . .') },
+        { duty: 0.125, vol: 0.009, notes: j(r('D4 F4 D4 .', 4), r('C4 Eb4 C4 .', 4), r('D4 F4 D4 .', 4), 'Eb4 G4 Eb4 . Eb4 G4 Eb4 . C4 Eb4 C4 . C4 Eb4 C4 .',
+          r('D4 G4 D4 .', 4), r('Eb4 G4 Eb4 .', 4), r('C4 Eb4 C4 .', 4), r('D4 F4 D4 .', 4)) },
+        { wave: 'tri', vol: 0.09, notes: j('Bb2 - . . Bb3 - . . F2 - . . F3 - . .', 'F2 - . . F3 - . . C2 - . . C3 - . .', 'Bb2 - . . Bb3 - . . F2 - . . F3 - . .', 'Eb2 - . . Eb3 - . . F2 - . . F3 - . .',
+          'G2 - . . G3 - . . D2 - . . D3 - . .', 'C2 - . . C3 - . . G2 - . . G3 - . .', 'F2 - . . F3 - . . C2 - . . C3 - . .', 'Bb2 - . . F2 - . . Bb1 - - - . . . .') },
+        { noise: 1, vol: 0.012, notes: r('x . x . X . . . x . x . X . . .', 8) }
+      ]
+    },
+    // Cheese Caves: E minor, but with a bright C# (Dorian) so the dark is
+    // a cosy one. Every note is plucked short, the tune keeps rolling round
+    // a little turn like a wheel of cheese, the bass bowls along in threes,
+    // and the soft long notes are the lantern light
+    cheese: {
+      step: 0.12,
+      tracks: [
+        { duty: 0.25, vol: 0.026, notes: j('E5 . . . G5 A5 G5 F#5 G5 . . . B5 . . .', 'A5 . . . C#6 D6 C#6 B5 C#6 . . . E6 . . .', 'B5 . . . D6 E6 D6 C#6 D6 . . . G5 . . .', 'A5 . . . F#5 G5 A5 G5 F#5 . . . D5 . . .',
+          'E6 . . . C6 . . . G5 . B5 . A5 . . .', 'C#6 . . . E6 F#6 E6 D6 E6 . . . A5 . . .', 'D#6 . . . F#6 G6 F#6 E6 F#6 . . . B5 . . .', 'E6 . . . B5 . . . G5 . . . B4 . . .') },
+        { duty: 0.5, vol: 0.008, notes: j('B4 - - - - - - - G4 - - - - - - -', 'A4 - - - - - - - C#5 - - - - - - -', 'B4 - - - - - - - G4 - - - - - - -', 'A4 - - - - - - - F#4 - - - - - - -',
+          'G4 - - - - - - - E4 - - - - - - -', 'A4 - - - - - - - C#5 - - - - - - -', 'A4 - - - - - - - D#5 - - - - - - -', 'G4 - - - - - - - B4 - - - - - - -') },
+        { wave: 'tri', vol: 0.09, notes: j('E2 . . B2 . . E3 . E2 . . B2 . . G2 .', 'A2 . . E3 . . A3 . A2 . . E3 . . C#3 .', 'E2 . . B2 . . E3 . E2 . . B2 . . G2 .', 'D2 . . A2 . . D3 . D2 . . A2 . . F#2 .',
+          'C2 . . G2 . . C3 . C2 . . G2 . . E2 .', 'A2 . . E3 . . A3 . A2 . . E3 . . C#3 .', 'B1 . . F#2 . . B2 . B1 . . F#2 . . D#2 .', 'E2 . . B2 . . E3 . E2 . . B2 . . B1 .') },
+        { noise: 0, vol: 0.006, notes: r('. . x . . . . . . . . . . . x .', 8) }
+      ]
+    },
+    // Paris Rooftops: D minor on tiptoe. The tune creeps on short notes,
+    // freezes, then hops a chimney (the leap at the end of the bar, with a
+    // snare on the jump); halfway it stops on long notes to watch the
+    // sunset. The thin voice tiptoes in pairs and the bass creeps along
+    roofs: {
+      step: 0.1,
+      tracks: [
+        { duty: 0.25, vol: 0.026, notes: j('D5 . A4 . F5 . A4 . . . . . A5 D6 - -', 'C6 . . . G5 . A5 . F5 . D5 . . . . .', 'G5 . D5 . Bb5 . D5 . . . . . D6 G6 - -', 'G6 . . . E6 . C#6 . A5 . . . E5 . . .',
+          'D5 . A4 . F5 . A4 . . . . . A5 D6 - -', 'D6 - - - F6 - - - D6 - Bb5 - F5 - - -', 'E5 - G5 - Bb5 - - - A5 - C#6 - E6 - - -', 'F6 . . . E6 . . . D6 . . . . . . .') },
+        { duty: 0.125, vol: 0.009, notes: j('. . A4 F4 . . . . . . A4 F4 . . . .', '. . A4 F4 . . . . . . A4 F4 . . . .', '. . Bb4 G4 . . . . . . Bb4 G4 . . . .', '. . C#5 A4 . . . . . . G4 E4 . . . .',
+          '. . A4 F4 . . . . . . A4 F4 . . . .', '. . D5 Bb4 . . . . . . F4 D4 . . . .', '. . E4 G4 . . . . . . C#5 G4 . . . .', '. . A4 F4 . . . . . . . . . . . .') },
+        { wave: 'tri', vol: 0.085, notes: j('D3 - . . A2 - . . D3 - . . A2 - . .', 'D3 - . . A2 - . . D3 - . . A2 - . .', 'G2 - . . D3 - . . G2 - . . D3 - . .', 'A2 - . . E3 - . . A2 - . . C#3 - . .',
+          'D3 - . . A2 - . . D3 - . . A2 - . .', 'Bb2 - . . F2 - . . Bb2 - . . D3 - . .', 'G2 - . . D3 - . . A2 - . . E3 - . .', 'D3 - . . A2 - . . D2 - . . . . . .') },
+        { noise: 1, vol: 0.01, notes: r('x . . . . . x . x . . . X . . .', 8) }
+      ]
+    },
+    // The Metro: E minor at full steam. The bass and the snare chug
+    // together (CHUG, a-chugga), the tune drives on with two repeated notes
+    // and a leap, then sings long notes over the rattle, and the thin voice
+    // clatters along like wheels on the rails
+    metro: {
+      step: 0.085,
+      tracks: [
+        { duty: 0.25, vol: 0.026, notes: j('B5 - . B5 - . E6 - D6 - B5 - - - G5 -', 'C6 - . C6 - . E6 - D6 - C6 - - - G5 -', 'D6 - . D6 - . F#6 - E6 - D6 - - - A5 -', 'D#6 - . D#6 - . F#6 - A6 - F#6 - D#6 - B5 -',
+          'G6 - - - - - - - E6 - - - B5 - G5 -', 'C6 - - - - - - - G6 - - - E6 - C6 -', 'F#6 - - - - - - - E6 - - - D6 - A5 -', 'D#6 - - - - - - - F#6 - - - B5 - - -') },
+        { duty: 0.125, vol: 0.01, notes: j(ar('E4', 'G4', 'B4'), ar('E4', 'G4', 'C5'), ar('D4', 'F#4', 'A4'), ar('D#4', 'F#4', 'B4'),
+          ar('E4', 'G4', 'B4'), ar('E4', 'G4', 'C5'), ar('D4', 'F#4', 'A4'), ar('D#4', 'F#4', 'A4')) },
+        { wave: 'tri', vol: 0.085, notes: j(r('E2 . E2 E3', 4), r('C2 . C2 C3', 4), r('D2 . D2 D3', 4), r('B1 . B1 B2', 4),
+          r('E2 . E2 E3', 4), r('C2 . C2 C3', 4), r('D2 . D2 D3', 4), r('B1 . B1 B2', 4)) },
+        { noise: 1, vol: 0.012, notes: r('X . x x x . x x X . x x x . x x', 8) }
+      ]
+    },
+    // Eiffel Tower: C major, climbing. The bass climbs a step every bar, a
+    // whole octave by the top, the thin voice runs up the chord like
+    // stairs, and the tune holds each brave long note a step higher than
+    // the last, with a snare roll at the summit
+    tower: {
+      step: 0.1,
+      tracks: [
+        { duty: 0.25, vol: 0.026, notes: j('G5 - - - - - - - - - - . E5 - - G5', 'A5 - - - - - - - - - - . F5 - - A5', 'B5 - - - - - - - - - - . G5 - - B5', 'C6 - - - - - - - A5 - C6 - F6 - - -',
+          'D6 - - - - - - - B5 - D6 - G6 - - -', 'E6 - - - - - - - C6 - E6 - A6 - - -', 'G6 - - - - - F6 - D6 - - - B5 - D6 -', 'C6 - - - - - - - - - - - . . . .') },
+        { duty: 0.125, vol: 0.01, notes: j(r('C4 . E4 . G4 . C5 .', 2), r('D4 . F4 . A4 . D5 .', 2), r('E4 . G4 . B4 . E5 .', 2), r('F4 . A4 . C5 . F5 .', 2),
+          r('G4 . B4 . D5 . G5 .', 2), r('A4 . C5 . E5 . A5 .', 2), r('B4 . D5 . G5 . B5 .', 2), r('C5 . E5 . G5 . C6 .', 2)) },
+        { wave: 'tri', vol: 0.09, notes: j(r('C2 .', 8), r('D2 .', 8), r('E2 .', 8), r('F2 .', 8), r('G2 .', 8), r('A2 .', 8), r('B2 .', 8), r('C3 .', 8)) },
+        { noise: 1, vol: 0.013, notes: j(r('x . x . X . x . x . x . X . x .', 6), 'x . x . X . x . x . x . X . X X', 'X . . . X . . . X . X . X X X X') }
+      ]
+    },
+    // Disneyland Paris: the happiest tune in the game, a parade in D. The
+    // tune drops down the chord and races back up, then calls out like a
+    // fanfare; the bass marches, the drum rattles, and the thin voice
+    // sparkles all the way
+    magic: {
+      step: 0.09,
+      tracks: [
+        { duty: 0.25, vol: 0.028, notes: j('F#6 - - D6 A5 - - - - - C#6 D6 E6 - F#6 -', 'G6 - - - - - D6 - E6 - - - D6 - B5 -', 'E6 - - B5 G#5 - - - - - B5 C#6 D6 - E6 -', 'A6 - - - - - E6 - C#6 - - - A5 - C#6 -',
+          'F#6 - - - A6 - - - F#6 - D6 - A5 - D6 -', 'D#6 - - - F#6 - - - A6 - - - F#6 - D#6 -', 'E6 - - - G6 - - - C#6 - - - E6 - G6 -', 'F#6 - - - - - - - D6 - - - . . . .') },
+        { duty: 0.125, vol: 0.009, notes: j(ar('D5', 'F#5', 'A5'), ar('D5', 'G5', 'B5'), ar('D5', 'G#5', 'B5'), ar('C#5', 'E5', 'A5'),
+          ar('D5', 'F#5', 'A5'), ar('D#5', 'F#5', 'A5'), 'E5 G5 B5 G5 E5 G5 B5 G5 C#5 E5 G5 E5 C#5 E5 G5 E5', ar('D5', 'F#5', 'A5')) },
+        { wave: 'tri', vol: 0.09, notes: j('D3 - . . A2 - . . D3 - . . A2 - . .', 'G2 - . . D3 - . . G2 - . . D3 - . .', 'E2 - . . B2 - . . E2 - . . G#2 - . .', 'A2 - . . E2 - . . A2 - . . C#3 - . .',
+          'D3 - . . A2 - . . D3 - . . A2 - . .', 'B2 - . . F#2 - . . B2 - . . D#3 - . .', 'E2 - . . B2 - . . A2 - . . C#3 - . .', 'D3 - . . A2 - . . D2 - . . . . . .') },
+        { noise: 1, vol: 0.015, notes: r('X . x x x . x . X . x x x . x .', 8) }
+      ]
+    },
+    // Fireworks Night: C# minor, hushed and a little jumpy. Long notes
+    // reach up in pairs like eyes to the sky, the bass beats like a heart,
+    // high glints of light flicker, and twice a firework goes off: a run
+    // whooshing up and a pop as it bursts. The D major (a step above C#)
+    // is the fairy-tale shiver
+    night: {
+      step: 0.12,
+      tracks: [
+        { duty: 0.5, vol: 0.022, vib: true, notes: j('G#5 - - - - - - - E6 - - - . . . .', 'C#6 - - - - - - - E6 - - - . . . .', 'A5 - - - - - - - F#6 - - - . . . .', 'C6 - - - - - - - D#6 - - - . . . .',
+          'G#5 - - - - - - - E6 - - - . . . .', 'C#6 - - - - - - - A6 - - - . . . .', 'F#6 - - - - - - - D6 - - - A5 - - -', 'C6 - - - - - - - D#6 - - - . . . .') },
+        { duty: 0.125, vol: 0.008, notes: j('. . G#6 . . . C#6 . . . G#6 . . . . E6', '. . A6 . . . E6 . . . C#6 . . . . A5', '. . F#6 . . . A6 . . . C#6 . . . A6 .', '. . . . . . . . G#4 C5 D#5 F#5 G#5 C6 D#6 G#6',
+          '. . G#6 . . . C#6 . . . G#6 . . . . E6', '. . E6 . . . A6 . . . C#6 . . . E6 .', '. . A6 . . . D6 . . . F#6 . . . D6 .', '. . . . . . . . G#4 C5 D#5 F#5 G#5 C6 D#6 G#6') },
+        { wave: 'tri', vol: 0.08, notes: j('C#3 - C#3 - . . . . G#2 - G#2 - . . . .', 'A2 - A2 - . . . . E2 - E2 - . . . .', 'F#2 - F#2 - . . . . C#3 - C#3 - . . . .', 'G#2 - G#2 - . . . . D#2 - D#2 - . . . .',
+          'C#3 - C#3 - . . . . G#2 - G#2 - . . . .', 'A2 - A2 - . . . . E2 - E2 - . . . .', 'D3 - D3 - . . . . A2 - A2 - . . . .', 'G#2 - G#2 - . . . . G#2 - G#2 - . . . .') },
+        { noise: 1, vol: 0.008, notes: j('X . x . . . x . . . x . . . x .', r('. . x . . . x . . . x . . . x .', 3), 'X . x . . . x . . . x . . . x .', r('. . x . . . x . . . x . . . x .', 3)) }
+      ]
+    },
+    // Rascal the Fox: the third boss, a cheeky chase in F minor. The tune
+    // darts to and fro round a high note like a fox dodging, sticks its
+    // tongue out (a quick note a step up and straight back), then bursts
+    // into A flat major, because he's having far too much fun
+    boss3: {
+      step: 0.08,
+      tracks: [
+        { duty: 0.25, vol: 0.024, notes: j('C6 . F5 . C6 . Ab5 . C6 . G5 . C6 . F5 .', 'E5 . G5 . Bb5 . . . C6 . . Db6 C6 . . .', 'C6 . F5 . C6 . Ab5 . C6 . G5 . C6 . F6 .', 'F6 . Db6 . Ab5 . . . G5 . E5 . C5 . . .',
+          'Eb6 . Ab5 . Eb6 . C6 . Eb6 . Bb5 . Eb6 . Ab5 .', 'Eb6 . Bb5 . G5 . . . G6 . . Ab6 G6 . . .', 'F6 . Db6 . Ab5 . Db6 . F6 . Db6 . Ab5 . F5 .', 'E6 . C6 . G5 . Bb5 . C6 . Db6 . C6 . . .') },
+        { duty: 0.125, vol: 0.01, notes: j(ar('F4', 'Ab4', 'C5'), ar('E4', 'G4', 'Bb4'), ar('F4', 'Ab4', 'C5'), 'F4 Ab4 Db5 Ab4 F4 Ab4 Db5 Ab4 E4 G4 C5 G4 E4 G4 Bb4 G4',
+          ar('Eb4', 'Ab4', 'C5'), ar('Eb4', 'G4', 'Bb4'), ar('F4', 'Ab4', 'Db5'), ar('E4', 'G4', 'Bb4')) },
+        { wave: 'tri', vol: 0.09, notes: j(r('F2 . . F2 F3 . F2 .', 2), r('C2 . . C2 C3 . C2 .', 2), r('F2 . . F2 F3 . F2 .', 2), 'Db2 . . Db2 Db3 . Db2 . C2 . . C2 C3 . C2 .',
+          r('Ab2 . . Ab2 Ab3 . Ab2 .', 2), r('Eb2 . . Eb2 Eb3 . Eb2 .', 2), r('Db2 . . Db2 Db3 . Db2 .', 2), r('C2 . . C2 C3 . C2 .', 2)) },
+        { noise: 1, vol: 0.012, notes: r('x . x x X . x . x x . x X . x x', 8) }
+      ]
     }
   };
 })();
