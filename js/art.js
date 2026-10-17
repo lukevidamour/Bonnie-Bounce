@@ -281,7 +281,11 @@
       tex: function (x, y) { return x === o + 16 && y > top + B.short[1] + 2 ? 'K' : 'k'; } });
     // the jumper, its ribbed hem, the shirt's V and collar, the crest
     parts.push({ c: 'b', f: rrect(o + t[0], top + t[1], o + t[2], top + t[3], 3), line: 'B',
-      tex: function (x, y) { return y >= top + B.hem ? ((x & 1) ? 'b' : 'B') : 'b'; } });
+      tex: function (x, y) {
+        // a football kit's stripe down the middle: red ('y' in the kit's colours) edged in white
+        if (KIT === 'stripe') { var dx = Math.abs(x + 0.5 - (o + 16)); if (dx < 2) return 'y'; if (dx < 3) return 'w'; }
+        return y >= top + B.hem ? ((x & 1) ? 'b' : 'B') : 'b';
+      } });
     parts.push({ c: 'w', f: function (x, y) { return y >= top && y < top + B.v && Math.abs(x - o - 16) < (top + B.v - y) * 0.8; }, line: 'B',
       tex: function (x, y) { return y < top + 2 ? 'W' : 'w'; } });
     var cy = top + B.crest, csz = B === BIG ? 1.7 : 1.1;
@@ -321,8 +325,10 @@
     });
     return parts;
   };
+  var KIT = null;
+  // poseName: one of POSES, or a pose of your own ({ arms, legs } in body coordinates) — see A.bonnie.pose
   var frame = function (size, poseName, kind) {
-    var B = size === 'b' ? BIG : SMALL, top = HEAD_H, H2 = top + B.h, pose = POSES[size][poseName];
+    var B = size === 'b' ? BIG : SMALL, top = HEAD_H, H2 = top + B.h, pose = typeof poseName === 'string' ? POSES[size][poseName] : poseName;
     var parts, neck = { c: 's', f: cap(HX + 17, 21, HX + 16.5, top + 1.5, size === 'b' ? 2.5 : 2.1), line: 'q' };
     if (poseName === 'crouch') { H2 = top + 13; parts = CROUCH(top).concat([neck], headParts()); }
     else parts = bodyParts(B, pose, top).concat([neck], headParts(), armParts(B, pose, top));
@@ -341,6 +347,27 @@
   P.b.throw = frame('b', 'throw');
   P.b.crouch = frame('b', 'crouch');
   P.s.up = P.s.jump; P.b.up = P.b.jump;
+  /* A set of every frame, built again with a pattern on the jumper: the
+     PSG kit's stripe. (Liverpool's all-red kit is colours alone.) */
+  var kitSet = function (kit) {
+    KIT = kit;
+    var K2 = { s: {}, b: {} };
+    ['idle', 'run1', 'run2', 'run3', 'cheer'].forEach(function (k) { K2.s[k] = frame('s', k); K2.b[k] = frame('b', k); });
+    K2.s.blink = frame('s', 'idle', 'blink'); K2.b.blink = frame('b', 'idle', 'blink');
+    K2.s.jump = frame('s', 'jump', 'wheee'); K2.b.jump = frame('b', 'jump', 'wheee');
+    K2.s.dead = frame('s', 'dead', 'hurt'); K2.b.dead = frame('b', 'dead', 'hurt');
+    K2.s.swim = frame('s', 'swim', 'gasp'); K2.b.swim = frame('b', 'swim', 'gasp');
+    K2.b.throw = frame('b', 'throw'); K2.b.crouch = frame('b', 'crouch');
+    K2.s.up = K2.s.jump; K2.b.up = K2.b.jump;
+    KIT = null;
+    return K2;
+  };
+  P.kits = { stripe: kitSet('stripe') };
+  /* Bonnie in a pose of your own, for things he does now and then (riding
+     his bike, surfing): size 's' or 'b'; pose { arms: [[elbow, hand(, up)], ×2],
+     legs: [[knee, foot], ×2] } in body coordinates (see POSES); kind is the
+     face ('blink', 'wheee', 'hurt', 'gasp' or none). */
+  P.pose = function (size, pose, kind) { return frame(size, pose, kind); };
   var V = BB.variant;
   P.red = V('red', { b: '#f24848', B: '#a42032' });
   P.rainbow = [
@@ -1552,6 +1579,43 @@
       brick: ['#dcaad2', '#aa7aaa', '#704870', '#2c1830'], hard: ['#acbae8', '#7a8ac2', '#4a5a92', '#1c2448'],
       semi: 'bridge', spal: ['#e8d090', '#b89850', '#7a6028', '#3a2c10'], column: 'sandcastle',
       deco: ['lamppost', 'balloon', 'flowerbox', 'lamppost'], bg: 'night', music: 'night', dark: true
+    },
+
+    /* ---- the fourth land: Holiday! (levels 31–35) — the rest of the trip round France ---- */
+    // 31 · O'Gliss Park, the waterpark: poolside tiles, bright slides, pools to swim in
+    ogliss: {
+      sky: ['#5cc4ff', '#8ad8ff', '#d8f4ff'], ground: 'stone', gpal: ['#effaff', '#bce4f2', '#7cb2c8', '#38607a'],
+      brick: ['#ffe070', '#ffb030', '#d07818', '#5a3008'], hard: ['#ffa8d8', '#f064aa', '#b83078', '#501838'],
+      semi: 'bridge', spal: ['#f0d4a0', '#c8a068', '#8a6838', '#3c2c14'], column: 'funnel',
+      deco: ['palm', 'sunlounger', 'umbrella', 'lifeguard', 'palm'], bg: 'ogliss', music: 'ogliss'
+    },
+    // 32 · surfing at Hossegor: golden sand, big Atlantic waves, beach huts and pines
+    surf: {
+      sky: ['#4cb4ff', '#86d0ff', '#e4f6ff'], ground: 'sand', gpal: ['#fff2cc', '#f6d896', '#d8b068', '#9a7440'],
+      brick: ['#f4d8a8', '#d8a868', '#a07038', '#4c3418'], hard: ['#c8c0b0', '#9a9284', '#6a6458', '#34302a'],
+      semi: 'bridge', spal: ['#e8c890', '#b8904c', '#7a5828', '#3c2a10'], column: 'stump',
+      deco: ['beachhut', 'surfboards', 'umbrella', 'seapine', 'lifeguard'], bg: 'surf', music: 'surf', sea: true
+    },
+    // 33 · the bike ride: cycle paths through the pines, down to the beach
+    bike: {
+      sky: ['#6cc4ff', '#9ad8ff', '#e6f6ff'], ground: 'grass', gpal: ['#b6e66a', '#70b046', '#d8b47c', '#8a6440'],
+      brick: ['#ffd0a0', '#e8905a', '#b05c34', '#4c2414'], hard: ['#e8e0cc', '#c8bca0', '#948a70', '#46402c'],
+      semi: 'bridge', spal: ['#e8c890', '#b8904c', '#7a5828', '#3c2a10'], column: 'stump',
+      deco: ['seapine', 'signpost', 'bikerack', 'fence', 'flowerY', 'seapine'], bg: 'bike', music: 'bike'
+    },
+    // 34 · Puy du Fou: castles and knights, banners and tents, a Viking longship
+    puydufou: {
+      sky: ['#78c0f8', '#a8d8ff', '#f0f6ff'], ground: 'grass', gpal: ['#9ad464', '#58a03e', '#a8865c', '#5a4028'],
+      brick: ['#d8ccb4', '#b0a284', '#7c705a', '#36302a'], hard: ['#ccc4b4', '#a09884', '#6e685a', '#302c26'],
+      semi: 'bridge', spal: ['#d0a070', '#a07040', '#684420', '#2c1c0c'], column: 'sandcastle',
+      deco: ['banner', 'tent', 'shield', 'torch', 'banner'], bg: 'puydufou', music: 'puydufou'
+    },
+    // 35 · Saint-Malo: granite ramparts, the beach and the fort, the ferry home
+    stmalo: {
+      sky: ['#7ab6e6', '#b4cdea', '#f8dcc0'], ground: 'stone', gpal: ['#dcd8d0', '#aca8a0', '#7a766e', '#3c3a36'],
+      brick: ['#d8d4cc', '#aca69a', '#7a746a', '#36332e'], hard: ['#c8c4bc', '#9c988e', '#6c685f', '#302e2a'],
+      semi: 'bridge', spal: ['#d8b07c', '#a8804c', '#6c4c24', '#2c1c0c'], column: 'sandcastle',
+      deco: ['cannon', 'anchor', 'crepestand', 'lamppost', 'flagpost'], bg: 'stmalo', music: 'stmalo', sea: true
     }
   };
 
@@ -1602,7 +1666,9 @@
     desert: ['pebble', 'shell'], moon: ['crystal', 'pebble', 'glowP'], clock: ['bolt', 'pebble'], ship: ['pebble'],
     ferry: ['bolt'], fields: ['flowerY', 'tuft', 'flowerW', 'clover', 'tuft'], village: ['pebble', 'flowerP', 'moss'],
     bakery: [], cheese: ['pebble', 'crystal'], roofs: ['moss', 'pebble'], metro: ['bolt', 'pebble'], tower: ['bolt'],
-    magic: ['flowerP', 'flowerB', 'flowerW', 'flowerY'], night: ['glowP', 'flowerW', 'glowC']
+    magic: ['flowerP', 'flowerB', 'flowerW', 'flowerY'], night: ['glowP', 'flowerW', 'glowC'],
+    ogliss: ['pebble'], surf: ['shell', 'pebble', 'seagrass'], bike: ['flowerY', 'tuft', 'clover', 'flowerW', 'tuft'],
+    puydufou: ['tuft', 'flowerP', 'clover', 'tuft'], stmalo: ['shell', 'pebble', 'moss']
   };
   // what hangs from the underside of ground: [style, colours]
   var HANG = {
@@ -1620,7 +1686,10 @@
     village: ['vines', ['#58b848', '#9ae070', '#7a5a36']], bakery: ['drips', ['#fff4e0', '#ffffff', '#e8c898']],
     cheese: ['drips', ['#ffe890', '#fff6c8', '#c89a30']], roofs: ['drips', ['#a8b8cc', '#e0e8f0', '#68788c']],
     metro: ['chains', ['#6aa888', '#b8e8d0', '#2c6a50']], tower: ['chains', ['#9e785c', '#cca484', '#5a3c28']],
-    magic: ['vines', ['#58c048', '#ffb0d8', '#7a5a36']], night: ['vines', ['#5a4aa8', '#ffd0f0', '#3c2a6a']]
+    magic: ['vines', ['#58c048', '#ffb0d8', '#7a5a36']], night: ['vines', ['#5a4aa8', '#ffd0f0', '#3c2a6a']],
+    ogliss: ['drips', ['#8ad8ff', '#e0f8ff', '#4aa0c8']], surf: ['roots', ['#c89a5a', '#e8c080', '#a07040']],
+    bike: ['vines', ['#5aa840', '#9ad870', '#7a5a36']], puydufou: ['vines', ['#4a9a3a', '#8ad060', '#5a4028']],
+    stmalo: ['kelp', ['#3a8a5a', '#6ac088', '#2a6a48']]
   };
   // each world's light (see light.js)
   var LIGHT = {
@@ -1653,7 +1722,12 @@
     metro: { dark: { col: '#0c1018', a: 0.34 }, rays: { col: '#e0f0ff', a: 0.3 }, motes: '#d8e8ff' },
     tower: { rays: { col: '#ffffff', a: 0.3 }, motes: '#ffffff' },
     magic: { rays: { col: '#fff0f8', a: 0.36 }, motes: '#ffffff' },
-    night: { dark: { col: '#0c0828', a: 0.3 }, motes: '#ffe0ff' }
+    night: { dark: { col: '#0c0828', a: 0.3 }, motes: '#ffe0ff' },
+    ogliss: { rays: { col: '#ffffff', a: 0.34 }, motes: '#e8fbff' },
+    surf: { rays: { col: '#fff4d0', a: 0.32 }, motes: '#ffffff' },
+    bike: { rays: { col: '#fff8c8', a: 0.36 }, motes: '#fffbe0' },
+    puydufou: { rays: { col: '#fff0c0', a: 0.36 }, motes: '#fff8d8' },
+    stmalo: { rays: { col: '#fff0d8', a: 0.32 }, motes: '#ffffff' }
   };
   Object.keys(A.themes).forEach(function (k) {
     var th = A.themes[k];

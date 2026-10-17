@@ -19,7 +19,8 @@
   var T = 8;
   var TL = BB.TILES = {
     EMPTY: 0, GROUND: 1, BRICK: 2, Q: 3, USED: 4, HARD: 5, PIPE: 6, PIPER: 7, PIPETOP: 8, PIPETOPR: 9,
-    SEMI: 10, COIN: 11, SPIKE: 12, LAVA: 13, CONVL: 14, CONVR: 15, HIDDEN: 16, CRATE: 17, WALL: 18
+    SEMI: 10, COIN: 11, SPIKE: 12, LAVA: 13, CONVL: 14, CONVR: 15, HIDDEN: 16, CRATE: 17, WALL: 18,
+    SECRET: 20, SECRETH: 21, WATER: 22
   };
   // what is in a "?" block, a brick or a hidden block
   var C = BB.CONTENTS = { COIN: 1, POWER: 2, STAR: 3, LIFE: 4, MULTI: 5 };
@@ -50,7 +51,9 @@
     for (var x = x0; x < x1; x++) for (var y = top; y < this.h; y++) this.set(x, y, TL.GROUND);
   };
   B.box = function (x0, y0, x1, y1, t) {
-    for (var x = x0; x < x1; x++) for (var y = y0; y < y1; y++) this.set(x, y, t || TL.GROUND);
+    // (t may be EMPTY, 0, for B.clear: only a missing t means ground)
+    var tile = t === undefined ? TL.GROUND : t;
+    for (var x = x0; x < x1; x++) for (var y = y0; y < y1; y++) this.set(x, y, tile);
   };
   B.clear = function (x0, y0, x1, y1) { this.box(x0, y0, x1, y1, TL.EMPTY); };
   B.ceiling = function (x0, x1, rows) { this.box(x0, 0, x1, rows, TL.GROUND); };
@@ -139,6 +142,27 @@
   /* A signpost that teaches by doing: when Bonnie walks up to it, a
      bubble pops up showing the real control for the player's device (the
      Space bar, or the A button) next to a word or two. */
+  /* Three golden medals hide in every level, to be found: one usually
+     along the way but a little off it, the others behind a secret wall, up
+     a balloon ride, over the top of something. x, row: the tile it's in. */
+  B.medal = function (x, row) { this.medalN = (this.medalN || 0) + 1; this.e('medal', x, row, { i: this.medalN - 1 }); };
+  /* A secret wall: tiles that look solid (the world's ground, or with
+     'hard' its blocks) but that Bonnie walks straight through — they go
+     see-through while he's inside. Hide a medal or a room of stars in it. */
+  B.secret = function (x0, y0, x1, y1, look) {
+    this.secretN = (this.secretN || 0) + 1;
+    for (var x = x0; x < x1; x++) for (var y = y0; y < y1; y++) this.set(x, y, look === 'hard' ? TL.SECRETH : TL.SECRET, this.secretN);
+  };
+  /* A bunch of balloons: grab it and Bonnie floats up into the sky for a
+     few seconds, steering as he goes, then drifts gently down. row: the
+     tile row the bunch's knot hangs at. */
+  B.balloons = function (x, row) { this.e('balloons', x, row); this.noDeco.push([x - 1, x + 3]); };
+  /* Musical blocks: a row of them (one note letter per tile, 'CDEFGAB'
+     and 'c' for the high C), each bouncing Bonnie a little and singing
+     its note as he lands — a tune if he hops along in order. */
+  B.notes = function (x, row, tune) { for (var i = 0; i < tune.length; i++) if (tune[i] !== ' ') this.e('note', x + i, row, { note: tune[i] }); this.noDeco.push([x - 1, x + tune.length + 1]); };
+  // water to swim in (a pool, the sea at the shore): x0..x1-1, rows y0..y1-1
+  B.water = function (x0, y0, x1, y1) { for (var x = x0; x < x1; x++) for (var y = y0; y < y1; y++) this.set(x, y, TL.WATER); this.noDeco.push([x0, x1]); };
   // a steam vent on the ground (or on row `base`): its plume lifts Bonnie h rows
   B.steam = function (x, h, base) { this.e('steam', x, base === undefined ? this.gr : base, { h: h }); this.noDeco.push([x - 1, x + 3]); };
   B.tip = function (x, kind, row) { this.e('tip', x, row, { tip: kind }); this.noDeco.push([x - 1, x + 3]); };
@@ -189,7 +213,7 @@
      three signposts (walk, jump, stomp): the rest is better found by
      playing than by reading. */
   add({
-    name: 'SUNNY HILLS', theme: 'hills', w: 200, seed: 11,
+    name: 'SUNNY HILLS', theme: 'hills', w: 305, seed: 11,
     build: function (L) {
       L.ground(0, 56);
       L.tip(5, 'move');
@@ -213,13 +237,15 @@
       L.row(62, R1, 'B?B');
       L.row(65, R2, 'BBBBBBBB');
       L.coins(65, R2 - 1, 8);
+      // the first medal, in plain sight at the end of the high bricks: a
+      // held jump from the low ones gets him up there
+      L.medal(73, 5);
       L.e('snail', 70);
       L.e('grumbug', 75); L.e('grumbug', 77);
       L.row(80, R1, 'BMB');
       L.stairs(84, 4);
       L.ground(90, 140);
       L.stairs(90, 4, -1);
-      L.check(98);
       L.row(102, R1, 'B?B');
       L.row(108, R1, 'S');
       L.e('grumbug', 112); L.e('grumbug', 114); L.e('grumbug', 116);
@@ -230,19 +256,47 @@
       L.e('grumbug', 134);
       L.semi(141, 146, 13);
       L.coins(141, 12, 5);
-      L.ground(146, 200);
+      L.ground(146, 305);
+      // the flag: halfway along the level, now it's longer
+      L.check(148);
       L.coins(150, 12, 5);
       L.e('grumbug', 156); L.e('snail', 161);
       L.row(158, R1, 'B?B?B');
-      L.stairs(167, 8); L.column(175, 8);
-      L.goal(182);
+      /* The meadow beyond (added when three hearts made the hills too
+         quick): the new things one at a time, the way the start of the
+         level brings in the old ones. */
+      // a path of musical blocks laid in the ground: run across it and it plays a scale
+      L.notes(169, 16, 'CDEFGABc');
+      /* A bunch of balloons on the path: up past a trail of stars to a
+         medal in the sky. Nothing walks between here and the hill, so
+         wherever he floats down is safe. (Straight up: the stars over the
+         bunch; steered right: the trail, the sky and the medal.) */
+      L.balloons(184, 14);
+      L.row(183, 11, 'C'); L.row(183, 8, 'C'); L.row(183, 5, 'C');
+      L.row(187, 12, 'C'); L.row(189, 10, 'C'); L.row(191, 8, 'C'); L.row(194, 6, 'C'); L.row(197, 4, 'C');
+      L.coins(199, 2, 6);
+      L.medal(206, 2);
+      L.coins(208, 2, 4);
+      L.row(214, 5, 'C'); L.row(217, 9, 'C'); L.row(220, 12, 'C');
+      L.row(224, R1, 'B?B');
+      /* A hill on the path with a secret tunnel through it (and a medal
+         inside): walk into its side and it opens up. Its top is a jump
+         high, so he can go over instead. */
+      L.ground(236, 250, 11);
+      L.secret(236, 12, 250, 16);
+      L.medal(243, 14);
+      L.coins(238, 10, 10);
+      L.row(256, R1, 'B?B');
+      L.e('grumbug', 266); L.e('grumbug', 269);
+      L.stairs(272, 8); L.column(280, 8);
+      L.goal(287);
     }
   });
 
   /* 2 — Playground Park. Trampolines: bounce on one for a big jump (hold
      A for a bigger one). Climbing frames to scramble up, bees on the way. */
   add({
-    name: 'PLAYGROUND PARK', theme: 'park', w: 206, seed: 22,
+    name: 'PLAYGROUND PARK', theme: 'park', w: 325, seed: 22,
     build: function (L) {
       L.ground(0, 40);
       L.deco1('swing', 5); L.deco1('slide', 33);
@@ -253,6 +307,8 @@
       L.e('bee', 25, 11);
       L.semi(27, 32, 13); L.semi(27, 32, 10); L.semi(27, 32, 7);
       L.coins(27, 6, 5);
+      // a medal over the top of the first climbing frame: a jump from its top bar
+      L.medal(29, 3);
       L.e('grumbug', 36);
       L.spring(37);
       L.arc(40, 10, 6);
@@ -268,7 +324,6 @@
       L.deco1('bench', 85);
       L.plat(90, 13, 4, { dx: 3, speed: 0.45 });
       L.ground(97, 132);
-      L.check(100);
       L.row(104, R1, 'S');
       L.spring(108);
       L.coins(107, 2, 4);
@@ -277,7 +332,7 @@
       L.deco1('swing', 127);
       L.plat(133, 15, 2, { dy: -5, speed: 0.5 });
       L.plat(137, 10, 2, { dy: 5, speed: 0.5 });
-      L.ground(141, 206);
+      L.ground(141, 325);
       L.e('bee', 145, 12); L.e('snail', 149);
       L.row(152, R1, 'BMB'); L.row(153, R2, '?');
       L.semi(158, 163, 13); L.semi(158, 163, 10); L.semi(158, 163, 7);
@@ -285,15 +340,48 @@
       L.e('grumbug', 166); L.e('grumbug', 169);
       L.spring(172);
       L.coins(171, 3, 4);
-      L.stairs(177, 6); L.column(183, 6);
-      L.goal(189);
+      // the flag: halfway along the level, now it's longer
+      L.check(177);
+      /* The far side of the park (added when three hearts made the levels
+         too quick): a climbing frame that plays Twinkle Twinkle as he
+         climbs it, the balloon man's bunch up to a treetop walk, and a den
+         in the side of the big hedge. */
+      // the musical climbing frame: a line of the tune on each bar, stars at the top
+      L.notes(183, 13, 'CCGG'); L.notes(184, 10, 'AAG'); L.notes(183, 7, 'FFEE'); L.notes(184, 4, 'DDC');
+      L.coins(184, 2, 3);
+      L.e('bee', 192, 11);
+      L.pipe(196, 3, true);
+      L.arc(194, 11, 6);
+      /* The balloon man's bunch: up through the branches to a treetop walk
+         of stars, with a medal at the far end. It's long enough to catch
+         him whether he walks or runs as he floats; nothing waits where he
+         drops off it. */
+      L.balloons(203, 14);
+      L.semi(211, 257, 4);
+      L.coins(214, 3, 4); L.coins(224, 3, 4); L.coins(234, 3, 4); L.coins(244, 3, 4);
+      L.medal(255, 3);
+      L.e('bee', 222, 11);
+      L.e('grumbug', 232); L.e('grumbug', 235);
+      L.row(240, R1, 'B?B');
+      /* The big hedge: a trampoline over it, and stars in the gap at its
+         foot that lead into a den in its side (a secret wall, with a
+         medal). Its top is a jump high, so he can climb out either way. */
+      L.spring(262);
+      L.coins(265, 15, 3);
+      L.ground(268, 280, 11);
+      L.secret(268, 12, 273, 16);
+      L.medal(271, 14);
+      L.e('grumbug', 288); L.e('grumbug', 291);
+      L.row(286, R1, 'B?B');
+      L.stairs(296, 6); L.column(302, 6);
+      L.goal(308);
     }
   });
 
   /* 3 — Sandy Shore. The sea fills the gaps: piers to walk across, rafts
      that sink when you stand on them, crabs on the sand and gulls above. */
   add({
-    name: 'SANDY SHORE', theme: 'beach', w: 222, seed: 33,
+    name: 'SANDY SHORE', theme: 'beach', w: 328, seed: 33,
     build: function (L) {
       L.ground(0, 30);
       L.row(8, R1, '?P?');
@@ -315,25 +403,61 @@
       L.e('gull', 88, 10);
       L.plat(96, 13, 4, { dx: 7, speed: 0.5 });
       L.arc(97, 10, 10);
+      // a medal over the top of the arc of stars: a held jump from the raft
+      L.medal(102, 6);
       L.ground(110, 140);
-      L.check(113);
       L.row(118, R1, '?'); L.row(121, R1, 'h');
       L.e('snail', 124); L.e('crab', 128); L.e('crab', 131);
       L.deco1('castle', 134);
       L.semi(140, 150, 16);
       L.e('gull', 143, 9); L.e('gull', 148, 11);
       L.ground(150, 170);
+      // the flag: halfway along the level, now it's longer
+      L.check(152);
       L.row(154, R1, 'S');
       L.stairs(158, 3);
       L.ground(161, 170, 13);
       L.e('crab', 166, 13);
       L.plat(171, 13, 3, { fall: true });
       L.plat(175, 12, 3, { fall: true });
-      L.ground(179, 222);
+      L.ground(179, 252);
       L.e('crab', 185); L.e('gull', 189, 10);
       L.row(187, R1, 'B?B');
-      L.stairs(194, 7);
-      L.goal(205);
+      /* Further along the shore (added when three hearts made the levels
+         too quick): a rock pool to swim in, with a medal on the bottom,
+         then a bunch of balloons to float over the bay with the gulls. */
+      /* The rocks, and a pool in them: a pier from each side, and the gap
+         between them a jump, or a swim down to the medal. The piers and
+         rocks are level with the water, so the stroke that breaks the
+         surface (in the gap) lifts him out onto them; a pier a row higher
+         was a pixel out of reach of a tap. */
+      L.stairs(194, 2);
+      L.ground(196, 202, 13); L.ground(220, 228, 13);
+      L.water(202, 13, 220, 16);
+      L.semi(202, 208, 13); L.semi(213, 220, 13);
+      L.arc(207, 12, 7);
+      L.medal(210, 15);
+      L.deco1('umbrella', 233);
+      /* The bay: a pier, two sinking rafts and a pier across it — or the
+         balloons, up over the gulls to a sky of stars with a medal in it.
+         Nothing walks on the sand by the balloons, where he comes down if
+         he doesn't steer. */
+      L.balloons(246, 14);
+      L.row(248, 12, 'C'); L.row(250, 10, 'C'); L.row(252, 8, 'C'); L.row(254, 6, 'C'); L.row(256, 4, 'C');
+      L.coins(258, 2, 10);
+      L.medal(269, 2);
+      L.coins(271, 2, 4);
+      L.semi(252, 257, 16);
+      L.plat(259, 14, 3, { fall: true });
+      L.plat(264, 13, 3, { fall: true });
+      L.e('gull', 266, 11);
+      L.semi(269, 276, 16);
+      L.ground(276, 328);
+      L.e('crab', 286); L.e('crab', 291);
+      L.row(288, R1, '?L?');
+      L.pipe(295, 3);
+      L.stairs(300, 7);
+      L.goal(311);
     }
   });
 
@@ -341,7 +465,7 @@
      Fish swim in waves and jellyfish drift — neither can be stomped down
      here, so swim round them (or throw a ball). */
   add({
-    name: 'CORAL REEF', theme: 'reef', w: 200, seed: 44, water: true,
+    name: 'CORAL REEF', theme: 'reef', w: 300, seed: 44, water: true,
     build: function (L) {
       L.ground(0, 60);
       L.tip(5, 'swim', 16);
@@ -357,6 +481,8 @@
       L.e('jelly', 50, 8);
       L.semi(52, 57, 10);
       L.row(53, 5, 'BMB');
+      // a medal up over the bricks, near the top of the sea
+      L.medal(54, 3);
       L.ground(64, 120);
       L.coins(60, 11, 4);
       L.e('fish', 70, 6); L.e('fish', 76, 12);
@@ -364,7 +490,6 @@
       L.ceiling(82, 92, 6);
       L.coins(83, 9, 7);
       L.e('jelly', 94, 10);
-      L.check(98);
       L.row(102, R1, 'BSB');
       L.e('fish', 108, 8); L.e('fish', 112, 13);
       L.e('jelly', 116, 6);
@@ -373,13 +498,45 @@
       L.box(130, 10, 133, 16); L.box(136, 2, 139, 9); L.box(142, 11, 145, 16);
       L.coins(133, 10, 3); L.coins(139, 12, 3);
       L.e('fish', 147, 7);
-      L.ground(154, 200);
+      L.ground(154, 186);
       L.e('jelly', 152, 9);
       L.row(158, R1, 'L');
+      // the flag: halfway along the level, now it's longer
+      L.check(161);
       L.e('fish', 164, 11); L.e('jelly', 170, 7); L.e('fish', 176, 13);
       L.pipe(166, 2);
-      L.stairs(180, 5);
-      L.goal(190);
+      /* The deep reef (added when three hearts made the levels too quick):
+         an arch of musical coral over a trench, a rock with stars locked
+         inside it, and a tunnel with a medal tucked up in its roof. */
+      // the coral xylophone: an arch of musical blocks over the trench, a note a step
+      L.notes(187, 15, 'C'); L.notes(188, 14, 'D'); L.notes(189, 13, 'E'); L.notes(190, 12, 'F');
+      L.notes(191, 12, 'G'); L.notes(192, 13, 'A'); L.notes(193, 14, 'B'); L.notes(194, 15, 'c');
+      L.ground(196, 300);
+      L.e('jelly', 199, 6);
+      /* A rock with stars (and a medal) locked inside: the way in is its
+         left side, a secret wall to swim (or walk along the sand) straight
+         through. The door runs down to the seabed and is seven rows tall,
+         so even big Bonnie, bobbing about, can't miss it. The way on is
+         over the top. */
+      L.box(204, 6, 220, 16);
+      L.clear(208, 9, 217, 16);
+      L.secret(204, 9, 208, 16);
+      L.coins(209, 11, 6); L.coins(209, 13, 6);
+      L.medal(215, 15);
+      L.e('fish', 226, 4);
+      // a tunnel through the reef, a fish on patrol, and a medal up in a notch in its roof
+      L.ceiling(230, 248, 7);
+      L.box(230, 13, 248, 16);
+      L.clear(240, 4, 242, 7);
+      L.medal(240, 5);
+      L.coins(232, 10, 6);
+      L.e('fish', 246, 10);
+      L.e('jelly', 254, 8); L.e('fish', 260, 12);
+      L.row(258, R1, '?P?');
+      L.pipe(266, 3);
+      L.e('jelly', 271, 6);
+      L.stairs(280, 5);
+      L.goal(290);
     }
   });
 
@@ -387,13 +544,15 @@
      (turn round and they freeze), bats drop from the dark, hedgehogs are
      too spiky to stomp, and the big mushrooms bounce. */
   add({
-    name: 'SPOOKY WOODS', theme: 'woods', w: 210, seed: 55,
+    name: 'SPOOKY WOODS', theme: 'woods', w: 324, seed: 55,
     build: function (L) {
       L.ground(0, 34);
       L.row(10, R1, 'BPB');
       L.e('hog', 18);
       L.spring(24);
       L.coins(23, 3, 4);
+      // a medal just over the stars: a held bounce on the mushroom reaches it
+      L.medal(25, 2);
       L.e('ghost', 31, 10);
       L.ground(38, 70);
       L.semi(42, 47, 12); L.semi(48, 53, 9);
@@ -402,7 +561,6 @@
       L.e('grumbug', 57); L.e('hog', 63);
       L.semi(72, 76, 13);
       L.ground(79, 110);
-      L.check(84);
       L.e('ghost', 90, 9);
       L.row(93, R1, '?S?');
       L.e('bat', 97, 3);
@@ -418,11 +576,39 @@
       L.e('bat', 136, 3);
       L.pipe(140, 3, true);
       L.row(146, R1, 'BMB');
-      L.ground(164, 210);
+      // the flag: halfway along the level, now it's longer
+      L.check(152);
+      L.ground(164, 324);
       L.e('grumbug', 167); L.e('hog', 171); L.e('ghost', 174, 9);
       L.row(170, R1, 'L');
-      L.stairs(178, 6); L.column(184, 6);
-      L.goal(190);
+      /* Deeper in the wood (added when three hearts made the levels too
+         quick): a mossy bank with a ditch in it and a secret hollow under
+         the bank, then a bunch of balloons up into the night sky. */
+      /* The ditch: jump it, or drop in for the stars and walk on into the
+         side of the bank, which is a secret wall: a hollow with a medal.
+         A stone in the ditch to climb out by. */
+      L.stairs(182, 4);
+      L.ground(186, 214, 11);
+      L.clear(194, 11, 199, 16);
+      L.row(194, 13, 'X');
+      L.coins(196, 15, 3);
+      L.secret(199, 12, 205, 16);
+      L.medal(202, 14);
+      L.e('ghost', 210, 7);
+      /* A bunch of balloons, up past the treetops into the night sky: a
+         trail of stars and a medal among them. No bats hang here, and
+         nothing walks where he floats down. */
+      L.balloons(224, 14);
+      L.row(226, 12, 'C'); L.row(228, 10, 'C'); L.row(230, 8, 'C'); L.row(232, 6, 'C'); L.row(234, 4, 'C');
+      L.coins(236, 2, 10);
+      L.medal(247, 2);
+      L.coins(249, 2, 4);
+      L.deco1('pumpkin', 262);
+      // (bugs, not a hedgehog: a float that comes down on one stomps it)
+      L.e('grumbug', 282); L.e('grumbug', 288);
+      L.row(285, R1, 'B?B');
+      L.stairs(292, 6); L.column(298, 6);
+      L.goal(304);
     }
   });
 
@@ -430,9 +616,9 @@
      you pass beneath, bats hang from the ceiling, and the pits are lined
      with spikes — the girders and lifts carry you over. */
   add({
-    name: 'CRYSTAL CAVES', theme: 'cave', w: 212, seed: 66,
+    name: 'CRYSTAL CAVES', theme: 'cave', w: 320, seed: 66,
     build: function (L) {
-      L.ceiling(0, 212, 2);
+      L.ceiling(0, 320, 2);
       L.ground(0, 30);
       L.row(8, R1, '?P?');
       L.e('rock', 18, 2);
@@ -447,8 +633,9 @@
       L.ground(70, 80, 17);
       L.spikes(70, 80, 16);
       L.semi(72, 75, 12); L.semi(77, 79, 11);
+      // a medal over the spikes: a held jump from the girders
+      L.medal(75, 8);
       L.ground(80, 112);
-      L.check(84);
       L.e('rock', 90, 2); L.e('rock', 95, 2);
       L.row(99, R1, 'BSB');
       L.e('bat', 105, 2);
@@ -462,13 +649,40 @@
       L.coins(140, 9, 4);
       L.e('rock', 149, 2);
       L.row(152, R1, 'BMB');
+      // the flag: halfway along the level, now it's longer
+      L.check(156);
       L.plat(161, 13, 2, { fall: true });
       L.plat(164, 12, 2, { fall: true });
-      L.ground(167, 212);
+      L.ground(167, 198);
       L.e('bat', 172, 2); L.e('grumbug', 176); L.e('grumbug', 178);
       L.row(180, R1, 'L');
-      L.stairs(184, 6);
-      L.goal(196);
+      /* Further in (added when three hearts made the levels too quick):
+         crystal chimes over a spike pit, a lift up to a ledge that ends at
+         a wall that isn't one, and a last stretch of rocks and bats. */
+      // the chimes: a bridge of musical blocks over the spikes, and a medal over them
+      L.ground(198, 209, 17); L.spikes(198, 209, 16);
+      L.notes(198, 14, 'CDEGAcAGEDC');
+      L.medal(203, 10);
+      L.ground(209, 263);
+      /* A lift up to a ledge under a great hanging rock. The ledge seems
+         to stop at the rock, but its face is a secret wall: a little room
+         inside, with a medal. The way on is underneath. */
+      L.plat(219, 15, 2, { dy: -8, speed: 0.45 });
+      L.semi(222, 228, 7);
+      L.coins(223, 6, 4);
+      L.box(228, 2, 246, 11);
+      L.secret(228, 3, 234, 7);
+      L.medal(231, 5);
+      L.e('rock', 252, 2); L.e('hog', 258);
+      // spikes again, with the rafts that drop
+      L.ground(263, 270, 17); L.spikes(263, 270, 16);
+      L.plat(264, 13, 2, { fall: true });
+      L.plat(267, 12, 2, { fall: true });
+      L.ground(270, 320);
+      L.e('bat', 280, 2); L.e('grumbug', 284); L.e('grumbug', 287);
+      L.row(286, R1, 'BMB');
+      L.stairs(292, 6);
+      L.goal(304);
     }
   });
 
@@ -476,7 +690,7 @@
      Penguins belly-slide at you, snowmen throw snowballs, and in the ice
      tunnel the icicles drop. */
   add({
-    name: 'FROSTY PEAKS', theme: 'snow', w: 222, seed: 77, ice: true,
+    name: 'FROSTY PEAKS', theme: 'snow', w: 335, seed: 77, ice: true,
     build: function (L) {
       L.ground(0, 40);
       L.tip(6, 'ice');
@@ -486,6 +700,8 @@
       L.box(34, 13, 40, 16);
       L.ground(44, 80);
       L.coins(41, 10, 3);
+      // a medal high over the first gap: a held jump from the ice block
+      L.medal(42, 7);
       L.e('penguin', 52); L.e('penguin', 57);
       L.box(64, 13, 72, 16);
       L.e('snowman', 68, 13);
@@ -494,7 +710,6 @@
       L.coins(64, 11, 3);
       L.ceiling(80, 108, 5);
       L.ground(80, 108);
-      L.check(83);
       L.e('icicle', 88, 5); L.e('icicle', 93, 5); L.e('icicle', 98, 5);
       L.row(101, R1, 'BMB');
       L.semi(109, 111, 13); L.semi(112, 114, 12);
@@ -504,19 +719,43 @@
       L.box(140, 12, 150, 16);
       L.coins(141, 10, 8);
       L.e('snowman', 146, 12);
+      // the flag: halfway along the level, now it's longer
+      L.check(156);
       L.plat(161, 13, 4, { dx: 3, speed: 0.45 });
-      L.ground(168, 222);
+      L.ground(168, 335);
       L.e('penguin', 175); L.e('snowman', 183);
       L.row(178, R1, 'L');
-      L.stairs(189, 7);
-      L.goal(203);
+      /* Higher up the mountain (added when three hearts made the levels
+         too quick): a peak to climb, with a bunch of balloons waiting on
+         the top to float him off into a sky of stars, and an ice cave in
+         the snowbank beyond, its door at the bottom of a crevasse. */
+      // the peak, in wide steps (on ice, a narrow one is a slide off)
+      L.ground(196, 222, 12);
+      L.ground(200, 218, 9);
+      L.ground(204, 214, 6);
+      L.balloons(208, 4);
+      L.coins(212, 2, 16);
+      L.medal(230, 2);
+      L.coins(232, 2, 4);
+      /* The crevasse: jump it from the peak to the snowbank, or drop in
+         for the stars and walk on into the bank's side, a secret wall:
+         an ice cave with a medal. */
+      L.coins(222, 15, 3);
+      L.ground(225, 241, 11);
+      L.secret(225, 12, 231, 16);
+      L.medal(228, 14);
+      L.row(256, R1, 'B?B');
+      // (the penguins wait well past where a running float comes down: they slide at him on sight)
+      L.e('penguin', 292); L.e('penguin', 297);
+      L.stairs(302, 7);
+      L.goal(316);
     }
   });
 
   /* 8 — Cloud Kingdom. Up into the sky: a climb from the bottom of the
      clouds to the top, then across, with nothing below but sky. */
   add({
-    name: 'CLOUD KINGDOM', theme: 'sky', w: 186, h: 36, gr: 34, seed: 88,
+    name: 'CLOUD KINGDOM', theme: 'sky', w: 314, h: 36, gr: 34, seed: 88,
     build: function (L) {
       var g = 34;
       L.start = { x: 3, row: g };
@@ -539,8 +778,9 @@
       L.spring(61, 14);
       L.semi(66, 69, 14);
       L.arc(64, 9, 7);
+      // a medal over the top of the arc: a held bounce, steered right
+      L.medal(67, 3);
       L.box(71, 14, 94, 16);
-      L.check(73, 14);
       L.e('gull', 80, 8); L.e('grumbug', 86, 14);
       L.row(84, 9, 'S');
       L.box(97, 19, 110, 21);
@@ -552,11 +792,39 @@
       L.spring(125, 24);
       L.semi(129, 133, 19); L.semi(133, 137, 14);
       L.e('gull', 134, 9);
-      L.box(139, 14, 186, 18);
+      L.box(139, 14, 166, 18);
       L.e('bee', 146, 10); L.e('grumbug', 150, 14);
       L.row(148, 9, 'BMB');
-      L.stairs(156, 6, 1, 14);
-      L.goal(170, 14);
+      // the flag: halfway along the level, now it's longer
+      L.check(158, 14);
+      /* Higher still (added when three hearts made the levels too quick):
+         a bridge that plays Ode to Joy across the open sky, a bunch of
+         balloons up to the very top of the sky, and a room hidden in a
+         cloudbank. */
+      // Ode to Joy, a note a step: the bridge is solid all the way, so walking it is safe
+      L.notes(166, 14, 'EEFGGFEDCCDEEDD');
+      L.box(181, 14, 264, 18);
+      /* Balloons, from the clouds to the top of the sky: a trail of stars
+         and a medal up there. The cloud goes on under the whole ride, so
+         he floats down onto something wherever he steers. */
+      L.balloons(190, 12);
+      L.row(192, 11, 'C'); L.row(194, 9, 'C'); L.row(196, 7, 'C'); L.row(198, 5, 'C'); L.row(200, 3, 'C');
+      L.coins(202, 2, 11);
+      L.medal(214, 2);
+      L.coins(216, 2, 4);
+      /* Two cloudbanks with a gap between: jump it, or drop in for the
+         stars and walk on into the second bank's side, a secret wall with
+         a room and a medal behind it. */
+      L.box(236, 10, 243, 14);
+      L.coins(243, 13, 3);
+      L.box(246, 9, 258, 14);
+      L.secret(246, 10, 251, 14);
+      L.medal(249, 12);
+      L.plat(265, 14, 3, { dx: 3, speed: 0.45 });
+      L.box(272, 14, 314, 18);
+      L.e('grumbug', 280, 14);
+      L.stairs(284, 6, 1, 14);
+      L.goal(298, 14);
     }
   });
 
@@ -564,7 +832,7 @@
      robots that take two stomps, crushers that drop as you pass, and
      spikes on the factory floor. */
   add({
-    name: 'TOY FACTORY', theme: 'factory', w: 222, seed: 99,
+    name: 'TOY FACTORY', theme: 'factory', w: 331, seed: 99,
     build: function (L) {
       L.ground(0, 30);
       L.tip(5, 'robot');
@@ -577,10 +845,11 @@
       L.e('robot', 40); L.e('robot', 44);
       L.e('crusher', 50, 3);
       L.plat(57, 13, 4, { dx: 2, speed: 0.5 });
+      // a medal over the gap: a held jump from the moving platform
+      L.medal(60, 8);
       L.ground(64, 100);
       L.spikes(69, 72);
       L.row(74, R1, '???');
-      L.check(78);
       L.e('robot', 84);
       L.e('crusher', 89, 3); L.e('crusher', 94, 3);
       L.row(91, R1, 'BSB');
@@ -591,17 +860,46 @@
       L.plat(127, 10, 2, { dy: 5, speed: 0.5 });
       L.semi(130, 134, 6);
       L.bear(131, 6);
-      L.ground(131, 222);
+      L.ground(131, 270);
       L.pipe(135, 4, true);
       L.e('robot', 140);
       L.pipe(144, 2);
       L.e('robot', 149);
       L.spikes(154, 158);
       L.row(146, R1, 'BLB');
+      // the flag: halfway along the level, now it's longer
+      L.check(159);
       L.conveyor(161, 177, -1);
       L.e('robot', 168); L.e('robot', 173);
-      L.stairs(183, 7);
-      L.goal(198);
+      /* The packing hall (added when three hearts made the levels too
+         quick): a belt that carries him over a toy piano playing Frere
+         Jacques, a storeroom up on the gantry with stars locked inside,
+         and a crusher to ride up to the top shelf. */
+      // the music-box belt: stand still on it and it plays the tune for him (the gaps are rests)
+      L.conveyor(184, 204, 1);
+      L.notes(186, 16, 'CDEC CDEC EFG EFG');
+      /* The storeroom: stars (and a medal) inside a box of crates up on
+         the gantry, the way on underneath. Its door is the left wall, a
+         secret, from the girder beside it. */
+      L.semi(208, 214, 11);
+      L.box(214, 6, 228, 12, TL.HARD);
+      L.clear(216, 7, 226, 11);
+      L.secret(214, 7, 216, 11, 'hard');
+      L.coins(217, 9, 6);
+      L.medal(224, 10);
+      L.e('robot', 233);
+      L.spikes(238, 241);
+      /* A crusher that drops as he passes: once it's down, hop on, and it
+         carries him back up to a shelf by the roof with a medal on it. */
+      L.e('crusher', 250, 3);
+      L.semi(252, 257, 3);
+      L.medal(255, 2);
+      L.e('crusher', 262, 3);
+      L.plat(270, 13, 3, { dx: 3, speed: 0.5 });
+      L.ground(277, 331);
+      L.e('robot', 284);
+      L.stairs(292, 7);
+      L.goal(307);
     }
   });
 
@@ -609,9 +907,9 @@
      Grumble the dragon, with Monsty locked in a cage behind him. Three
      stomps on his head (or six balls) and Monsty is free. */
   add({
-    name: 'DRAGON CASTLE', theme: 'castle', w: 212, seed: 1010, boss: true,
+    name: 'DRAGON CASTLE', theme: 'castle', w: 323, seed: 1010, boss: true,
     build: function (L) {
-      L.ceiling(0, 212, 2);
+      L.ceiling(0, 323, 2);
       L.ground(0, 24);
       L.row(8, R1, '?P?');
       L.lava(24, 29);
@@ -623,9 +921,10 @@
       L.lava(60, 67);
       L.semi(61, 66, 13);
       L.e('bubble', 62, 17); L.e('bubble', 65, 17, { delay: 60 });
+      // a medal over the bridge, between the two fire bubbles: jump when they've dropped
+      L.medal(63, 9);
       L.ground(67, 100);
       L.e('crusher', 73, 3); L.e('crusher', 79, 3);
-      L.check(86);
       L.row(90, R1, 'BSB');
       L.semi(88, 93, 7);
       L.bear(89, 7);
@@ -638,759 +937,50 @@
       L.row(136, 12, 'X'); L.e('firebar', 136, 12, { len: 4, speed: 0.03 });
       L.lava(150, 155);
       L.e('bubble', 152, 17);
-      L.ground(155, 212);
-      L.row(159, R1, 'P'); L.row(163, R1, 'L');
-      // the arena: a gate closes behind you at 170; the wall at 205
-      L.e('gate', 170, 15);
-      L.e('dragon', 196);
-      L.e('cage', 202);
-      L.box(206, 2, 212, 16, TL.HARD);
+      L.ground(155, 172);
+      // the flag: halfway along the way to Grumble, now it's longer
+      L.check(158);
+      /* The long way to Grumble (added when three hearts made the levels
+         too quick; the arena itself is unchanged, just further on): an
+         organ that plays as he crosses the lava, a battlement walk under a
+         fire bar, and a secret room in the back of the castle wall. */
+      // the organ: a bridge of musical blocks over the lava, a fire bubble leaping through it
+      // (and a medal over it, to be had between leaps)
+      L.lava(172, 181);
+      L.notes(172, 14, 'CEGcGEGEC');
+      L.e('bubble', 176, 17, { delay: 40 });
+      L.medal(176, 10);
+      L.ground(181, 232);
+      L.e('crusher', 187, 3); L.e('crusher', 193, 3);
+      /* The battlement: up the steps, along under the fire bar, and off
+         the far end. The crusher just beyond makes him step back, into
+         the end of the wall: a secret door, with a medal in the room. */
+      L.stairs(197, 3);
+      L.box(200, 11, 222, 16, TL.HARD);
+      // (its pivot high enough that big Bonnie walks under it)
+      L.row(210, 6, 'X'); L.e('firebar', 210, 6, { len: 4, speed: 0.03 });
+      L.secret(216, 12, 222, 16, 'hard');
+      L.medal(218, 14);
+      L.coins(222, 15, 3);
+      L.e('crusher', 227, 3);
+      L.lava(232, 244);
+      L.plat(233, 13, 4, { dx: 6, speed: 0.5 });
+      L.e('bubble', 238, 17, { delay: 90 });
+      L.ground(244, 323);
+      L.row(252, R1, 'X'); L.e('firebar', 252, R1, { len: 5, speed: -0.022 });
+      L.row(261, 12, 'X'); L.e('firebar', 261, 12, { len: 4, speed: 0.03 });
+      L.row(270, R1, 'P'); L.row(274, R1, 'L');
+      // the arena: a gate closes behind you at 281; the wall at 316
+      L.e('gate', 281, 15);
+      L.e('dragon', 307);
+      L.e('cage', 313);
+      L.box(317, 2, 323, 16, TL.HARD);
     }
   });
 
-  /* ==========================================================================
-     THE SECOND LAND — MAGPIE ISLES (levels 11–20)
-     Captain Magpie has pinched Monsty's birthday presents and flown off
-     across the sea. Each world has its own trick: boats that bob, jelly
-     to bounce on, wind that pushes, crumbling stones, glowing mushrooms,
-     swimming in a cave, sinking sand, the Moon's floaty jumps, a clock
-     tower to climb, and the Captain himself on his sky ship.
-     ========================================================================== */
-
-  /* 11 — Sunset Harbour. Piers over the sea, and little boats bobbing on
-     the waves to hop across. */
-  add({
-    name: 'SUNSET HARBOUR', theme: 'harbour', w: 220, seed: 111,
-    build: function (L) {
-      L.ground(0, 34);
-      L.row(9, R1, '?P?');
-      L.e('crab', 18); L.e('magpie', 26, 9);
-      L.semi(34, 42, 16); L.coins(35, 13, 6);
-      L.ground(42, 64);
-      L.e('crab', 48); L.e('snail', 56);
-      L.pipe(60, 3);
-      L.plat(65, 15, 3, { bob: true });
-      L.plat(70, 15, 3, { bob: true, dx: 4, speed: 0.4 });
-      L.arc(66, 12, 9);
-      L.ground(78, 104);
-      L.row(82, R1, 'BB?BB'); L.row(84, R2, 'M');
-      L.e('magpie', 90, 9); L.e('crab', 96);
-      L.check(100);
-      L.semi(104, 112, 16); L.e('magpie', 108, 10); L.coins(105, 13, 6);
-      L.ground(112, 141);
-      L.e('snail', 118); L.e('crab', 124);
-      L.row(127, R1, '?L?');
-      // Bear: up the tall mooring post, then onto the lookout ledge
-      L.pipe(134, 4); L.semi(136, 141, 8); L.bear(138, 8);
-      L.plat(142, 15, 3, { bob: true }); L.plat(146, 14, 3, { bob: true });
-      L.ground(151, 220);
-      L.e('crab', 158); L.e('magpie', 165, 9);
-      L.row(170, R1, 'B?B'); L.e('crab', 176);
-      L.stairs(186, 6);
-      L.goal(200);
-    }
-  });
-
-  /* 12 — Candy Meadow. Cake with pink frosting, cookie blocks, cotton-candy
-     clouds, gummy bears — and jelly trampolines everywhere. */
-  add({
-    name: 'CANDY MEADOW', theme: 'candy', w: 210, seed: 122,
-    build: function (L) {
-      L.ground(0, 36);
-      L.row(8, R1, '?P?');
-      L.e('gummy', 18);
-      L.spring(24); L.coins(23, 4, 4);
-      L.semi(28, 34, 10); L.e('bee', 31, 6);
-      L.semi(36, 40, 13);
-      L.ground(40, 76);
-      L.e('gummy', 46); L.e('gummy', 50);
-      L.row(54, R1, 'BB?BB');
-      L.spring(60); L.semi(58, 66, 5); L.coins(59, 4, 6);
-      L.e('bee', 68, 10);
-      L.pipe(72, 3);
-      L.semi(77, 81, 13);
-      L.ground(82, 118);
-      L.check(86);
-      L.e('gummy', 92);
-      // Bear: on the high cloud, from the jelly's big bounce
-      L.spring(98); L.semi(96, 104, 7); L.coins(97, 6, 6); L.bear(102, 7);
-      L.e('snail', 110); L.e('bee', 114, 11);
-      L.semi(118, 122, 13);
-      L.ground(122, 160);
-      L.spring(126); L.row(130, R2, '?S?');
-      L.e('gummy', 136); L.e('gummy', 140);
-      L.row(146, R1, 'BMB');
-      L.pipe(152, 3);
-      L.semi(161, 165, 12);
-      L.ground(166, 210);
-      L.e('gummy', 172); L.e('bee', 178, 10);
-      L.row(176, R1, 'L');
-      L.stairs(184, 6);
-      L.goal(196);
-    }
-  });
-
-  /* 13 — Windy Cliffs. Out on the white clifftops the wind gusts — first
-     one way, then the other — and pushes Bonnie along (or back). */
-  add({
-    name: 'WINDY CLIFFS', theme: 'cliffs', w: 214, seed: 133, wind: true,
-    build: function (L) {
-      L.ground(0, 30);
-      L.row(8, R1, '?P?');
-      L.e('snail', 18); L.e('magpie', 24, 9);
-      L.ground(34, 62, 14);
-      L.e('snail', 42, 14);
-      L.row(46, 9, 'B?B');
-      L.e('magpie', 52, 8);
-      L.ground(62, 70, 12);
-      L.coins(63, 10, 6);
-      L.ground(75, 100);
-      L.check(80);
-      L.e('snail', 86);
-      L.row(92, R1, '???');
-      L.plat(101, 13, 3, { dx: 2, speed: 0.4 });
-      L.ground(106, 140, 13);
-      L.e('magpie', 112, 7); L.e('snail', 118, 13);
-      L.row(122, 8, 'BSB');
-      // Bear: on the ledge over the clifftop, out in the wind
-      L.semi(126, 131, 9); L.bear(128, 9);
-      L.ground(144, 214);
-      L.e('snail', 150); L.e('magpie', 158, 9);
-      L.row(162, R1, 'B?B?B');
-      L.e('snail', 170);
-      L.row(174, R1, 'L');
-      L.stairs(182, 6);
-      L.goal(196);
-    }
-  });
-
-  /* 14 — Jungle Ruins. The old stones of a friendly temple — some crumble
-     away underfoot — boars, bats, and monkeys lobbing coconuts. */
-  add({
-    name: 'JUNGLE RUINS', theme: 'jungle', w: 220, seed: 144,
-    build: function (L) {
-      L.ground(0, 32);
-      L.row(8, R1, '?P?');
-      L.e('hog', 18);
-      L.box(25, 13, 30, 16); L.e('monkey', 27, 13);
-      L.plat(33, 14, 2, { fall: true }); L.plat(37, 13, 2, { fall: true });
-      L.ground(41, 70);
-      L.stairs(44, 3); L.ground(47, 56, 13);
-      L.e('bat', 50, 3); L.e('hog', 60);
-      L.row(62, R1, 'BB?BB'); L.row(64, R2, 'M');
-      L.semi(70, 78, 10); L.coins(71, 9, 7);
-      L.ground(78, 112);
-      L.check(82);
-      L.e('monkey', 90); L.e('bat', 96, 3); L.e('hog', 102);
-      L.pipe(106, 3);
-      L.plat(112, 14, 2, { fall: true }); L.plat(116, 13, 2, { fall: true }); L.plat(120, 12, 2, { fall: true });
-      L.ground(124, 160);
-      L.e('hog', 130);
-      L.row(134, R1, '?S?');
-      L.box(140, 13, 145, 16); L.e('monkey', 142, 13);
-      // Bear: up from the monkey's block to the ledge above the ruins
-      L.semi(146, 151, 9); L.bear(148, 9);
-      L.e('bat', 152, 3);
-      L.ground(164, 220);
-      L.e('hog', 170); L.e('monkey', 178);
-      L.row(176, R1, 'L');
-      L.stairs(186, 6);
-      L.goal(200);
-    }
-  });
-
-  /* 15 — Glowshroom Grove. Night in a wood of giant glowing mushrooms:
-     bounce high on them, and mind the shy ghosts and bats. */
-  add({
-    name: 'GLOWSHROOM GROVE', theme: 'glow', w: 210, seed: 155,
-    build: function (L) {
-      L.ground(0, 34);
-      L.row(8, R1, '?P?');
-      L.e('ghost', 20, 10);
-      L.spring(26); L.semi(24, 32, 7); L.coins(25, 6, 6);
-      L.semi(34, 38, 13);
-      L.ground(38, 74);
-      L.e('bat', 44, 3); L.e('grumbug', 50);
-      // Bear: on the high branch the big mushroom bounces you up to
-      L.spring(56); L.semi(54, 62, 6); L.coins(55, 5, 5); L.bear(61, 6);
-      L.e('ghost', 66, 9);
-      L.row(68, R1, 'BMB');
-      L.semi(74, 80, 12);
-      L.ground(80, 112);
-      L.check(84);
-      L.e('grumbug', 90); L.e('grumbug', 93);
-      L.spring(98); L.row(96, R2, '?S?');
-      L.e('bat', 104, 3);
-      L.pipe(108, 3);
-      L.plat(113, 14, 3, { dx: 4, speed: 0.4 });
-      L.ground(121, 160);
-      L.e('ghost', 128, 9);
-      L.spring(134); L.semi(132, 140, 6); L.coins(133, 5, 6);
-      L.e('bat', 144, 3); L.e('grumbug', 150);
-      L.semi(160, 164, 12);
-      L.ground(164, 210);
-      L.row(168, R1, 'L');
-      L.e('ghost', 174, 9); L.e('grumbug', 180);
-      L.stairs(186, 6);
-      L.goal(196);
-    }
-  });
-
-  /* 16 — Crystal Lagoon. A cave under the sea: swim (tap to swim up),
-     past glowing crystals, fish and drifting jellies. */
-  add({
-    name: 'CRYSTAL LAGOON', theme: 'lagoon', w: 200, seed: 166, water: true,
-    build: function (L) {
-      L.ceiling(0, 200, 2);
-      L.ground(0, 60);
-      L.row(10, R1, '?P?');
-      L.box(18, 10, 22, 16); L.coins(18, 8, 4);
-      L.e('fish', 28, 9);
-      L.ceiling(30, 44, 6); L.coins(31, 8, 12);
-      L.e('jelly', 40, 11);
-      // Bear: on top of the tall crystal rock, in his bubble
-      L.box(48, 8, 50, 16); L.bear(48, 8);
-      L.e('fish', 54, 6);
-      L.ground(64, 120);
-      L.e('jelly', 70, 8);
-      L.box(76, 12, 86, 16); L.ceiling(78, 88, 7); L.coins(79, 10, 7);
-      L.e('fish', 92, 10);
-      L.check(98);
-      L.row(102, R1, 'BSB');
-      L.e('jelly', 108, 6); L.e('fish', 114, 12);
-      L.ground(124, 200);
-      L.box(128, 3, 131, 10); L.box(136, 11, 139, 16); L.coins(132, 10, 4);
-      L.e('fish', 142, 7); L.e('jelly', 150, 9);
-      L.row(156, R1, 'L');
-      L.e('fish', 164, 11); L.e('jelly', 172, 7);
-      L.stairs(180, 5);
-      L.goal(190);
-    }
-  });
-
-  /* 17 — Dusty Dunes. Sand that sinks when you stand on it, a pyramid to
-     climb, scorpions, and tumbleweeds bowling along. */
-  add({
-    name: 'DUSTY DUNES', theme: 'desert', w: 220, seed: 177,
-    build: function (L) {
-      L.ground(0, 36);
-      L.row(8, R1, '?P?');
-      L.e('scorpion', 18); L.e('tumble', 30);
-      L.plat(37, 14, 3, { fall: true }); L.plat(42, 13, 3, { fall: true });
-      L.ground(47, 80);
-      L.stairs(50, 4); L.ground(54, 62, 12); L.stairs(62, 4, -1);
-      L.e('scorpion', 66); L.e('tumble', 74);
-      L.row(70, R1, 'BB?BB');
-      L.plat(81, 14, 3, { fall: true });
-      L.ground(85, 124);
-      L.check(88);
-      L.e('scorpion', 96);
-      L.pipe(100, 3);
-      L.e('tumble', 108);
-      // Bear: on the ledge over the pyramid's top
-      L.stairs(112, 5); L.stairs(117, 5, -1); L.semi(115, 120, 7); L.bear(116, 7);
-      L.row(106, R2, '?S?');
-      L.plat(125, 14, 3, { fall: true }); L.plat(129, 13, 3, { fall: true });
-      L.ground(133, 220);
-      L.e('scorpion', 138); L.e('tumble', 150);
-      L.row(146, R1, 'BMB');
-      L.e('scorpion', 160); L.e('tumble', 172);
-      L.row(168, R1, 'L');
-      L.stairs(184, 7);
-      L.goal(200);
-    }
-  });
-
-  /* 18 — Moon Garden. On the Moon, jumps are long and floaty — so the gaps
-     are wider and the ledges higher. */
-  add({
-    name: 'MOON GARDEN', theme: 'moon', w: 220, seed: 188, lowgrav: true,
-    build: function (L) {
-      L.ground(0, 30);
-      L.row(8, R1, '?P?');
-      L.e('grumbug', 18);
-      L.semi(24, 28, 9); L.coins(24, 8, 4);
-      L.arc(31, 11, 7);
-      L.ground(38, 64);
-      L.e('ghost', 46, 9);
-      // Bear: right up on the highest crater ledge
-      L.semi(50, 54, 7); L.semi(56, 61, 3); L.coins(56, 2, 4); L.bear(59, 3);
-      L.e('bat', 60, 6);
-      L.arc(65, 11, 7);
-      L.ground(72, 104);
-      L.check(76);
-      L.e('grumbug', 84); L.e('grumbug', 87);
-      L.row(90, R2, 'B?B');
-      L.e('ghost', 96, 8);
-      L.plat(105, 12, 3, { dy: 4, speed: 0.4 });
-      L.ground(114, 150);
-      L.e('bat', 120, 4);
-      L.row(124, R1, '?S?');
-      L.e('grumbug', 132);
-      L.semi(138, 142, 9); L.semi(144, 148, 5); L.coins(144, 4, 4);
-      L.arc(151, 10, 7);
-      L.ground(158, 220);
-      L.e('ghost', 166, 9); L.e('grumbug', 172);
-      L.row(176, R1, 'L');
-      L.stairs(186, 6);
-      L.goal(200);
-    }
-  });
-
-  /* 19 — Clockwork Tower. Up through the inside of a great clock: climb
-     the beams, ride the belts, mind the crushers and the turning gear arm. */
-  add({
-    name: 'CLOCKWORK TOWER', theme: 'clock', w: 186, h: 36, gr: 34, seed: 199,
-    build: function (L) {
-      var g = 34;
-      L.start = { x: 3, row: g };
-      L.ground(0, 30, g);
-      L.row(8, g - 5, '?P?');
-      /* the climb: girders three rows apart, each overlapping the one
-         above, so a jump straight up always finds the next — no
-         pixel-perfect leaps for small hands */
-      L.semi(14, 23, 31); L.semi(21, 30, 28); L.semi(14, 23, 25); L.semi(21, 30, 22); L.semi(14, 23, 19); L.semi(21, 30, 16);
-      L.coins(16, 30, 4); L.coins(23, 27, 4); L.coins(16, 24, 4); L.coins(23, 21, 4); L.coins(16, 18, 4);
-      L.box(30, 14, 52, 16);
-      L.e('robot', 40, 14);
-      L.e('crusher', 46, 3);
-      L.row(50, 10, 'X'); L.e('firebar', 50, 10, { len: 3, speed: 0.02 });
-      L.plat(53, 13, 3, { dx: 3, speed: 0.45 });
-      L.box(60, 14, 80, 16);
-      L.check(62, 14);
-      L.conveyor(66, 76, -1, 14);
-      L.e('robot', 70, 14);
-      // Bear: on the beam above the belt
-      L.semi(75, 80, 10); L.bear(77, 10);
-      L.plat(81, 13, 2, { dy: -4, speed: 0.4 });
-      L.box(86, 10, 104, 12);
-      L.e('robot', 94, 10);
-      L.row(98, 6, 'BSB');
-      L.box(108, 14, 140, 16);
-      L.e('robot', 116, 14);
-      L.conveyor(120, 132, 1, 14);
-      L.e('crusher', 126, 3);
-      L.row(134, 10, 'L');
-      L.box(144, 14, 186, 18);
-      L.e('robot', 150, 14);
-      L.stairs(160, 6, 1, 14);
-      L.goal(172, 14);
-    }
-  });
-
-  /* 20 — Magpie's Sky Ship. Across the deck of Captain Magpie's ship,
-     high in the clouds — and at the stern, the Captain himself, with the
-     sack of presents. He swoops and drops eggs; when he lands to rest,
-     stomp him. Three stomps, and the presents are Monsty's again. */
-  add({
-    name: 'MAGPIE SKY SHIP', theme: 'ship', w: 212, seed: 2020, boss: true,
-    build: function (L) {
-      L.ground(0, 30);
-      L.row(8, R1, '?P?');
-      L.e('magpie', 18, 9);
-      L.plat(31, 14, 3, { bob: true });
-      L.ground(36, 70);
-      L.e('magpie', 44, 8);
-      L.pipe(48, 3);
-      L.e('monkey', 56);
-      L.row(60, R1, 'BB?BB');
-      L.plat(71, 13, 3, { dx: 4, speed: 0.45 });
-      L.ground(80, 113);
-      L.check(84);
-      L.e('magpie', 90, 9); L.e('magpie', 98, 7);
-      L.row(94, R1, 'BSB');
-      L.e('monkey', 104);
-      // Bear: up the mast and onto the yard
-      L.pipe(108, 3); L.semi(110, 113, 9); L.bear(111, 9);
-      L.plat(114, 14, 3, { bob: true });
-      L.ground(118, 212);
-      L.row(124, R1, 'P'); L.row(128, R1, 'L');
-      // the stern: the gate closes behind you, the Captain wakes from his
-      // nap on the crates and flies to and fro between ax0 and ax1
-      L.e('gate', 168, 15);
-      L.box(183, 12, 187, 16, TL.CRATE);
-      L.e('captain', 184, 12, { ax0: 172, ax1: 200 });
-      L.e('sack', 200);
-      L.box(206, 2, 212, 16, TL.HARD);
-    }
-  });
-
-  /* ==========================================================================
-     THE THIRD LAND — THE BIG TRIP (levels 21–30)
-     The family's off to Disneyland Paris in the Yeti, and Rascal the Fox
-     has snatched Brocco. Each level ends at the car, with Luke and Lucy
-     waiting; one of them cheers at every checkpoint. The tricks: steam
-     that lifts you, a windmill to ride, market awnings to bounce on,
-     conveyor belts and croissants, rolling cheeses, chimneys over the
-     roofs, trains to ride, the Eiffel Tower to climb, the park's carousel,
-     teacups and parade — and Rascal at the castle, under the fireworks.
-     (A little harder than the first two lands: Bonnie asked for it.)
-     ========================================================================== */
-
-  /* 21 — The Ferry. Across the deck, past the funnels: their steam lifts
-     Bonnie up to the high decks; lifeboats bob over the gaps. */
-  add({
-    name: 'THE FERRY', theme: 'ferry', w: 220, seed: 211,
-    build: function (L) {
-      L.ground(0, 38);
-      L.row(9, R1, '?P?');
-      L.e('crab', 18);
-      // the first vent, on safe ground: up to a ledge of stars
-      L.steam(24, 7); L.semi(20, 30, 9); L.coins(21, 8, 3); L.coins(27, 8, 3);
-      L.e('gull', 33, 9);
-      L.plat(39, 14, 3, { bob: true, look: 'lifeboat' });
-      L.ground(43, 77);
-      L.row(48, 15, 'cc'); L.row(48, 14, 'cc');
-      L.e('crab', 55);
-      L.pipe(59, 3);
-      L.e('gull', 64, 9);
-      L.row(66, R1, 'B?B');
-      L.steam(71, 9); L.semi(68, 76, 7); L.coins(69, 6, 6);
-      L.plat(78, 14, 3, { bob: true, look: 'lifeboat', dx: 2, speed: 0.4 });
-      L.ground(83, 121);
-      L.e('crab', 89);
-      L.check(95);
-      L.e('gull', 100, 9);
-      L.row(103, R1, '?L?');
-      L.e('crab', 108);
-      // Bear: up on the high deck by the funnel — the steam takes you there
-      L.pipe(116, 4); L.steam(112, 9); L.semi(109, 116, 7); L.bear(110, 7);
-      L.plat(122, 14, 3, { bob: true, look: 'lifeboat', dx: 2, speed: 0.4 });
-      L.ground(127, 220);
-      L.e('gull', 133, 9); L.e('crab', 138);
-      L.row(142, R1, 'BMB');
-      L.steam(150, 8); L.semi(147, 155, 8); L.coins(148, 7, 6);
-      L.e('crab', 158); L.e('crab', 166);
-      L.pipe(162, 3);
-      L.e('gull', 170, 9);
-      L.row(172, R1, 'B?B');
-      L.stairs(178, 5);
-      L.goal(192);
-    }
-  });
-
-  /* 22 — Sunflower Fields. Hay bales, bees and hedgehogs — and a windmill
-     whose sails you ride round and up onto the high meadow. */
-  add({
-    name: 'SUNFLOWER FIELDS', theme: 'fields', w: 220, seed: 222,
-    build: function (L) {
-      L.ground(0, 70);
-      L.row(8, R1, '?P?');
-      L.e('snail', 18); L.e('bee', 26, 9);
-      L.row(30, R1, 'B?B');
-      L.e('hog', 36);
-      L.row(42, 15, 'cc'); L.row(42, 14, 'cc'); L.row(42, 13, 'c');
-      L.e('grumbug', 50);
-      // the windmill: four sails turning round the hub, up to the meadow
-      [0, 1.5708, 3.1416, 4.7124].forEach(function (ph) { L.plat(63, 9, 3, { circle: 4, phase: ph, speed: 0.011, spokes: true, look: 'sail' }); });
-      L.ground(70, 108, 8);
-      L.coins(73, 7, 5);
-      L.e('hog', 84, 8);
-      L.row(88, 4, 'B?B');
-      L.e('bee', 95, 5);
-      L.check(98, 8);
-      // Bear: on the roof of the hay barn, a hop up from the meadow
-      L.semi(101, 107, 4); L.bear(103, 4);
-      L.ground(108, 140);
-      L.e('snail', 116);
-      L.row(120, R1, 'BMB');
-      L.e('bee', 126, 9);
-      L.e('hog', 134);
-      L.ground(144, 175);
-      L.e('grumbug', 150); L.e('snail', 160);
-      L.row(164, R1, '?L?');
-      // a second windmill, over a stream
-      [0, 2.0944, 4.1888].forEach(function (ph) { L.plat(180, 10, 3, { circle: 4, phase: ph, speed: 0.012, spokes: true, look: 'sail' }); });
-      L.ground(186, 220);
-      L.e('hog', 190);
-      L.goal(196);
-    }
-  });
-
-  /* 23 — Market Village. Cobbles, cafés and snails; the market's stripy
-     awnings bounce you up to the balconies; pigeons everywhere. */
-  add({
-    name: 'MARKET VILLAGE', theme: 'village', w: 220, seed: 233,
-    build: function (L) {
-      L.ground(0, 40);
-      L.row(9, R1, '?P?');
-      L.e('snail', 18);
-      L.spring(24); L.semi(21, 30, 8); L.coins(22, 7, 6);
-      L.e('pigeon', 33, 9);
-      L.ground(44, 80);
-      L.e('snail', 50);
-      L.row(54, R1, 'B?B');
-      L.spring(61); L.row(59, 4, 'BMB');
-      L.e('pigeon', 66, 8);
-      L.pipe(70, 3);
-      L.e('grumbug', 76);
-      L.ground(85, 125);
-      L.check(90);
-      L.e('snail', 96);
-      // Bear: on a flower balcony — the awning below bounces you up
-      L.spring(102); L.semi(99, 107, 6); L.bear(101, 6);
-      L.e('pigeon', 109, 9);
-      L.row(112, R1, '?L?');
-      L.e('snail', 118);
-      L.ground(129, 220);
-      L.e('grumbug', 136);
-      L.spring(142); L.semi(146, 153, 9); L.spring(149, 9); L.coins(152, 3, 4);
-      L.e('pigeon', 156, 9);
-      L.e('snail', 164);
-      L.row(168, R1, 'B?B');
-      L.e('grumbug', 176);
-      L.stairs(179, 4);
-      L.goal(192);
-    }
-  });
-
-  /* 24 — The Bakery. Conveyor belts of bread, dough that bounces, shelves
-     to hop between — and croissants on the run. */
-  add({
-    name: 'THE BAKERY', theme: 'bakery', w: 210, seed: 244,
-    build: function (L) {
-      L.ground(0, 34);
-      L.row(8, R1, '?P?');
-      L.e('croissant', 18);
-      L.conveyor(22, 32, 1);
-      L.e('croissant', 28);
-      L.ground(38, 70);
-      L.conveyor(42, 52, -1);
-      L.spring(56); L.semi(53, 62, 9); L.coins(54, 8, 7);
-      L.e('croissant', 62);
-      L.row(64, R1, 'B?B');
-      L.plat(71, 14, 3, { fall: true });
-      L.ground(75, 116);
-      L.check(79);
-      L.e('croissant', 85); L.e('croissant', 92);
-      L.conveyor(96, 108, 1);
-      L.row(100, R1, 'BMB');
-      // Bear: on the top shelf, up from the dough
-      L.spring(111); L.semi(108, 115, 7); L.bear(110, 7);
-      L.ground(120, 210);
-      L.e('croissant', 126);
-      L.row(132, R1, '?L?');
-      L.e('croissant', 140);
-      L.conveyor(146, 160, -1);
-      L.e('croissant', 152);
-      L.spring(164); L.semi(161, 170, 9); L.coins(162, 8, 7);
-      L.e('croissant', 172);
-      L.stairs(174, 4);
-      L.goal(186);
-    }
-  });
-
-  /* 25 — Cheese Caves. Down in the cellars: wheels of cheese come rolling,
-     bats flit, and grumpy rocks wait under the roof. */
-  add({
-    name: 'CHEESE CAVES', theme: 'cheese', w: 210, seed: 255,
-    build: function (L) {
-      L.ceiling(0, 210, 2);
-      L.ground(0, 36);
-      L.row(8, R1, '?P?');
-      L.e('cheese', 20); L.e('bat', 28, 7);
-      L.ground(40, 74);
-      L.e('cheese', 48);
-      L.row(52, R1, 'B?B');
-      L.e('rock', 58, 2);
-      L.e('cheese', 62);
-      L.pipe(68, 2);
-      L.plat(75, 14, 3, { dx: 3, speed: 0.4 });
-      L.ground(82, 118);
-      L.check(86);
-      L.e('cheese', 94); L.e('bat', 100, 6);
-      L.row(104, R1, 'BMB');
-      // Bear: on a rack of cheeses — up the blocks, then a hop
-      L.row(108, R1, 'BB'); L.semi(110, 116, 7); L.bear(112, 7);
-      L.ground(122, 210);
-      L.e('cheese', 130);
-      L.row(136, R1, '?L?');
-      L.e('rock', 140, 2);
-      L.e('cheese', 144);
-      L.e('bat', 150, 7);
-      L.e('cheese', 158);
-      L.stairs(164, 4);
-      L.e('cheese', 172);
-      L.goal(186);
-    }
-  });
-
-  /* 26 — Paris Rooftops. From roof to roof over the streets below, with
-     pigeons; a chimney's steam lifts you to the tallest roof. */
-  add({
-    name: 'PARIS ROOFTOPS', theme: 'roofs', w: 220, seed: 266,
-    build: function (L) {
-      L.ground(0, 30, 14);
-      L.row(8, 9, '?P?');
-      L.e('pigeon', 22, 8);
-      L.ground(34, 56, 12);
-      L.pipe(40, 2, false, 12);
-      L.e('grumbug', 46, 12);
-      L.e('pigeon', 50, 6);
-      L.ground(60, 74, 15);
-      // the chimney's steam, right beside the tall house: up, and step across onto its roof
-      L.steam(72, 9, 15);
-      L.ground(74, 96, 7);
-      L.coins(76, 6, 5);
-      L.e('pigeon', 86, 3);
-      L.e('grumbug', 90, 7);
-      L.ground(100, 130, 12);
-      L.check(103, 12);
-      L.e('pigeon', 110, 6);
-      L.row(112, 7, 'BMB');
-      // Bear: on top of a chimney stack, a hop from its pots
-      L.pipe(120, 3, false, 12); L.semi(122, 128, 6); L.bear(124, 6);
-      L.ground(134, 160, 14);
-      L.e('grumbug', 140, 14);
-      L.steam(146, 7, 14); L.semi(143, 151, 7); L.coins(144, 6, 6);
-      L.e('pigeon', 154, 8);
-      L.ground(164, 184, 13);
-      L.row(170, 8, '?L?');
-      L.e('grumbug', 178, 13);
-      // down from the roofs to the street, where the Yeti's waiting
-      L.ground(184, 220);
-      L.goal(194);
-    }
-  });
-
-  /* 27 — The Metro. Under the city: platforms, and trains to ride across
-     the tracks between them; suitcases hop about, looking for their owners. */
-  add({
-    name: 'THE METRO', theme: 'metro', w: 230, seed: 277,
-    build: function (L) {
-      L.ceiling(0, 196, 3);
-      L.ground(0, 40);
-      L.row(9, R1, '?P?');
-      L.e('suitcase', 20); L.e('suitcase', 32);
-      L.plat(40, 14, 6, { dx: 6, speed: 0.55, look: 'train' });
-      L.ground(52, 86);
-      L.e('suitcase', 60);
-      L.row(64, R1, 'B?B');
-      L.e('grumbug', 72);
-      L.pipe(78, 2);
-      L.plat(86, 14, 6, { dx: 4, speed: 0.6, look: 'train' });
-      L.ground(96, 132);
-      L.check(100);
-      L.e('suitcase', 108);
-      L.row(112, R1, 'BMB');
-      // Bear: on top of the ticket machines
-      L.row(116, R1, 'BB'); L.semi(118, 124, 7); L.bear(120, 7);
-      L.plat(132, 14, 6, { dx: 6, speed: 0.55, look: 'train' });
-      L.ground(144, 230);
-      L.e('suitcase', 152); L.e('grumbug', 160);
-      L.row(166, R1, '?L?');
-      L.e('suitcase', 174); L.e('suitcase', 184);
-      // up the steps and out into the street
-      L.stairs(196, 4);
-      L.goal(206);
-    }
-  });
-
-  /* 28 — The Eiffel Tower. All the way up: girders to climb, a lift to
-     ride, pigeons at every level — and the Yeti somehow at the top. */
-  add({
-    name: 'EIFFEL TOWER', theme: 'tower', w: 124, h: 44, gr: 42, seed: 288,
-    build: function (L) {
-      var g = 42;
-      L.start = { x: 3, row: g };
-      // the ground only at the foot: beyond it, nothing but the city far below
-      L.ground(0, 34, g);
-      L.row(8, g - 5, '?P?');
-      L.e('grumbug', 26, g);
-      // the first climb: girders three rows apart, each overlapping the next
-      L.semi(14, 23, 39); L.semi(21, 30, 36); L.semi(14, 23, 33); L.semi(21, 30, 30);
-      L.coins(16, 38, 4); L.coins(23, 35, 4); L.coins(16, 32, 4);
-      // the first deck
-      L.box(30, 27, 60, 29);
-      L.e('pigeon', 40, 22);
-      L.e('grumbug', 48, 27);
-      L.row(44, 22, 'B?B');
-      // Bear: on a girder out over the deck's edge
-      L.semi(52, 58, 23); L.bear(54, 23);
-      // the lift, up to the second deck
-      L.plat(61, 26, 3, { dy: -8, speed: 0.4 });
-      L.box(65, 18, 96, 20);
-      L.check(68, 18);
-      L.e('pigeon', 76, 13);
-      L.e('grumbug', 82, 18);
-      L.row(78, 13, '?L?');
-      // the last climb, to the very top
-      L.semi(88, 97, 15); L.semi(95, 104, 12); L.semi(88, 97, 9);
-      L.coins(90, 14, 4); L.coins(97, 11, 4);
-      L.box(97, 9, 124, 11);
-      L.e('pigeon', 104, 4);
-      L.goal(102, 9);
-    }
-  });
-
-  /* 29 — Disneyland Paris. The park! Bouncy castles, carousel horses
-     riding up and down, spinning teacups, a parade float to ride, toy
-     soldiers marching — and Bear up on the carousel's roof. */
-  add({
-    name: 'DISNEYLAND PARIS', theme: 'magic', w: 230, seed: 299,
-    build: function (L) {
-      L.ground(0, 64);
-      L.row(9, R1, '?P?');
-      L.e('soldier', 20);
-      L.spring(26); L.semi(23, 32, 8); L.coins(24, 7, 7);
-      L.e('soldier', 34);
-      // the carousel: horses going up and down, and its roof to climb to
-      [44, 48, 52, 56].forEach(function (x) { L.plat(x, 12, 2, { wave: 1.5, look: 'horse' }); });
-      L.semi(42, 60, 6); L.coins(44, 5, 4); L.bear(52, 6);
-      // the teacups, spinning over the pond
-      [0, 2.0944, 4.1888].forEach(function (ph) { L.plat(70, 12, 3, { circle: 3, phase: ph, speed: 0.014, look: 'teacup' }); });
-      L.ground(77, 110);
-      L.check(81);
-      L.e('soldier', 88); L.e('pigeon', 94, 9);
-      L.row(96, R1, 'BMB');
-      L.e('soldier', 104);
-      // the parade float, back and forth along the parade route
-      L.plat(110, 13, 5, { dx: 11, speed: 0.5, look: 'float' });
-      L.ground(126, 230);
-      L.e('soldier', 134);
-      L.spring(140); L.semi(137, 146, 8); L.coins(138, 7, 7);
-      L.row(150, R1, '?L?');
-      L.e('pigeon', 156, 9);
-      L.e('soldier', 162); L.e('soldier', 172);
-      L.row(176, R1, 'B?B');
-      L.stairs(184, 5);
-      L.goal(200);
-    }
-  });
-
-  /* 30 — Fireworks Night. The castle at night, fireworks overhead, toy
-     soldiers on guard — and in the courtyard, Rascal the Fox with Brocco.
-     He scampers and throws baguettes; when he leaps and lands in a dizzy
-     heap, stomp him. Three stomps and Brocco is free. */
-  add({
-    name: 'FIREWORKS NIGHT', theme: 'night', w: 212, seed: 3030, boss: true,
-    build: function (L) {
-      L.ground(0, 36);
-      L.row(8, R1, '?P?');
-      L.e('soldier', 20);
-      L.spring(28); L.semi(25, 33, 8); L.coins(26, 7, 6);
-      L.plat(37, 14, 3, { wave: 1 });
-      L.ground(42, 80);
-      L.e('soldier', 48); L.e('pigeon', 56, 9);
-      L.row(60, R1, 'BB?BB');
-      L.e('soldier', 68);
-      L.plat(81, 13, 3, { dx: 4, speed: 0.45 });
-      L.ground(90, 120);
-      L.check(94);
-      L.e('soldier', 100); L.e('soldier', 110);
-      L.row(104, R1, 'BSB');
-      // Bear: on the castle's balcony, a hop from the blocks
-      L.row(114, R1, 'BB'); L.semi(116, 120, 7); L.bear(117, 7);
-      L.plat(121, 14, 3, { wave: 1 });
-      L.ground(126, 212);
-      L.row(132, R1, 'P'); L.row(136, R1, 'L');
-      L.e('soldier', 146); L.e('pigeon', 152, 9);
-      // the courtyard: the gate shuts behind you, and there's Rascal
-      L.e('gate', 166, 15);
-      L.e('fox', 196, 16, { ax0: 168, ax1: 206 });
-      L.box(206, 2, 212, 16, TL.HARD);
-    }
-  });
+  /* The other lands' levels live in their own files (levels2.js, levels3.js,
+     levels4.js), added after this one: they build with the same kit. */
+  BB.levelKit = { add: add, TL: TL, C: C, GR: GR, R1: R1, R2: R2, T: T };
 
   BB.buildLevel = function (n) {
     var def = LEVELS[n - 1];

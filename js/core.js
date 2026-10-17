@@ -701,6 +701,12 @@
     // Bear, found: a little meow that rises and falls
     // half a heart back: three soft rising notes
     heal: function () { arp(['E6', 'G#6', 'B6'], 0.06, { duty: 0.5, vol: 0.03 }); },
+    // a golden medal: a bright little run up, and a sparkle on top
+    medal: function () { arp(['C6', 'E6', 'G6', 'C7'], 0.06, { duty: 0.5, vol: 0.035 }); voice(hz('G7'), hz('G7'), 0.06, { duty: 0.25, vol: 0.02, at: 0.26 }); voice(hz('C8'), hz('C8'), 0.1, { duty: 0.25, vol: 0.02, at: 0.31 }); },
+    // a secret found: a little mysterious-then-happy turn
+    secret: function () { arp(['G5', 'F#5', 'D#5', 'A4', 'G#4', 'E5', 'G#5', 'C6'], 0.07, { duty: 0.5, vol: 0.03 }); },
+    // the balloons: a lift, and a pop when they let go
+    lift: function () { arp(['C5', 'G5', 'C6'], 0.08, { duty: 0.25, vol: 0.03 }); },
     // the family car's horn: a friendly two-note toot-toot
     toot: function () { voice(392, 392, 0.09, { duty: 0.5, vol: 0.035 }); voice(330, 330, 0.14, { duty: 0.5, vol: 0.035, at: 0.13 }); },
     meow: function () { voice(560, 860, 0.12, { duty: 0.25, vol: 0.035, vib: 1 }); voice(860, 470, 0.26, { duty: 0.25, vol: 0.035, at: 0.12, vib: 1 }); },
@@ -746,6 +752,12 @@
     }
   };
   var stopSong = function () { clearInterval(songTimer); songTimer = null; song = null; };
+  // one musical note, for the musical blocks: a soft bell
+  BB.playNote = function (n) {
+    if (!ready() || BB.muted()) return;
+    var f = BB.hz(n);
+    voice(f, f, 0.22, { duty: 0.25, vol: 0.04 }); voice(f * 2, f * 2, 0.12, { duty: 0.125, vol: 0.012 });
+  };
   BB.music = function (name, onDone) {
     if (name === songName && songTimer && !onDone) return;
     stopSong();

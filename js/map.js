@@ -25,15 +25,16 @@
   var H = BB.H, HP = 1 / BB.R, snap = BB.snap, mix = BB.mix, A = BB.ART;
   // the two islands' ends, and where the water between them is split
   // between their two painted surfaces
-  var N = 30, ISLE = [[0, 650], [760, 1410], [1520, 2170]], SPLIT = 705, SPLIT2 = 1465, MW2 = 1410, MW3 = 2170;
+  var N = 35, ISLE = [[0, 650], [760, 1410], [1520, 2170], [2280, 2640]], SPLIT = 705, SPLIT2 = 1465, SPLIT3 = 2225, MW2 = 1410, MW3 = 2170, MW4 = 2640;
   var node = function (i) {
     if (i < 10) return { x: 44 + i * 62, y: 86 + Math.round(Math.sin(i * 1.2 + 0.4) * 15) };
     if (i < 20) return { x: 804 + (i - 10) * 62, y: 86 + Math.round(Math.sin((i - 10) * 1.1 + 2.2) * 15) };
-    return { x: 1564 + (i - 20) * 62, y: 86 + Math.round(Math.sin((i - 20) * 1.05 + 0.9) * 15) };
+    if (i < 30) return { x: 1564 + (i - 20) * 62, y: 86 + Math.round(Math.sin((i - 20) * 1.05 + 0.9) * 15) };
+    return { x: 2324 + (i - 30) * 62, y: 86 + Math.round(Math.sin((i - 30) * 1.2 + 1.5) * 15) };
   };
   // the boat route between the islands, as a gentle arc over the water
   // (the second crossing, to France, is the ferry's: from node 19 to 20)
-  var routeY = function (x) { var i = x > 1000 ? 19 : 9, a = node(i), b = node(i + 1), t = (x - a.x) / (b.x - a.x); return a.y + (b.y - a.y) * t - Math.sin(t * Math.PI) * 4; };
+  var routeY = function (x) { var i = x > 2140 ? 29 : x > 1000 ? 19 : 9, a = node(i), b = node(i + 1), t = (x - a.x) / (b.x - a.x); return a.y + (b.y - a.y) * t - Math.sin(t * Math.PI) * 4; };
   var WORLD = [
     { land: '#82d65a', dark: '#4aa83c', col: '#5ccf6a' },
     { land: '#a2e26c', dark: '#5cb84a', col: '#8ee06a' },
@@ -66,7 +67,13 @@
     { land: '#8cbaa2', dark: '#4a7a64', col: '#3a9a70' },
     { land: '#9ad072', dark: '#5ca048', col: '#9a6a48' },
     { land: '#ffcadc', dark: '#d890b0', col: '#e868a8' },
-    { land: '#8272b2', dark: '#54488a', col: '#6a48c8' }
+    { land: '#8272b2', dark: '#54488a', col: '#6a48c8' },
+    // Holiday!: the waterpark, the surf beach, the cycle paths, Puy du Fou, Saint-Malo
+    { land: '#a8dcec', dark: '#68aec4', col: '#2aa8e0' },
+    { land: '#f6dca0', dark: '#d0b070', col: '#2a7ad0' },
+    { land: '#a8d870', dark: '#6aa848', col: '#4aa844' },
+    { land: '#92c868', dark: '#5a9a44', col: '#b84a3a' },
+    { land: '#c8c4bc', dark: '#8a867e', col: '#4a6a96' }
   ];
 
   // painting helpers (no wrap-round here: the island has ends)
@@ -104,12 +111,13 @@
   var regionAt = function (x) {
     if (x < SPLIT) return Math.max(0, Math.min(9, Math.round((x - 44) / 62)));
     if (x < SPLIT2) return Math.max(10, Math.min(19, 10 + Math.round((x - 804) / 62)));
-    return Math.max(20, Math.min(29, 20 + Math.round((x - 1564) / 62)));
+    if (x < SPLIT3) return Math.max(20, Math.min(29, 20 + Math.round((x - 1564) / 62)));
+    return Math.max(30, Math.min(34, 30 + Math.round((x - 2324) / 62)));
   };
   var LAGOON = function () { var p = node(3); return { x: p.x, y: p.y + 2, rx: 24, ry: 15 }; };
 
   var build = function (k) {
-    var X0 = [0, SPLIT, SPLIT2][k], SW = [SPLIT, SPLIT2 - SPLIT, MW3 - SPLIT2][k], IA = ISLE[k][0], IB = ISLE[k][1];
+    var X0 = [0, SPLIT, SPLIT2, SPLIT3][k], SW = [SPLIT, SPLIT2 - SPLIT, SPLIT3 - SPLIT2, MW4 - SPLIT3][k], IA = ISLE[k][0], IB = ISLE[k][1];
     var c = BB.surface(SW, H), g = c.getContext('2d'), rnd = BB.rng(2026 + k), i, x, y, p;
     // painted in the map's own coordinates
     g.translate(-X0, 0);
@@ -133,13 +141,13 @@
     var LAND = WORLD.map(function (w) { return rgb(w.land); });
     var SAND = rgb('#fbe6a8'), FOAM = rgb('#ffffff'), SHALLOW = rgb('#9ae6f6');
     var CLIFF = WORLD.map(function (w) { return rgb(mix(w.dark, '#4a2c34', 0.55)); });
-    var SANDY = { 2: 1, 3: 1, 10: 1, 16: 1, 20: 1 };
+    var SANDY = { 2: 1, 3: 1, 10: 1, 16: 1, 20: 1, 31: 1, 34: 1 };
     /* which world a point belongs to: the borders wander, and within a
        couple of pixels of one the two grounds are dithered together, the
        way pixel artists blend, so the worlds run into each other */
     var regionXY = function (x, y, px, py) {
-      var ri = regionAt(x), lo = Math.floor(ri / 10) * 10;
-      for (var j = Math.max(lo, ri - 1); j <= Math.min(lo + 8, ri); j++) {
+      var ri = regionAt(x), lo = Math.floor(ri / 10) * 10, last = ri < 30 ? lo + 9 : 34;
+      for (var j = Math.max(lo, ri - 1); j <= Math.min(last - 1, ri); j++) {
         var bx = (node(j).x + node(j + 1).x) / 2 + Math.sin(y * 0.16 + j * 2) * 5 + Math.sin(y * 0.41 + j) * 2, dd = x - bx;
         if (Math.abs(dd) < 3) return (dd + 3) / 6 * 16 > BAYER[(py & 3) * 4 + (px & 3)] ? j + 1 : j;
         if (j === ri && dd > 0) return j + 1;
@@ -182,11 +190,14 @@
     for (i = 0; i < 700; i++) {
       x = IA + 8 + rnd() * (IB - IA - 16); y = coastTop(x) + 5 + rnd() * (coastBot(x) - coastTop(x) - 14);
       var w3 = regionAt(x), wd = WORLD[w3], r3 = rnd();
-      if (w3 <= 1 || w3 === 4 || w3 === 12 || w3 === 13 || w3 === 21 || w3 === 27) {
+      if (w3 <= 1 || w3 === 4 || w3 === 12 || w3 === 13 || w3 === 21 || w3 === 27 || w3 === 32 || w3 === 33) {
         var tuft = mix(wd.dark, '#1a3010', w3 === 4 ? 0.1 : 0.2);
         R(g, x, y, HP, 1, tuft); R(g, x - HP, y + HP, HP, HP, tuft); R(g, x + HP, y + HP, HP, HP, tuft);
         if (r3 < (w3 === 13 ? 0.07 : 0.18)) { R(g, x + 2, y, 1, 1, ['#ffffff', '#ffe060', '#ff8ab0', '#b8a0ff'][Math.floor(rnd() * 4)]); }
-      } else if (w3 === 22 || w3 === 25) {
+      } else if (w3 === 30) {
+        // poolside tiles
+        if (r3 < 0.5) R(g, x, y, 2, HP, mix(wd.dark, wd.land, 0.5)); else R(g, x, y, HP, HP, '#ffffff');
+      } else if (w3 === 22 || w3 === 25 || w3 === 34) {
         // cobbles and slates
         R(g, x, y, 2, 1, mix(wd.dark, wd.land, 0.35)); R(g, x, y, 2, HP, mix(wd.land, '#ffffff', 0.3));
       } else if (w3 === 24) {
@@ -205,7 +216,7 @@
         // little craters
         if (r3 < 0.18) { oval(g, x, y, 2, 1, mix(wd.dark, wd.land, 0.3)); R(g, x - 1.5, y + 1, 3, HP, mix(wd.land, '#ffffff', 0.4)); }
         else R(g, x, y, HP, HP, '#ffffff');
-      } else if (w3 === 2 || w3 === 3 || w3 === 10 || w3 === 16 || w3 === 20 || w3 === 23) {
+      } else if (w3 === 2 || w3 === 3 || w3 === 10 || w3 === 16 || w3 === 20 || w3 === 23 || w3 === 31) {
         if (r3 < 0.5) R(g, x, y, 3, HP, mix(wd.dark, wd.land, 0.4));
       } else if (w3 === 6 || w3 === 7) {
         if (r3 < 0.3) R(g, x, y, HP, HP, '#ffffff'); else R(g, x, y, 2, HP, mix(wd.dark, wd.land, 0.5));
@@ -217,6 +228,7 @@
     }
     if (k === 1) { isles2(g, rnd); return c; }
     if (k === 2) { isles3(g, rnd); return c; }
+    if (k === 3) { isles4(g, rnd); return c; }
     // the lagoon in the coral world
     var L = LAGOON();
     oval(g, L.x, L.y, L.rx + 2, L.ry + 2, '#fbe6a8');
@@ -582,7 +594,75 @@
     }
   };
 
-  var island = null, island2 = null, island3 = null, cloudC = null;
+  /* The holiday coast: O'Gliss Park's slides, the surf beach at Hossegor,
+     the cycle paths through the pines, Puy du Fou's castle, and Saint-Malo
+     inside its walls, the ferry home waiting at the quay. */
+  var isles4 = function (g, rnd) {
+    var p, i, k, x, y;
+    // 31 · the waterpark: a slide tower, twisting tubes, a pool
+    p = node(30);
+    oval(g, p.x + 14, p.y + 14, 11, 5, '#ffffff'); oval(g, p.x + 14, p.y + 14, 10, 4.2, '#4ac8f0'); oval(g, p.x + 15, p.y + 15, 7, 2.6, '#2aa8e0');
+    R(g, p.x - 24, p.y - 32, 7, 30, '#f4f0e0'); R(g, p.x - 24, p.y - 32, 2, 30, '#ffffff'); R(g, p.x - 26, p.y - 34, 11, 3, '#e8504a');
+    [['#ffc830', 0], ['#ff7ac0', 1], ['#4aa8ff', 2]].forEach(function (c, j) {
+      for (k = 0; k <= 1; k += 0.02) { var tx = p.x - 18 + k * (30 + j * 4), ty = p.y - 30 + j * 4 + k * 36 + Math.sin(k * Math.PI * 2 + j) * 5; disc(g, tx, ty + 0.6, 1.8, mix(c[0], '#000000', 0.25)); disc(g, tx, ty, 1.6, c[0]); }
+    });
+    [[16, -18], [26, -10]].forEach(function (q) { var px = p.x + q[0], py = p.y + q[1]; for (k = 0; k < 9; k += HP) R(g, px + Math.sin(k * 0.25) * 1.5, py - k, 1.3, HP, '#a8744c'); for (var f = 0; f < 5; f++) { var a = -Math.PI / 2 + (f - 2) * 0.75; for (var t2 = 0; t2 < 6; t2 += HP) R(g, px + Math.cos(a) * t2, py - 9 + Math.sin(a) * t2 + t2 * t2 * 0.06, 1, HP * 2, f % 2 ? '#3ea84a' : '#62c850'); } });
+    // 32 · the surf beach: striped beach huts, boards in the sand, the lifeguard's chair
+    p = node(31);
+    [[-24, '#e8504a'], [-15, '#3a8ad8'], [-6, '#ffc830']].forEach(function (q) { var hx = p.x + q[0], hy = p.y - 14; R(g, hx - 3.5, hy - 7, 7, 7, '#ffffff'); for (k = 0; k < 7; k += 2) R(g, hx - 3.5 + k, hy - 7, 1, 7, q[1]); for (var r = 0; r < 3; r += HP) R(g, hx - 4.5 + r, hy - 7 - r, 9 - r * 2, HP, '#7a5a3a'); });
+    [[10, '#ff7a3a'], [13, '#3ac8a8'], [16, '#ffe048']].forEach(function (q) { R(g, p.x + q[0], p.y - 22, 2, 9, q[1]); R(g, p.x + q[0], p.y - 22, 2, 1, '#ffffff'); });
+    R(g, p.x + 22, p.y - 24, 1, 12, '#c8a070'); R(g, p.x + 27, p.y - 24, 1, 12, '#c8a070'); R(g, p.x + 21, p.y - 26, 8, 3, '#e8504a'); R(g, p.x + 22, p.y - 18, 6, 1, '#c8a070');
+    // 33 · the cycle paths: umbrella pines and a path winding through them
+    p = node(32);
+    for (k = -30; k < 30; k += 1.5) R(g, p.x + k, p.y + 8 + Math.sin(k * 0.12) * 4, 1, 1, '#f0e6c8');
+    [[-24, -14], [-10, -22], [6, -18], [20, -24], [-18, 18], [14, 20]].forEach(function (q) {
+      var tx = p.x + q[0], ty = p.y + q[1];
+      R(g, tx - 0.5, ty - 8, 1.2, 8, '#8a5a3a');
+      oval(g, tx + 0.6, ty - 9.4, 6.5, 2.4, '#1e5a2c'); oval(g, tx, ty - 10, 6.2, 2.2, '#3a8a3e'); oval(g, tx - 1.5, ty - 10.8, 3, 1, '#6ab858');
+    });
+    // 34 · Puy du Fou: the castle on its hill, banners, and the lake with the longship
+    p = node(33);
+    ball(g, p.x + 4, p.y - 6, 16, ['#5a9a44', '#78b85a', '#a8d880']);
+    R(g, p.x - 8, p.y - 30, 24, 14, '#c8c0b0'); R(g, p.x - 8, p.y - 30, 24, 1, '#e8e0d0');
+    [[-10, 22], [14, 22], [2, 28]].forEach(function (q) { var qx = p.x + q[0], qh = q[1]; R(g, qx - 3, p.y - 16 - qh + 10, 6, qh - 10, '#b8b0a0'); R(g, qx - 3, p.y - 16 - qh + 10, 1.5, qh - 10, '#d8d0c0'); tri(g, qx, p.y - 16 - qh + 10, 8, 6, '#c0503a', '#983828'); R(g, qx - 0.25, p.y - 16 - qh + 2, HP, 3, '#4a3a3a'); R(g, qx + 0.25, p.y - 16 - qh + 2, 3, 1.5, ['#3a8ad8', '#ffc830', '#e8504a'][Math.floor(rnd() * 3)]); });
+    oval(g, p.x - 2, p.y - 20, 3, 4, '#3a3428'); R(g, p.x - 5, p.y - 20, 6, 4, '#3a3428');
+    oval(g, p.x - 22, p.y + 16, 10, 4, '#5ab8e0'); oval(g, p.x - 22, p.y + 16.5, 8, 3, '#3a98c8');
+    // 35 · Saint-Malo: the walls, the grey roofs inside and the spire; the fort on its rock
+    p = node(34);
+    R(g, p.x - 26, p.y - 26, 34, 14, '#a8a49c'); R(g, p.x - 26, p.y - 26, 34, 1.5, '#d8d4cc');
+    for (k = 0; k < 34; k += 3) R(g, p.x - 26 + k, p.y - 28, 2, 2, '#a8a49c');
+    [[-22, 7], [-14, 9], [-6, 8], [2, 7]].forEach(function (q) { var hx = p.x + q[0], hh = q[1]; R(g, hx - 3, p.y - 26 - hh, 7, hh, '#d8d0c4'); tri(g, hx + 0.5, p.y - 26 - hh, 8, 4, '#6a7084', '#4a5064'); R(g, hx - 1.5, p.y - 24 - hh, 1, 1.5, '#4a6a96'); R(g, hx + 1.5, p.y - 24 - hh, 1, 1.5, '#4a6a96'); });
+    R(g, p.x - 11, p.y - 44, 3, 10, '#c8c0b0'); tri(g, p.x - 9.5, p.y - 44, 4, 8, '#6a7084', '#4a5064');
+    ball(g, p.x + 22, p.y + 24, 5, ['#7a766e', '#a8a49c', '#d0ccc4']); R(g, p.x + 19, p.y + 15, 6, 5, '#a8a49c'); R(g, p.x + 19, p.y + 15, 6, 1, '#d0ccc4');
+  };
+  // the holiday coast's moving parts: a wave rolling in, the slides' splash, the ferry's smoke, banners
+  var drawIsles4 = function (ctx, st, t) {
+    var p, k;
+    // the bridge over from France: a long deck on piers, cables to two tall pylons
+    var x0b = 2150, x1b = 2296;
+    for (var bx = x0b; bx < x1b; bx += 1) { var by = routeY(bx); R(ctx, bx, by + 2, 1, 2, '#e8e8f0'); R(ctx, bx, by + 4, 1, 1, '#9aa0b0'); }
+    for (bx = x0b + 10; bx < x1b; bx += 16) { var py2 = routeY(bx); R(ctx, bx, py2 + 5, 1.5, 22, '#c8c8d4'); }
+    [2196, 2250].forEach(function (px) { var py3 = routeY(px); R(ctx, px - 1, py3 - 22, 2.5, 26, '#f4f4fa'); for (k = -20; k <= 20; k += 5) for (var c = 0; c <= 1; c += 0.05) R(ctx, px + k * c, py3 - 20 + 21 * c, 0.5, 0.5, '#c8c8d8'); });
+    // waves rolling in on the surf beach
+    p = node(31);
+    for (k = 0; k < 3; k++) { var wp = ((t * 0.4 + k * 30) % 90) / 90, wx = p.x - 30 + k * 20 + wp * 6, wy = 24 + wp * 10; ctx.globalAlpha = 1 - wp * 0.8; for (var j = 0; j < 12; j++) R(ctx, wx + j, wy - Math.sin(j / 12 * Math.PI) * 2, 1, 1, '#ffffff'); ctx.globalAlpha = 1; }
+    // a splash at the foot of the slides
+    p = node(30);
+    if (!st.reduce && t % 50 < 18) for (k = 0; k < 5; k++) R(ctx, p.x + 8 + k * 2, p.y + 8 - Math.sin((t % 50) / 18 * Math.PI) * (3 + k % 3), 1, 1, '#ffffff');
+    // the longship on Puy du Fou's lake, rocking
+    p = node(33);
+    var lx = p.x - 22, ly = p.y + 14 + Math.sin(t * 0.05) * 0.6;
+    R(ctx, lx - 6, ly, 12, 2, '#8a5a30'); R(ctx, lx - 7, ly - 2, 2, 2, '#8a5a30'); R(ctx, lx + 5, ly - 2, 2, 2, '#8a5a30');
+    R(ctx, lx - 0.25, ly - 8, HP, 8, '#5a3a20'); R(ctx, lx - 3, ly - 7, 6, 4, '#e8e0d0'); R(ctx, lx - 3, ly - 6, 6, 1, '#e8504a'); R(ctx, lx - 3, ly - 4, 6, 1, '#e8504a');
+    // the ferry at Saint-Malo's quay, smoke rising — the way home
+    p = node(34);
+    var fx = p.x + 8, fy = coastBot(fx) + 6;
+    for (k = 0; k < 4; k += HP) { var fw = 13 - k * 0.5; R(ctx, fx - fw, fy + k, fw * 2, HP, k < 1 ? '#ffffff' : k < 2 ? '#3a6ad8' : '#f4f4f8'); }
+    R(ctx, fx - 9, fy - 5, 12, 5, '#ffffff'); R(ctx, fx - 8, fy - 3.5, 10, 1, '#5a7aa8'); R(ctx, fx + 4, fy - 8, 3, 8, '#e8504a');
+    if (!st.reduce) for (k = 0; k < 3; k++) { var sp = ((t * 0.4 + k * 18) % 54) / 54; ctx.globalAlpha = 0.6 * (1 - sp); disc(ctx, fx + 5.5 + sp * 6, fy - 10 - sp * 10, 1.2 + sp * 2, '#f0f0f4'); } ctx.globalAlpha = 1;
+  };
+
+  var island = null, island2 = null, island3 = null, island4 = null, cloudC = null;
   // the path between two levels, as a list of dots
   var dots = function (i) {
     var a = node(i), b = node(i + 1), out = [], n = Math.round((b.x - a.x) / 8);
@@ -615,20 +695,22 @@
 
   BB.Map = {
     // the map's width: the second island is there once the first land is won
-    widthFor: function (won, won2) { return won2 ? MW3 : won ? MW2 : ISLE[0][1]; },
+    widthFor: function (won, won2, won3) { return won3 ? MW4 : won2 ? MW3 : won ? MW2 : ISLE[0][1]; },
     node: node,
     draw: function (ctx, st) {
-      var W = BB.W, t = st.reduce ? 0 : st.t, cx = st.camX, i, k, p, lands = st.won2 ? 3 : st.won ? 2 : 1, MW = ISLE[lands - 1][1], NN = lands * 10;
+      var W = BB.W, t = st.reduce ? 0 : st.t, cx = st.camX, i, k, p, lands = st.won3 ? 4 : st.won2 ? 3 : st.won ? 2 : 1, MW = ISLE[lands - 1][1], NN = [10, 20, 30, 35][lands - 1];
       if (!island) island = build(0);
       if (st.won && !island2) island2 = build(1);
       if (st.won2 && !island3) island3 = build(2);
+      if (st.won3 && !island4) island4 = build(3);
       ctx.save();
       ctx.translate(-snap(cx), 0);
       BB.blit(ctx, island, 0, 0);
       if (island2) BB.blit(ctx, island2, SPLIT, 0);
       if (island3) BB.blit(ctx, island3, SPLIT2, 0);
+      if (island4) BB.blit(ctx, island4, SPLIT3, 0);
       // glints on the sea
-      for (i = 0; i < 40 * lands; i++) { var gx = (i * 53 + t * 0.2) % MW, gy = (i * 37) % H; if ((gx < 654 || gx > 756) && (gx < 1414 || gx > 1516) && gy > coastTop(gx) - 4 && gy < coastBot(gx) + 4) continue; if ((t + i * 13) % 90 < 50) R(ctx, gx, gy, 2, HP, 'rgba(255,255,255,0.55)'); }
+      for (i = 0; i < 40 * lands; i++) { var gx = (i * 53 + t * 0.2) % MW, gy = (i * 37) % H; if ((gx < 654 || gx > 756) && (gx < 1414 || gx > 1516) && (gx < 2174 || gx > 2276) && gy > coastTop(gx) - 4 && gy < coastBot(gx) + 4) continue; if ((t + i * 13) % 90 < 50) R(ctx, gx, gy, 2, HP, 'rgba(255,255,255,0.55)'); }
       // the boat sails along the south shore
       var bx = 30 + ((t * 0.12) % 590), by = 134;
       R(ctx, bx - 4, by, 9, 2, '#a8744c'); for (k = 0; k < 6; k += HP) R(ctx, bx, by - 6 + k, k * 0.6, HP, '#ffffff'); R(ctx, bx, by - 7, HP, 7, '#6a4a3a');
@@ -699,7 +781,8 @@
         BB.draw(ctx, A.cage, cgx, cgy);
       }
       if (island2 && cx + W > SPLIT && cx < SPLIT2) drawIsles2(ctx, st, t);
-      if (island3 && cx + W > SPLIT2) drawIsles3(ctx, st, t);
+      if (island3 && cx + W > SPLIT2 && cx < SPLIT3) drawIsles3(ctx, st, t);
+      if (island4 && cx + W > SPLIT3 - 90) drawIsles4(ctx, st, t);
       // the path: bright where you've been, faint where you haven't; over
       // the water between the islands it's the boat's wake, dashes of foam
       for (i = 0; i < NN - 1; i++) {
@@ -715,7 +798,7 @@
       // clouds drifting over, with their shadows on the land
       if (!cloudC) cloudC = BB.surface(40, 24);
       var cl = cloudC.getContext('2d');
-      for (i = 0; i < [5, 9, 13][lands - 1]; i++) {
+      for (i = 0; i < [5, 9, 13, 16][lands - 1]; i++) {
         var cx2 = ((i * 160 + t * 0.08 * (1 + i * 0.2)) % (MW + 80)) - 40, cy2 = 18 + (i * 29) % 40;
         ctx.globalAlpha = 0.16; oval(ctx, cx2 + 6, cy2 + 30, 14, 4, '#1c1030'); ctx.globalAlpha = 1;
         // drawn on their own layer and laid down see-through, so a cloud
@@ -731,7 +814,7 @@
         R(ctx, bx2 - 2, by2 - (fl ? 1 : 0), 2, HP, '#2a2440'); R(ctx, bx2, by2, HP, HP, '#2a2440'); R(ctx, bx2 + 0.5, by2 - (fl ? 1 : 0), 2, HP, '#2a2440');
       }
       // Bonnie
-      var bp = st.bonnie, f = st.walking ? A.bonnie.s[['run1', 'run2', 'run3', 'run2'][Math.floor(t / 6) % 4]] : A.bonnie.s.idle;
+      var BS = st.set || A.bonnie.s, bp = st.bonnie, f = st.walking ? BS[['run1', 'run2', 'run3', 'run2'][Math.floor(t / 6) % 4]] : BS.idle;
       var hop = !st.walking && !st.reduce ? -Math.abs(Math.sin(t * 0.06)) * 1.5 : 0;
       var stand = st.walking ? 0 : -5;
       var hat = function (fr, x, y, flip) { if (st.hat && BB.drawHat) BB.drawHat(ctx, st.hat, x, y, fr.w, fr.h, fr, flip); };
@@ -761,7 +844,7 @@
       }
       if (bp.x > 648 && bp.x < 746) {
         // crossing the water: Bonnie sails, in a little boat of his own
-        var rk = st.reduce ? 0 : Math.sin(t * 0.12) * 0.8, s2 = A.bonnie.s.idle, mx = bp.x - st.facing * 3;
+        var rk = st.reduce ? 0 : Math.sin(t * 0.12) * 0.8, s2 = BS.idle, mx = bp.x - st.facing * 3;
         // the sail behind him, then Bonnie, then the hull in front
         R(ctx, mx - 0.25, bp.y - 13 + rk, HP, 13, '#6a4a3a');
         for (k = 0; k < 10; k += HP) R(ctx, st.facing > 0 ? mx - 0.25 - k * 0.75 : mx + 0.25, bp.y - 13 + rk + k, k * 0.75, HP, '#fff8ea');

@@ -1690,4 +1690,726 @@
   // middle; and a carousel horse planted on its pole
   D.teacup = teacup(40, MINT, 's', true);
   D.carouselhorse = carousel(24, 60, true);
+
+  /* ==========================================================================
+     HOLIDAY! — the fourth land, levels 31–35: the waterpark, surfing and a
+     bike ride at Hossegor, a day at the historical park (knights, falcons,
+     a Viking longship, chariots), and Saint-Malo, the walled corsair city
+     by the sea. Its locals, the medals hidden in every level, the things
+     Bonnie bounces on and rides, and its scenery.
+     ========================================================================== */
+  /* Four more ramps, deep to shine, in accented letters like the Big
+     Trip's (so the same UTF-8 rule holds): a summer-sky blue for pools,
+     boards and huts; an indigo and a violet, to finish the rainbow of
+     musical blocks; and the deep blue-green of the Landes pines. */
+  var SKY = ramp('ÈÉÊËÌ', ['#0e4a8a', '#1c74c8', '#3aa0f0', '#86cdfc', '#e0f4ff']);
+  var INDIGO = ramp('ÒÓÔÕÖ', ['#221a64', '#3a2c9c', '#5646d0', '#8a7cf2', '#d4ceff']);
+  var VIOLET = ramp('ÙÚÛÜÝ', ['#561a74', '#8a2cb0', '#b450dc', '#d894f2', '#f6e0ff']);
+  var PINE = ramp('íîïðñ', ['#103a2a', '#1a5a3a', '#2c7a48', '#58a058', '#b4dc94']);
+  // a whole part turned by a about (px, py): its shape and its texture
+  var turnPart = function (part, px, py, a) { return a ? P(part.c, turned(part.f, px, py, a), part.tex && turned(part.tex, px, py, a), part.line) : part; };
+  var turnStamps = function (st, px, py, a) { return a ? st.map(function (s) { var q = turnedAt(s[0], s[1], px, py, a); return [q[0], q[1], s[2]]; }) : st; };
+  // squeezed across about cx, as a coin is when it turns edge-on
+  var squeeze = function (f, cx, sx) { return function (x, y) { return f(cx + (x - cx) / sx, y); }; };
+  // a tapering stroke along pts, r0 thick at its root and r1 at its tip
+  var taper = function (pts, r0, r1) {
+    var n = pts.length - 1, segs = [];
+    for (var i = 0; i < n; i++) segs.push(cap(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], r0 + (r1 - r0) * (i + 0.5) / n));
+    return function (x, y) { return segs.some(function (f) { return f(x, y); }); };
+  };
+  // a wheel side on: a tyre, a rim, n spokes and a hub; the gaps are open
+  var wheel = function (cx, cy, R, n, rimT, hubT, spokeT, far) {
+    var shape = function (x, y) {
+      var dx = x - cx, dy = y - cy, r = Math.sqrt(dx * dx + dy * dy);
+      if (r > R) return false;
+      if (r > R - 2.6 || r < 2.6) return true;
+      var a = Math.atan2(dy, dx) * n / (Math.PI * 2);
+      return Math.abs(a - Math.round(a)) * Math.PI * 2 / n * r < 1.5;
+    };
+    return P(rimT.charAt(2), shape, function (x, y) {
+      var dx = x + 0.5 - cx, dy = y + 0.5 - cy, r = Math.sqrt(dx * dx + dy * dy);
+      if (r > R - 1.2) return far ? rimT.charAt(0) : orb(cx - 2, cy - 2, R, R, IRON)(x, y);
+      if (r > R - 2.6) return orb(cx - R * 0.4, cy - R * 0.4, R, R, rimT)(x, y);
+      if (r < 2.6) return orb(cx - 1, cy - 1, 2.6, 2.6, hubT)(x, y);
+      return orb(cx - 2, cy - 2, R, R, spokeT)(x, y);
+    }, rimT.charAt(0));
+  };
+
+  /* Knight: a little tin knight from the historical park, all round
+     armour, a red plume, his visor up so his face shows, a red tunic and
+     a blue shield with a gold star. Two walking frames, and stunned:
+     sat down with a bump, legs out, shield dropped, helmet knocked
+     crooked, eyes in dizzy swirls and stars going round (he takes two
+     stomps). Comic, never scary. */
+  // his shield: blue, a gold rim, a gold star; its top-left corner at
+  // (x0, y0), turned by a about its middle
+  var knightShield = function (x0, y0, a) {
+    var c = x0 + 4.2, hw = 4.2, px = c, py = y0 + 6;
+    var shape = function (x, y) {
+      var yy = y - y0;
+      if (yy < 0 || Math.abs(x - c) > hw) return false;
+      return yy < 5 || Math.abs(x - c) < hw * Math.max(0, 1 - Math.pow((yy - 5) / 6.8, 1.6));
+    };
+    return [turnPart(P('|', shape, function (x, y) {
+      var X = x + 0.5, Y = y + 0.5;
+      if (!shape(X - 1.1, Y) || !shape(X + 1.1, Y) || !shape(X, Y - 1.1) || !shape(X, Y + 1.1)) return orb(x0 + 2, y0, 6, 8, GOLD)(x, y);
+      return orb(x0 + 2.4, y0 + 2, 7, 10, COAT)(x, y);
+    }, ';'), px, py, a),
+    turnPart(P('C', starShape(c, y0 + 5.4, 3.3, 1.45, -Math.PI / 2), starTex(c, y0 + 5.4, -Math.PI / 2, GOLD), 'A'), px, py, a)];
+  };
+  // his helmet, centred on (hx, hy), with the face showing through its
+  // open front and the visor lifted; its plume curls back over the top
+  var knightHelm = function (hx, hy) {
+    return [
+      P('x', or(ell(hx + 1.6, hy - 6.8, 2.4, 2.2), ell(hx + 4.6, hy - 7.8, 2.6, 2.2), ell(hx + 7.8, hy - 7.2, 2.4, 2.2), ell(hx + 10, hy - 5, 1.9, 2.1), ell(hx + 10.8, hy - 2.4, 1.4, 1.8)),
+        function (x, y) { var t = orb(hx + 2, hy - 9, 9, 5, RED)(x, y); return (x + y) % 3 === 0 ? step(RED, t, -1) : t; }, 'u'),
+      P('Q', rrect(hx - 7.4, hy - 6.4, hx + 7.4, hy + 6.6, 5.6), function (x, y) {
+        // a ridge over the crown, catching the light
+        var t = orb(hx - 3, hy - 4, 11, 11, IRON)(x, y);
+        return x === Math.round(hx + 1) && y < hy - 1 ? step(IRON, t, 1) : t;
+      }, 'N'),
+      P('Y', rrect(hx - 8.2, hy - 2.4, hx + 2.4, hy + 5.4, 2.4), orb(hx - 5, hy - 2, 8, 7, SKIN), 'V'),
+      P('P', rrect(hx - 8.6, hy - 5.6, hx + 3, hy - 2.2, 1.4), function (x, y) { return y === Math.round(hy - 4) && x % 2 ? 'N' : orb(hx - 5, hy - 6, 8, 3, IRON)(x, y); }, 'N')
+    ];
+  };
+  var knight = function (mode) {
+    var parts = [], st;
+    if (mode === 'stun') {
+      // the helmet knocked back and crooked; the shield fallen against his back
+      var hx = 11.2, hy = 14.2, ha = 0.36, H = function (p) { return turnPart(p, hx, hy + 5, ha); };
+      parts = knightShield(14.8, 18.6, -0.36);
+      parts.push(
+        // the far leg, then the near one, out in front, toes up
+        P('O', or(cap(12.6, 28.2, 6.6, 27.6, 1.9), rrect(4.6, 23.6, 7.8, 29.4, 1.6)), orb(7, 25, 6, 5, 'NNOOP'), 'N'),
+        O(13.6, 23.4, 6, 5.4, IRON, 'N'),
+        P('x', rrect(7.4, 25.6, 19.6, 30.6, 2), orb(10, 26, 9, 5, RED), 'u'),
+        P('U', rrect(7.2, 25, 19.8, 26.8, 0.8), function (x) { return x === 10 ? 'C' : 'T'; }, 'S'),
+        P('P', or(cap(11.4, 29.6, 4.6, 29.8, 2), rrect(1.4, 25.2, 4.8, 31.6, 1.6)), orb(6, 27, 7, 5, IRON), 'N'),
+        P('P', cap(10.2, 21.6, 7.4, 26.2, 1.7), orb(8, 21, 3, 5, IRON), 'N'), O(7.2, 26.6, 1.8, 1.6, IRON, 'N')
+      );
+      parts = parts.concat(knightHelm(hx, hy).map(H));
+      // stars going round his head
+      parts.push(P('C', starShape(3.8, 4.6, 3.7, 1.6, -Math.PI / 2), starTex(3.8, 4.6, -Math.PI / 2, 'ABCCD'), 'A'),
+        P('C', starShape(19.8, 3.8, 3.5, 1.5, -Math.PI / 2.4), starTex(19.8, 3.8, -Math.PI / 2.4, 'ABCCD'), 'A'));
+      var DIZZY = ['.###.', '#...#', '#.#.#', '#.##.', '.#...'];
+      st = turnStamps([[Math.round(hx - 7.6), Math.round(hy - 2), DIZZY], [Math.round(hx - 2.6), Math.round(hy - 2), DIZZY], [Math.round(hx - 5), Math.round(hy + 3), ['.#.', '#.#', '.#.']], [Math.round(hx - 0.4), Math.round(hy + 2), ['3']]], hx, hy + 5, ha);
+      return build(24, 32, parts, st);
+    }
+    // walking: one leg forward, one back, his feet in pointed sabatons
+    var f = mode, b = f * 0.5, hx2 = 11.4, hy2 = 9.6 - b;
+    var leg = function (hipx, fx, far) {
+      var t = far ? 'NNOOP' : IRON;
+      return [P('O', cap(hipx, 24.6 - b, fx + 0.6, 29.6, 1.9), orb(hipx - 1, 25, 3, 6, t), 'N'), P('O', or(ell(fx, 30.4, 2.6, 1.2), tri(fx - 3.6, 31.6, fx - 1, 29.4, fx + 1.4, 31.6)), orb(fx - 1, 29.6, 3.6, 2, t), 'N')];
+    };
+    var nf = f ? 15 : 8.4, ff = f ? 9.6 : 15.6, sw = f ? -1.4 : 1.4;
+    parts = parts.concat(leg(13.8, ff, true));
+    // the far arm swinging behind him
+    parts.push(P('O', cap(15.8, 18.6 - b, 18.4 + sw, 22.6 - b, 1.7), orb(16, 18, 3, 5, 'NNOOP'), 'N'), O(18.6 + sw, 23 - b, 1.7, 1.6, 'NNOOP', 'N'));
+    parts = parts.concat(leg(10.6, nf));
+    parts.push(
+      O(12.6, 20.2 - b, 6.2, 5.4, IRON, 'N'),
+      P('x', rrect(6.8, 21.6 - b, 18.4, 26.4 - b, 1.6), orb(10, 21, 9, 5, RED), 'u'),
+      P('U', rrect(6.6, 21.2 - b, 18.6, 23 - b, 0.8), function (x) { return x === 9 ? 'C' : 'T'; }, 'S')
+    );
+    parts = parts.concat(knightHelm(hx2, hy2), knightShield(0.6, 15.6 - b, 0));
+    st = [[Math.round(hx2 - 7.4), Math.round(hy2 - 2), EYE], [Math.round(hx2 - 2.8), Math.round(hy2 - 2), EYE], [Math.round(hx2 - 5.6), Math.round(hy2 + 3.4), ['#..#', '.##.']], [Math.round(hx2 + 0.6), Math.round(hy2 + 2.4), ['3']]];
+    return build(24, 32, parts, st);
+  };
+  E.knight = { walk: [knight(0), knight(1)], stun: knight('stun') };
+
+  /* Falcon: one of the park's falcons, out on a flight round the crowd:
+     warm brown with darker bars, a pale barred chest, the dark
+     'moustache' under his eye, a hooked grey beak with a yellow base and
+     yellow feet tucked up. Wings up, wings down: long and pointed, dark
+     at the tips. */
+  /* A falcon's wing, from the shoulder (sx, sy) out along angle a, `len`
+     long and `wid` wide: the magpie's wing, but swept to a point, barred
+     across and dark at the tip. `back` says which side the trailing edge
+     (nicked into feathers) is on; `far` is the wing on the other side. */
+  var falconWing = function (sx, sy, a, len, wid, back, far) {
+    var ca = Math.cos(a), sa = Math.sin(a), t = far ? 'SSSTT' : WOOD;
+    var uv = function (x, y) { var dx = x - sx, dy = y - sy; return [(dx * ca + dy * sa) / len, (-dx * sa + dy * ca) * back / wid]; };
+    var half = function (u) { return Math.sin(Math.PI * Math.pow(u, 0.62)); };
+    var lit = orb(sx + ca * len * 0.45 - len * 0.15, sy + sa * len * 0.45 - len * 0.15, len * 0.75, len * 0.75, t);
+    return P('U', function (x, y) {
+      var q = uv(x, y), u = q[0], v = q[1];
+      if (u < 0 || u > 1) return false;
+      return v > -half(u) * 0.7 && v < half(u) + 0.36 * u * Math.abs(Math.sin(u * Math.PI * 3.5));
+    }, function (x, y) {
+      var q = uv(x + 0.5, y + 0.5), u = q[0], c = lit(x, y);
+      if (u > 0.68) return step(t, c, -2);
+      return Math.floor(u * 7) % 2 && u > 0.2 ? step(t, c, -1) : c;
+    }, 'S');
+  };
+  E.falcon = [0, 1].map(function (f) {
+    var parts = [];
+    if (!f) parts.push(falconWing(17.4, 9.8, -0.86, 10.2, 3.2, 1, true));
+    parts.push(
+      P('U', or(ell(23.2, 11.4, 4.4, 1.9), tri(18.6, 9.6, 18.6, 13.2, 26, 11.4)), function (x, y) {
+        var t = orb(21, 10, 6, 3, WOOD)(x, y);
+        // barred, with a pale band at its end
+        return x > 26 ? 'Y' : x > 24 ? 'S' : x % 2 ? step(WOOD, t, -1) : t;
+      }, 'S'),
+      P('C', or(ell(12.4, 14.8, 1.8, 1), ell(15.2, 15, 1.8, 1)), orb(13, 14.4, 4, 2, GOLD), 'A'),
+      P('U', ell(14.2, 11.2, 7.2, 3.8), function (x, y) {
+        var X = x + 0.5, Y = y + 0.5;
+        // the pale chest underneath, barred across
+        if (Y > 11.2 + (X - 14) * 0.2) { var c = orb(10, 10, 9, 6, CREAM)(x, y); return y % 2 === 0 && X > 9 && X < 18 ? 'V' : c; }
+        return orb(12, 7, 9, 6, WOOD)(x, y);
+      }, 'S'),
+      P('Y', ell(6.4, 9.2, 4.3, 4), function (x, y) {
+        var X = x + 0.5, Y = y + 0.5;
+        // a dark cap, a pale cheek, the moustache down from his eye
+        if (Y < 7.6 + (X - 6.4) * 0.45) return orb(5, 6, 5, 4, 'SSTTU')(x, y);
+        if (Math.abs(X - 5.8 - (Y - 9.8) * 0.3) < 0.9 && Y > 9.2) return 'S';
+        return orb(5, 8, 5, 5, CREAM)(x, y);
+      }, 'S'),
+      P('O', or(tri(0.4, 11.4, 2.8, 8.4, 3.6, 11), ell(2.4, 9.6, 1.5, 1.4)), orb(1.6, 8.8, 2.4, 2.4, IRON), 'N'),
+      P('C', ell(3.4, 9.2, 1, 1.1), null, 'A')
+    );
+    parts.push(f ? falconWing(14, 11.4, 1.02, 9.8, 3.8, -1) : falconWing(14.4, 10.6, -1.2, 11, 3.8, 1));
+    return build(28, 20, parts, [[4, 7, EYE_S]]);
+  });
+
+  /* Corsair: a little Saint-Malo corsair, a friendly one: a navy-and-white
+     striped top, a red spotted bandana knotted at the back, a gold
+     earring, brown breeches and boots, and a wooden toy sword held up
+     ready. Walking. */
+  E.corsair = [0, 1].map(function (f) {
+    var b = f * 0.5, nf = f ? 13.4 : 7, ff = f ? 7.6 : 13.6;
+    var leg = function (hx, fx, far) {
+      var tr = far ? 'SSTTU' : 'STTUV', bt = far ? 'ffggh' : INK;
+      return [P('T', cap(hx, 24.6 - b, fx + 0.8, 27.6, 2), orb(hx - 1, 25, 3, 4, tr), 'S'),
+        P('g', or(cap(fx + 0.8, 27.2, fx + 0.8, 29.8, 1.7), ell(fx - 0.4, 30.6, 2.6, 1.2)), orb(fx - 1, 28, 3, 3, bt), 'f')];
+    };
+    var sl = stripedLimb([[14.4, 17.6 - b], [16.6, 21 - b], [16.4 + (f ? -1 : 1), 23 - b]], 1.6, 2, ';;;__', '1122W');
+    var parts = [
+      // the bandana's knot tails, fluttering out behind
+      P('x', or(cap(15.6, 6.2 - b, 20.8, 4.6 - b + f, 1.3), cap(15.6, 7 - b, 20.4, 8.8 - b + f, 1.2)), orb(17, 4, 5, 4, RED), 'u'),
+      P('_', sl.f, sl.tex, ';'), O(16.4 + (f ? -1 : 1), 23.4 - b, 1.5, 1.4, SKIN, 'V')
+    ].concat(leg(12.4, ff, true), leg(9.4, nf));
+    parts.push(
+      P('W', rrect(5.4, 15.4 - b, 15.8, 24.8 - b, 3), function (x, y) {
+        return Math.floor((y + 0.5 - 15.4 + b) / 2) % 2 ? orb(8, 15, 10, 10, NAVY)(x, y) : orb(8, 15, 10, 10, SNOW)(x, y);
+      }, '2'),
+      P('g', rrect(5.4, 22.8 - b, 15.8, 24.6 - b, 0.6), function (x) { return x === 8 || x === 9 ? 'C' : 'g'; }, 'f'),
+      // his hair, dark curls peeping out at the back
+      P('S', or(ell(15.6, 11, 2.4, 2.6), ell(14.6, 13.4, 1.8, 1.8)), orb(14, 10, 3, 3, 'SSTTU'), 'S'),
+      O(10.4, 9.8, 6.4, 6, SKIN, 'V'),
+      P('x', both(ell(10.4, 9.8, 6.8, 6.4), function (x, y) { return y < 7.2 + (x - 10) * 0.16; }), function (x, y) {
+        return (x * 3 + y * 5) % 7 === 0 && y > 3 ? 'z' : orb(8, 3, 9, 5, RED)(x, y);
+      }, 'u'),
+      O(16, 6.6 - b * 0.5, 1.7, 1.6, RED, 'u'),
+      O(14.4, 14.4, 1.3, 1.3, GOLD, 'A')
+    );
+    // the near arm up, the sword held ready
+    var arm = stripedLimb([[7.6, 17.6 - b], [5.4, 20.4 - b], [3.8, 17.6]], 1.6, 2, NAVY, SNOW);
+    parts.push(
+      P('U', or(rrect(1.6, 1.4, 4.6, 14.2, 1.4), tri(1.6, 2, 3.1, -0.2, 4.6, 2)), function (x, y) { return x === 3 ? 'X' : orb(2, 4, 3, 12, WOOD)(x, y); }, 'S'),
+      P('T', rrect(0.4, 13.4, 6, 15.2, 0.8), orb(2, 13, 5, 2, WOOD), 'S'),
+      P('T', rrect(2.2, 15, 3.8, 17.6, 0.6), null, 'S'),
+      P('W', arm.f, arm.tex, '2'),
+      O(3.4, 16.8, 1.7, 1.6, SKIN, 'V')
+    );
+    return build(22, 32, parts, [[4, 7, EYE], [9, 7, EYE], [5, 12, ['#...#', '.###.']], [11, 11, ['3']]]);
+  });
+
+  /* Rubber duck: a big yellow bath duck loose in the waterpark,
+     waddling along on little orange feet and rocking side to side as it
+     goes; a curl on its head, a round orange bill. */
+  var DUCK = 'BCCDF';
+  E.duck = [0, 1].map(function (f) {
+    var a = f ? 0.09 : -0.09, px = 13.6, py = 23.4;
+    var parts = [
+      P('m', or(ell(f ? 9.4 : 11, 22.6, 2.8, 1.2), ell(f ? 18.4 : 16.6, 22.8, 2.8, 1.2)), orb(12, 21, 8, 3, FOX), 'k'),
+      P('C', or(ell(14.8, 16, 10.4, 6.6), tri(19, 12, 25.6, 6.4, 25.2, 15.4)), orb(10, 10, 14, 10, DUCK), 'A'),
+      P('C', petal(17, 15.4, 0.35, 0.6, 5, 2.8), orb(15, 13, 7, 5, 'BBCCD'), 'A'),
+      O(8.8, 7.6, 5.8, 5.6, DUCK, 'A'),
+      P('C', limb([[8.8, 2.8], [9.4, 0.9], [11.4, 1], [11.6, 2.8]], 1.1), orb(9, 0, 3, 3, DUCK), 'A'),
+      P('m', or(ell(2.6, 10, 3.2, 1.5), ell(3.4, 11.2, 2.4, 1.1)), function (x, y) { return y > 10 ? 'l' : orb(2, 9, 4, 2, FOX)(x, y); }, 'k')
+    ].map(function (p) { return turnPart(p, px, py, a); });
+    return build(26, 24, parts, turnStamps([[4, 5, EYE], [8, 10, ['3']]], px, py, a));
+  });
+
+  /* ---- things to find and grab ------------------------------------------ */
+  /* The medal: the hidden treasure, three in every level. A big gold
+     medal on a red ribbon with a white stripe, a raised star on its face,
+     turning: face on, three-quarter, edge on, three-quarter the other
+     way (its rim showing on the side that's turning away). */
+  var MEDAL = { cx: 12, cy: 15.5, R: 8.2 };
+  // the ribbon: two straight tails in a V, running up off the top
+  var quad = function (a, b, c, d) { return or(tri(a[0], a[1], b[0], b[1], c[0], c[1]), tri(a[0], a[1], c[0], c[1], d[0], d[1])); };
+  var medalRibbon = or(quad([3.6, -0.6], [9.6, -0.6], [13.6, 9], [8, 9]), quad([20.4, -0.6], [14.4, -0.6], [10.4, 9], [16, 9]));
+  var medalStar = starShape(MEDAL.cx, MEDAL.cy + 0.4, 6, 2.6, -Math.PI / 2);
+  var medal = function (sx, side) {
+    var cx = MEDAL.cx, cy = MEDAL.cy, R = MEDAL.R, sq = function (f) { return squeeze(f, cx, sx); };
+    var face = ell(cx, cy, R * sx, R), rims = [];
+    for (var k = 1; k <= 4; k++) rims.push(ell(cx + side * k * 0.42, cy, R * sx, R));
+    // edge on, the rim is all there is
+    if (sx < 0.3) rims = [rrect(cx - 1.7, cy - R + 0.2, cx + 1.7, cy + R, 0.9)];
+    var parts = [
+      P('x', sq(medalRibbon), sq(function (x, y) {
+        // the white stripe down the middle of each tail
+        var X = x + 0.5, mid = X < cx ? 6.8 + (y + 1.1) * 0.43 : 17.2 - (y + 1.1) * 0.43;
+        return Math.abs(X - mid) < 0.5 ? 'w' : orb(cx - 4, 0, 8, 6, RED)(x, y);
+      }), 'u'),
+      // the rim, seen past the face as it turns
+      P('B', or.apply(null, rims), function (x, y) { return (x + y) % 2 ? 'B' : 'A'; }, 'A')
+    ];
+    if (sx > 0.3) parts.push(P('C', face, function (x, y) {
+      var X = cx + (x + 0.5 - cx) / sx, Y = y + 0.5, dx = X - cx, dy = Y - cy, r = Math.sqrt(dx * dx + dy * dy);
+      // a raised rim, a groove inside it, the field a tone down
+      if (r > R - 1.7) return orb(cx - 3, cy - 4, R + 2, R + 2, GOLD)(x, y);
+      if (r > R - 2.5) return 'B';
+      return orb(cx - 3, cy - 3, R, R, 'AAABB')(x, y);
+    }, 'A'), P('D', both(face, sq(medalStar)), function (x, y) { return starTex(cx, cy + 0.4, -Math.PI / 2, 'CCDFF')(cx + (x + 0.5 - cx) / sx - 0.5, y); }, 'A'));
+    var st = sx > 0.3 ? [[Math.round(cx - R * sx * 0.55), Math.round(cy - R * 0.6), ['F.', 'FF']]] : [];
+    return build(24, 24, parts, st);
+  };
+  A.medal = [medal(1, 0), medal(0.62, 1), medal(0.1, 0), medal(0.62, -1)];
+  /* Where a medal was found on an earlier visit, only its ghost: a pale
+     ring where its rim was, its ribbon and its star faint, the rest
+     clear */
+  A.medalGhost = (function () {
+    var cx = MEDAL.cx, cy = MEDAL.cy, R = MEDAL.R, rows = [];
+    var disc = ell(cx, cy, R, R);
+    // on the line: inside a shape, but within a step of its edge
+    var rim = function (f, k, X, Y) { return f(X, Y) && (!f(X - k, Y) || !f(X + k, Y) || !f(X, Y - k) || !f(X, Y + k) || !f(X - k * 0.7, Y - k * 0.7) || !f(X + k * 0.7, Y + k * 0.7)); };
+    for (var y = 0; y < 24; y++) {
+      var r = '';
+      for (var x = 0; x < 24; x++) {
+        var X = x + 0.5, Y = y + 0.5;
+        // the rim a line, the ribbon and the star filled in faintly
+        r += rim(disc, 1.6, X, Y) ? (X + Y < 27 ? 'R' : '1') : medalStar(X, Y) || (medalRibbon(X, Y) && !disc(X, Y)) ? (X + Y < 24 ? '1' : '2') : '.';
+      }
+      rows.push(r);
+    }
+    var sp = BB.sprHi(rows, PAL);
+    sp.noLight = 'all';
+    return sp;
+  })();
+
+  /* A bunch of three party balloons, red, yellow and blue, their strings
+     gathered into a bow at the bottom, where Bonnie holds on */
+  A.balloons = build(28, 48, (function () {
+    var parts = [], tie = [14, 39.4];
+    var string = function (x0, y0, k) {
+      var pts = [];
+      for (var i = 0; i <= 8; i++) { var t = i / 8; pts.push([x0 + (tie[0] - x0) * t + Math.sin(t * Math.PI * 2) * k, y0 + (tie[1] - y0) * t]); }
+      return P('G', limb(pts, 0.5));
+    };
+    parts.push(string(7.2, 23, 0.8), string(14, 17, -0.7), string(20.8, 23.8, 0.6));
+    parts.push(P('G', limb([[14, 40], [14.8, 42.6], [13.4, 45], [14.2, 47.6]], 0.5)));
+    var balloon = function (cx, cy, t) {
+      return [P(t.charAt(2), tri(cx - 1.4, cy + 8.8, cx + 1.4, cy + 8.8, cx, cy + 6.6), null, t.charAt(0)), O(cx, cy, 6.4, 7.6, t, t.charAt(0))];
+    };
+    parts = parts.concat(balloon(14, 8.4, SKY), balloon(7.2, 14.6, RED), balloon(20.8, 15.4, GOLD));
+    // a bow where the strings meet
+    parts.push(P('r', or(ell(11.6, 38.6, 2.4, 1.7), ell(16.4, 38.6, 2.4, 1.7), tri(13.6, 39.6, 11.6, 43, 13.2, 43.4), tri(14.4, 39.6, 16.4, 43, 14.8, 43.4)), orb(12, 37, 5, 4, PINK), 'p'), O(14, 39.4, 1.3, 1.3, PINK, 'p'));
+    return parts;
+  })(), [[10, 2, ['ww', 'w.']], [3, 8, ['ww', 'w.']], [17, 9, ['ww', 'w.']]]);
+
+  /* Musical blocks: one for each colour of the rainbow, A.notes[0] red
+     to A.notes[6] violet, soft and round with a pair of notes on the
+     front; [0] as it stands, [1] squashed when Bonnie lands on it (it
+     sits lower, on the same base). */
+  var NOTE_GLYPH = ['..wwwwwww', '..wwwwwww', '..w.....w', '..w.....w', '..w.....w', '.ww....ww', 'www...www', 'www...www', '.w.....w.'];
+  var NOTE_GLYPH_SQ = ['..wwwwwww', '..wwwwwww', '..w.....w', '.ww....ww', 'www...www', 'www...www', '.w.....w.'];
+  var noteBlock = function (t, sq) {
+    var y0 = sq ? 5.2 : 0.5, g = sq ? NOTE_GLYPH_SQ : NOTE_GLYPH, gy = sq ? 7 : 3;
+    var shadow = g.map(function (r) { return r.replace(/w/g, t.charAt(0)); });
+    return build(16, 16, [P(t.charAt(2), rrect(sq ? 0.2 : 0.5, y0, sq ? 15.8 : 15.5, 15.6, 4), orb(6, y0 + 4, 12, sq ? 9 : 12, t), t.charAt(0))],
+      [[4, gy + 1, shadow], [3, gy, g], [2, Math.round(y0 + 1.4), ['ww', 'w.']]]);
+  };
+  A.notes = [RED, FOX, GOLD, CACT, SKY, INDIGO, VIOLET].map(function (t) { return [noteBlock(t, false), noteBlock(t, true)]; });
+
+  /* ---- springs ----------------------------------------------------------
+     Two more for the Holiday, the spring's own size and frames. */
+  // an inflatable swim ring, lying flat: pink and white panels, a valve,
+  // and the far inside wall showing through its middle
+  var swimRing = function (sq) {
+    var cx = 16, cy = sq ? 13.4 : 10.1, rx = sq ? 15.8 : 15.4, ry = sq ? 6.4 : 9.8;
+    var hy = cy - ry * 0.16, hrx = rx * 0.42, hry = ry * 0.36;
+    var hole = ell(cx, hy, hrx, hry), see = ell(cx, hy + ry * 0.22, hrx * 0.96, hry);
+    return build(32, 20, [
+      P('r', but(ell(cx, cy, rx, ry), both(hole, see)), function (x, y) {
+        var X = x + 0.5, Y = y + 0.5;
+        // the inside of the far side of the ring, in shadow
+        if (hole(X, Y)) return Y < hy - hry * 0.3 ? 'p' : 'q';
+        var a = Math.atan2((Y - cy) / ry, (X - cx) / rx), k = Math.floor((a + Math.PI * 4) / (Math.PI / 4)) % 2;
+        var t = orb(cx - rx * 0.4, cy - ry * 0.7, rx * 1.1, ry * 1.2, k ? SNOW : PINK)(x, y);
+        // the tube rounds away at its inner and outer edges
+        var d = Math.sqrt(Math.pow((X - cx) / rx, 2) + Math.pow((Y - cy) / ry, 2));
+        return d > 0.88 || d < 0.52 ? step(k ? SNOW : PINK, t, -1) : t;
+      }, 'p'),
+      O(6.6, cy + ry * 0.5, 1.4, 1, SNOW, '2')
+    ]);
+  };
+  A.ring = [swimRing(false), swimRing(true)];
+
+  // a wooden toy catapult on red wheels: Bonnie lands in its spoon, the
+  // arm dips, and away he goes
+  var catapult = function (sq) {
+    var a = sq ? -0.2 : 0, px = 28.2, py = 3.2;
+    var arm = function (p) { return turnPart(p, px, py, a); };
+    return build(32, 20, [
+      P('U', or(cap(23.4, 14, 28.2, 3.4, 1.4), cap(31, 14, 28.2, 3.4, 1.3)), orb(26, 6, 4, 10, WOOD), 'S'),
+      P('U', rrect(1.4, 12.2, 30.6, 15.4, 1.2), function (x, y) { return y === 13 && x % 5 === 2 ? 'T' : orb(10, 11, 20, 6, WOOD)(x, y); }, 'S'),
+      O(6.6, 16.6, 3.2, 3.2, RED, 'u'), O(25.4, 16.6, 3.2, 3.2, RED, 'u'),
+      arm(P('V', rrect(4, 1.2, 30.8, 5, 1.4), function (x, y) { return y === 2 ? 'X' : orb(12, -1, 26, 8, 'TUVXY')(x, y); }, 'T')),
+      arm(P('|', both(ell(6.2, 0.4, 5.8, 5.4), function (x, y) { return y > 0.4; }), function (x, y) {
+        // the bowl of the spoon, its hollow in shade
+        return ell(6.2, 0.4, 4, 3.2)(x + 0.5, y + 0.5) ? (y < 2 ? ';' : '_') : orb(4, 1, 7, 6, COAT)(x, y);
+      }, ';')),
+      // the twisted cord that springs it, wound round the pivot
+      P('V', ell(px, py + 0.4, 2.4, 2.4), ROPE, 'T')
+    ], [[6, 16, ['C']], [25, 16, ['C']]]);
+  };
+  A.catapult = [catapult(false), catapult(true)];
+
+  /* ---- moving platforms: the Holiday's rides --------------------------- */
+  /* A surfboard, seen a little from above so its shape shows: a pointed
+     nose, a rounded tail, a fin below it; sky blue with a white
+     stringer down the middle and red and yellow stripes across. Bonnie
+     stands on the middle of the deck, so its far half rises 2 game
+     pixels above his feet. */
+  LK.surfboard = look(build(48, 12, (function () {
+    var cy = 4.2, half = function (x) {
+      var u = x / 48;
+      return u > 0.86 ? 3.7 * Math.sqrt(Math.max(0, 1 - Math.pow((u - 0.86) / 0.14, 2))) : 3.7 * Math.pow(Math.min(1, u / 0.5), 0.55);
+    };
+    var deck = function (x, y) { return x > 0.4 && Math.abs(y - cy) < half(x); };
+    return [
+      P('È', or(tri(38.4, 7, 44.2, 7, 44.6, 11.6), ell(44, 11, 1.2, 0.9)), orb(40, 7, 6, 5, SKY), 'È'),
+      // the rail: the board's near edge, in shade
+      P('É', function (x, y) { return deck(x, y - 1.8); }, orb(20, 2, 40, 10, 'ÈÈÉÉÊ'), 'È'),
+      P('Ê', deck, function (x, y) {
+        var X = x + 0.5, Y = y + 0.5, t = orb(16, 0, 40, 8, SKY)(x, y);
+        if (Math.abs(Y - cy) < 0.5 && X > 3) return 'w';
+        if ((X > 8.6 && X < 10.2) || (X > 37 && X < 38.6)) return orb(16, 0, 40, 8, RED)(x, y);
+        if ((X > 10.2 && X < 11.6) || (X > 38.6 && X < 40)) return orb(16, 0, 40, 8, GOLD)(x, y);
+        return t;
+      }, 'É')
+    ];
+  })()), 2);
+
+  // a lilo: a stripy inflatable airbed, blue and white tubes, its pillow
+  // puffed up a little higher at the head end
+  LK.lilo = look(build(48, 10, (function () {
+    var parts = [P('Ê', rrect(0.4, 0.2, 9.8, 9.6, 3.4), orb(4, 1, 8, 8, SKY), 'É')], n = 8, x0 = 9.2, w = (47.6 - x0) / n;
+    for (var k = 0; k < n; k++) {
+      var a = x0 + k * w, t = k % 2 ? SKY : SNOW;
+      parts.push(P(t.charAt(2), rrect(a - 0.6, 1.6, a + w + (k === n - 1 ? 0 : 0.6), 9.6, 2.4), orb(a + w * 0.3, 2, w * 1.2, 9, t), t.charAt(0)));
+    }
+    return parts;
+  })(), [[2, 1, ['ww']]]), 1);
+
+  /* A chariot from the arena show: a red car trimmed in gold, its side
+     sweeping up from the back to a tall rounded front with a gold
+     medallion; the pole out in front; two big spoked wheels, the far one
+     in shadow. Bonnie stands on its floor (the gold band along its side),
+     6 game pixels below the top of the front. */
+  LK.chariot = look(build(64, 44, (function () {
+    var fl = 12, parts = [];
+    var topEdge = function (x) { var u = Math.max(0, Math.min(1, (x - 5) / 38)); return fl - (fl - 1.2) * (0.5 + 0.5 * Math.cos(Math.PI * u)); };
+    var botEdge = function (x) { return x < 48 ? fl + 8.4 : fl + 8.4 - Math.pow((x - 48) / 15.4, 2) * 4.4; };
+    var side = function (x, y) { return x > 0.6 && x < 63.4 && y > topEdge(x) && y < botEdge(x) && rrect(0.6, 0.6, 63.4, 30, 3.4)(x, y); };
+    // the pole the horses would pull it by, curling up at its end
+    parts.push(P('U', limb([[16, fl + 7], [6, fl + 9.2], [2, fl + 9], [1.2, fl + 6.8]], 1.2), orb(8, fl + 6, 10, 4, WOOD), 'S'));
+    parts.push(wheel(31, 30.6, 12.8, 8, 'SSSTT', 'ABBCC', 'SSTTU', true));
+    parts.push(P('x', side, function (x, y) {
+      var X = x + 0.5, Y = y + 0.5;
+      // gold along the top edge, at the floor, and round the hem
+      if (Y < topEdge(X) + 1.5 || X < 2.2 || (Y > fl && Y < fl + 1.6) || Y > botEdge(X) - 1.5) return orb(6, 0, 40, 16, GOLD)(x, y);
+      return orb(6, 1, 36, 16, RED)(x, y);
+    }, 'u'));
+    parts.push(O(9.4, 6.6, 2.8, 2.8, GOLD, 'A'));
+    parts.push(wheel(38.4, 30.8, 13, 8, 'STTUV', GOLD, WOOD));
+    return parts;
+  })(), [[9, 5, ['D.', 'DC']], [3, 2, ['F']], [6, 16, ['C.....C.....C.....C.....C.....C.....C.....C.....C.....C']]]), 6);
+
+  /* A Viking longship, as in the park's show: a long curved hull of
+     overlapping planks, round painted shields hung along her side, oars
+     out, a friendly dragon's head on the prow and a curl at the stern.
+     Bonnie stands on her deck, 11 game pixels below the dragon's head. */
+  LK.longship = look(build(96, 44, (function () {
+    var dk = 22, parts = [], hcx = 48, hcy = 6, hrx = 44.6, hry = 31.4;
+    var hullF = function (x, y) { return y >= dk - 0.4 && ell(hcx, hcy, hrx, hry)(x, y); };
+    var bow = taper([[12.6, 27], [8.4, 22.6], [5.6, 16.6], [5, 11.4], [6.2, 8]], 3.6, 2.4);
+    var stern = taper([[83.4, 27], [87.8, 22.4], [90.8, 16.6], [91.6, 11.6], [90.6, 8], [88, 7], [86.4, 8.6], [87.4, 10.6]], 3.6, 1.3);
+    var planks = function (x, y) {
+      var X = x + 0.5, Y = y + 0.5, r = Math.sqrt(Math.pow((X - hcx) / hrx, 2) + Math.pow((Y - hcy) / hry, 2));
+      var t = orb(30, 10, 60, 30, WOOD)(x, y), k = (r - 0.5) / 0.1;
+      // clinker planks: each overlapping the one below, its lower edge in shadow
+      return k % 1 > 0.78 ? step(WOOD, t, -1) : k % 1 < 0.22 ? step(WOOD, t, 1) : t;
+    };
+    parts.push(P('U', or(hullF, bow, stern), function (x, y) {
+      if (bow(x + 0.5, y + 0.5) || stern(x + 0.5, y + 0.5)) return orb(40, 0, 60, 30, WOOD)(x, y);
+      return planks(x, y);
+    }, 'S'));
+    // the gunwale along the deck edge
+    parts.push(P('V', function (x, y) { return y >= dk && y < dk + 1.8 && hullF(x, y); }, orb(30, dk - 4, 60, 8, 'TUVXY'), 'T'));
+    // oars out through the side, blades down in the water
+    for (var i = 0; i < 6; i++) {
+      var ox = 22 + i * 10.4;
+      parts.push(P('V', or(cap(ox, dk + 7, ox - 6.6, dk + 18.4, 0.9), turned(ell(ox - 7.4, dk + 19.6, 1.4, 2.6), ox - 7.4, dk + 19.6, 0.5)), orb(ox - 4, dk + 10, 6, 10, 'TUVXY'), 'T'));
+    }
+    // shields along her side, each with an iron boss
+    [RED, GOLD, SKY, SNOW, RED, GOLD, SKY, SNOW].forEach(function (t, j) {
+      var sx = 15.6 + j * 9.4, boss = ell(sx, dk + 3.6, 1.3, 1.3);
+      parts.push(P(t.charAt(2), ell(sx, dk + 3.6, 3.6, 3.6), function (x, y) {
+        return boss(x + 0.5, y + 0.5) ? orb(sx - 0.6, dk + 3, 1.6, 1.6, IRON)(x, y) : orb(sx - 1.4, dk + 2.2, 4, 4, t)(x, y);
+      }, t.charAt(0)));
+    });
+    // the dragon: a gold crest down the back of its head and neck, a long
+    // friendly snout, a red tongue
+    parts.push(P('C', or(tri(9.6, 2.4, 15, 0.4, 12, 6.4), tri(9.8, 6, 15, 5.6, 9.4, 10.4), tri(7.8, 9.8, 12.4, 10.6, 7.6, 14.6), tri(6.6, 13.6, 10.6, 15.2, 6.4, 18.4)), orb(10, 3, 6, 10, GOLD), 'A'));
+    parts.push(P('V', or(ell(7.4, 5.4, 4.6, 4), cap(1.4, 6.8, 6, 6.4, 2.4), tri(5.6, 2.4, 6.8, -0.4, 9, 2)), orb(4, 3, 7, 5, 'TUVXY'), 'T'));
+    parts.push(P('x', or(tri(0.4, 8.6, 4.8, 8.6, 2.2, 11.4)), orb(2, 9, 3, 2, RED), 'u'));
+    return parts;
+  })(), [[5, 3, EYE], [1, 6, ['#']], [3, 8, ['#...#']]]), 11);
+
+  /* ---- the Holiday's scenery -------------------------------------------- */
+  // a shape rasterised as a stamp of one colour: for symbols too fine to
+  // survive being outlined (a bike on a sign)
+  var glyph = function (w, h, f, c) {
+    var rows = [];
+    for (var y = 0; y < h; y++) { var r = ''; for (var x = 0; x < w; x++) r += f(x + 0.5, y + 0.5) ? c : '.'; rows.push(r); }
+    return rows;
+  };
+  var circleLine = function (cx, cy, r, t) { return function (x, y) { var d = Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)); return Math.abs(d - r) < t; }; };
+  var SANDY = 'VVXYY';
+
+  // Waterpark: a sun lounger, its back propped up, a striped cushion
+  D.sunlounger = build(48, 24, [
+    P('W', or(cap(14.6, 15.6, 13.2, 23.4, 0.9), cap(44.6, 15.6, 46, 23.4, 0.9), cap(11.4, 12.6, 15.4, 23.4, 0.9), rrect(11.6, 14.4, 47.4, 16.4, 0.8)), orb(20, 12, 30, 12, SNOW), '2'),
+    P('W', or(rrect(13, 10.4, 47, 15, 2.2), cap(4.6, 3.6, 14.6, 12.6, 2.6)), function (x, y) {
+      // stripes across the cushion, along the slope on its back
+      var X = x + 0.5, Y = y + 0.5, k = X > 14 && Y > 10 ? Math.floor((X - 13) / 3.4) : Math.floor((X - 4 + (Y - 3.6) * 1.1) / 3.4);
+      return orb(10, 4, 34, 12, k % 2 ? SNOW : SKY)(x, y);
+    }, 'É'),
+    P('C', cap(39.6, 8.4, 45.4, 8.4, 1.9), orb(41, 7, 6, 3, GOLD), 'A')
+  ], [[40, 8, ['B.B.B']]]);
+
+  // Waterpark: a tall white lifeguard's chair with a ladder up to the seat,
+  // a striped sunshade over it, a life ring hung ready
+  D.lifeguard = build(36, 72, [
+    P('W', or(cap(11, 34, 4.4, 71.4, 1.4), cap(25, 34, 31.6, 71.4, 1.4), cap(18, 4, 18, 32, 0.8),
+      rrect(8.8, 43.6, 27.2, 45.2, 0.6), rrect(7.2, 53.6, 28.8, 55.2, 0.6), rrect(5.6, 63.6, 30.4, 65.2, 0.6)), orb(12, 30, 20, 40, SNOW), '2'),
+    P('x', or(rrect(6.4, 31.4, 29.6, 34.6, 1), rrect(24.6, 20.6, 28, 34, 1.2), rrect(6.4, 27.6, 9, 34, 1)), orb(10, 26, 20, 10, RED), 'u'),
+    P('x', both(ell(18, 11.6, 17.4, 10.6), function (x, y) { return y < 11.6; }), function (x, y) {
+      var band = Math.floor((x + 0.5 + 0.6) / 5) % 2;
+      return orb(14, 4, 18, 10, band ? SNOW : RED)(x, y);
+    }, 'u'),
+    P('x', but(ell(9.4, 47, 4.6, 4.6), ell(9.4, 47, 2, 2)), function (x, y) {
+      var a = Math.atan2(y + 0.5 - 47, x + 0.5 - 9.4), k = Math.floor((a + Math.PI * 4 + Math.PI / 4) / (Math.PI / 2)) % 2;
+      return orb(8, 45, 5, 5, k ? SNOW : RED)(x, y);
+    }, 'u')
+  ]);
+
+  // Hossegor: a Landes maritime pine, a tall bare trunk leaning a little,
+  // its crown spread out flat like an umbrella
+  D.seapine = build(44, 80, (function () {
+    var parts = [], BARK = 'SSTUV';
+    var bark = function (cx, cy) {
+      var o = orb(cx, cy, 6, 40, BARK);
+      // the bark in plates, with deep cracks between them
+      return function (x, y) { return (Math.floor(y / 3) * 2 + x) % 5 === 0 || y % 3 === 0 && x % 2 ? 'S' : o(x, y); };
+    };
+    parts.push(P('U', taper([[23, 80], [21.6, 66], [23, 52], [21, 38], [21.4, 26]], 2.8, 1.8), bark(20, 50), 'S'));
+    [[[21.4, 30], [15, 22], [11, 18]], [[21.6, 28], [28, 21], [32, 17]], [[21.2, 27], [21, 19]]].forEach(function (b) { parts.push(P('U', taper(b, 1.5, 1), bark(20, 22), 'S')); });
+    [[8, 17.6, 6.4], [36, 17, 6], [15, 12.4, 7], [29, 11.6, 7.4], [21.6, 8.4, 7.6], [3.8, 21, 3.6], [40.4, 20.6, 3.4], [22, 16, 7], [11, 20.4, 4.4], [32.4, 20.2, 4.4]].forEach(function (c) {
+      parts.push(P('ï', ell(c[0], c[1], c[2], c[2] * 0.66), function (x, y) {
+        var t = orb(c[0] - 1, c[1] - 1.4, c[2], c[2] * 0.66, PINE)(x, y);
+        // tufts of needles, a tone darker
+        return (x * 3 + y * 5) % 7 === 0 ? step(PINE, t, -1) : t;
+      }, 'í'));
+    });
+    return parts;
+  })());
+
+  // Hossegor: a striped beach hut on stilts, a yellow door, a red roof
+  D.beachhut = build(36, 52, [
+    P('V', or(rrect(3, 47, 6, 52, 0.6), rrect(30, 47, 33, 52, 0.6), rrect(13.4, 48.4, 22.6, 52, 0.6)), orb(10, 46, 20, 8, WOOD), 'T'),
+    P('V', rrect(0.8, 45, 35.2, 48.6, 0.8), orb(10, 44, 30, 6, 'TUVXY'), 'T'),
+    P('w', rrect(3.4, 13, 32.6, 45.6, 0.6), function (x, y) { return orb(8, 12, 30, 34, Math.floor((x - 3) / 4) % 2 ? SKY : SNOW)(x, y); }, '2'),
+    P('C', rrect(12.6, 23, 23.4, 45.4, 1.4), function (x, y) {
+      // a diamond window in the door, and its knob
+      var X = x + 0.5, Y = y + 0.5;
+      if (Math.abs(X - 18) + Math.abs(Y - 28.6) < 2.6) return Y < 28.6 ? 'Ë' : 'Ê';
+      return orb(14, 23, 10, 22, GOLD)(x, y);
+    }, 'A'),
+    P('x', function (x, y) { return y > 0.4 && y < 15.6 && Math.abs(x - 18) < (y - 0.4) * 1.24 && x > 0.2 && x < 35.8; }, function (x, y) {
+      var X = x + 0.5, Y = y + 0.5;
+      // the gable, white, with a round window
+      if (Y > 5 && Y < 13.6 && Math.abs(X - 18) < (Y - 5) * 1.05) return ell(18, 10.4, 1.8, 1.8)(X, Y) ? (Y < 10.4 ? 'Ë' : 'Ê') : orb(16, 6, 10, 8, SNOW)(x, y);
+      return orb(12, 0, 22, 14, RED)(x, y);
+    }, 'u')
+  ], [[21, 34, ['C']]]);
+
+  // Hossegor: three surfboards stood up in the sand
+  D.surfboards = build(40, 52, (function () {
+    var board = function (cx, top, bot, w, a, t, stripe) {
+      var len = bot - top, shape = function (x, y) {
+        var u = (y - top) / len;
+        if (u < 0 || u > 1) return false;
+        var h = u < 0.45 ? w * Math.pow(u / 0.45, 0.6) : u > 0.88 ? w * Math.sqrt(Math.max(0, 1 - Math.pow((u - 0.88) / 0.12, 2))) : w;
+        return Math.abs(x - cx) < h;
+      };
+      var px = cx, py = bot;
+      return turnPart(P(t.charAt(2), shape, function (x, y) {
+        var X = x + 0.5, Y = y + 0.5, u = (Y - top) / len;
+        if (Math.abs(X - cx) < 0.6 && u > 0.08) return 'w';
+        if (u > 0.2 && u < 0.27) return orb(cx - w, top, w * 2, len, stripe)(x, y);
+        return orb(cx - w * 0.6, top + len * 0.2, w * 2, len, t)(x, y);
+      }, t.charAt(0)), px, py, a);
+    };
+    return [
+      board(10.6, 7, 48, 4.4, -0.16, FOX, SKY),
+      board(29.4, 10, 48, 4.2, 0.15, GOLD, RED),
+      board(20, 0.6, 48, 4.8, 0, SKY, GOLD),
+      P('Y', both(ell(20, 50.6, 19.6, 4.6), function (x, y) { return y > 46; }), function (x, y) { return (x * 5 + y * 3) % 9 === 0 ? 'V' : orb(14, 46, 20, 6, SANDY)(x, y); }, 'V')
+    ];
+  })());
+
+  // the bike ride: a cycle-route signpost, an arrow-shaped green sign
+  // with a white bike on it (no words)
+  D.signpost = build(24, 52, [
+    P('Q', or(rrect(10.6, 12, 13.4, 51, 0.8), rrect(8.6, 49, 15.4, 52, 0.8)), orb(11, 20, 3, 30, IRON), 'O'),
+    P('{', or(rrect(5, 1.6, 23.4, 16.4, 1.4), tri(0.4, 9, 6, 1.6, 6, 16.4)), function (x, y) {
+      var X = x + 0.5, Y = y + 0.5;
+      // a white edge just inside the sign
+      var inner = or(rrect(6.4, 3, 22, 15, 0.8), tri(2.6, 9, 7.2, 3, 7.2, 15));
+      return inner(X, Y) ? orb(8, 2, 16, 14, CACT)(x, y) : 'w';
+    }, '[')
+  ], [[7, 5, glyph(14, 8, or(circleLine(3, 5.2, 2.3, 0.55), circleLine(11, 5.2, 2.3, 0.55), cap(3, 5.2, 6.6, 5.4, 0.5), cap(6.6, 5.4, 5.2, 2.2, 0.5), cap(5.2, 2.2, 9.6, 2.2, 0.5), cap(9.6, 2.2, 6.6, 5.4, 0.5), cap(9.6, 2.2, 11, 5.2, 0.5), cap(4.2, 1.4, 6, 1.4, 0.5), cap(9, 0.6, 10.6, 0.8, 0.5)), 'w')]]);
+
+  // the bike ride: a bike rack, three steel hoops, one bike leant in it
+  // (a red bike with a wicker basket and a baguette in it)
+  D.bikerack = build(48, 28, (function () {
+    var parts = [], hoop = function (x0, x1) { return limb([[x0, 27.6], [x0, 14.6], [x0 + 1.4, 12.2], [(x0 + x1) / 2, 11.4], [x1 - 1.4, 12.2], [x1, 14.6], [x1, 27.6]], 1); };
+    parts.push(P('Q', or(hoop(2.4, 12.4), hoop(19, 29), hoop(35.6, 45.6)), orb(20, 10, 40, 20, IRON), 'O'));
+    var bwheel = function (cx, cy) {
+      return P('g', or(circleLine(cx, cy, 5.4, 1), ell(cx, cy, 1.2, 1.2), cap(cx - 4.6, cy, cx + 4.6, cy, 0.45), cap(cx, cy - 4.6, cx, cy + 4.6, 0.45), cap(cx - 3.3, cy - 3.3, cx + 3.3, cy + 3.3, 0.45), cap(cx - 3.3, cy + 3.3, cx + 3.3, cy - 3.3, 0.45)), function (x, y) {
+        var d = Math.sqrt(Math.pow(x + 0.5 - cx, 2) + Math.pow(y + 0.5 - cy, 2));
+        return d > 4.6 ? orb(cx - 2, cy - 2, 6, 6, INK)(x, y) : 'P';
+      }, 'f');
+    };
+    var bb = [23, 21.4], seat = [27, 11.6], head = [14.6, 12], fw = [11, 21.6], rw = [35.6, 21.6];
+    parts.push(bwheel(rw[0], rw[1]), bwheel(fw[0], fw[1]));
+    parts.push(P('x', or(cap(rw[0], rw[1], bb[0], bb[1], 1), cap(bb[0], bb[1], seat[0], seat[1], 1.1), cap(seat[0], seat[1], rw[0], rw[1], 0.9), cap(seat[0] - 0.6, seat[1] + 1.6, head[0], head[1] + 1.2, 1), cap(head[0], head[1], bb[0], bb[1], 1.1), cap(head[0], head[1], fw[0], fw[1], 0.9)), orb(20, 10, 20, 14, RED), 'u'));
+    parts.push(P('g', or(ell(27.4, 10.2, 2.6, 1.1), cap(14.6, 12, 15.8, 8.6, 0.8), cap(15.8, 8.6, 18.6, 8.2, 0.8)), orb(20, 8, 8, 3, INK), 'f'));
+    parts.push(P('Q', or(cap(bb[0], bb[1], bb[0] + 2.4, bb[1] + 2.2, 0.6), rrect(bb[0] + 1.4, bb[1] + 2, bb[0] + 4, bb[1] + 3, 0.4)), null, 'O'));
+    // the basket on the front, and the bread poking out of it
+    parts.push(P('â', cap(9.2, 10.6, 5.6, 2.6, 1.4), orb(6, 3, 4, 8, CRUST), 'à'));
+    parts.push(P('û', rrect(5.6, 9.4, 13.8, 15, 1), weave(STRAW, 8, 9, 8, 6), 'ù'));
+    return parts;
+  })(), [[6, 4, ['o', '.o']]]);
+
+  // the historical park: a tall banner on a pole, red with a gold border
+  // and a gold sun, cut into two points at the bottom
+  D.banner = build(24, 64, [
+    P('Q', rrect(0.4, 58, 7.6, 64, 1), orb(2, 58, 6, 6, STONE), 'O'),
+    P('U', or(rrect(2.4, 4, 5.4, 59, 1), rrect(2.4, 6.6, 22.6, 8.8, 0.8)), orb(3, 20, 4, 40, WOOD), 'S'),
+    O(3.9, 2.8, 2.4, 2.4, GOLD, 'A'),
+    P('x', function (x, y) {
+      if (x < 5.6 || x > 21.4 || y < 8.4) return false;
+      // two swallowtail points, with a notch between them
+      return y < 44 || (y < 52 && Math.abs(x - 13.5) > (y - 44) * 0.98);
+    }, function (x, y) {
+      var X = x + 0.5, Y = y + 0.5, edge = X < 7.2 || X > 19.8 || Y < 10;
+      return edge ? orb(8, 8, 14, 30, GOLD)(x, y) : orb(9, 12, 14, 30, RED)(x, y);
+    }, 'u'),
+    P('C', or(bloom(13.5, 24, 10, 4.4, 1.6, 0.9, 0), ell(13.5, 24, 3.2, 3.2)), orb(12, 22, 6, 6, GOLD), 'A')
+  ], [[12, 22, ['F.']]]);
+
+  // the historical park: a striped medieval tent, a pennant on top, the
+  // door flaps tied back
+  D.tent = build(56, 52, [
+    P('g', or(cap(28, 0.6, 28, 8.6, 0.7)), null, 'f'),
+    P('|', tri(28.6, 0.6, 36.6, 2.8, 28.6, 5.2), orb(30, 2, 6, 3, COAT), ';'),
+    P('w', rrect(5.4, 19, 50.6, 51.6, 0.8), function (x, y) { return orb(14, 18, 40, 36, Math.floor((x + 0.5 - 5.4) / 5.06) % 2 ? RED : SNOW)(x, y); }, '2'),
+    P('g', tri(28, 25, 20.4, 51.8, 35.6, 51.8), function (x, y) { return y < 33 ? 'h' : 'g'; }, 'f'),
+    P('x', or(tri(28, 25.4, 20.6, 51.6, 18.4, 51.6), tri(28, 25.4, 35.4, 51.6, 37.6, 51.6)), orb(22, 30, 10, 20, RED), 'u'),
+    P('C', function (x, y) {
+      if (y < 7 || y > 24.6 || x < 1.4 || x > 54.6) return false;
+      if (y < 20) return Math.abs(x - 28) < (y - 7) * 2;
+      // a scalloped valance round the bottom of the roof
+      var c = Math.floor((x - 1.4) / 4.8) * 4.8 + 1.4 + 2.4;
+      return ell(c, 20, 2.5, 4.4)(x, y);
+    }, function (x, y) {
+      var X = x + 0.5, Y = y + 0.5;
+      if (Y > 20.4) return orb(10, 18, 40, 6, GOLD)(x, y);
+      // the roof in stripes from the peak down
+      var k = Math.floor((Math.atan2(X - 28, Y - 7) + 2) / 0.3) % 2;
+      return orb(16, 6, 30, 16, k ? GOLD : RED)(x, y);
+    }, 'A'),
+    O(28, 7.4, 1.6, 1.6, GOLD, 'A')
+  ], [[20, 34, ['C']], [35, 34, ['C']]]);
+
+  // the historical park: a shield propped on a wooden stand: red with a
+  // gold chevron, rimmed in steel
+  var heater = function (cx, y0, hw, len) {
+    return function (x, y) {
+      var yy = y - y0;
+      if (yy < 0 || Math.abs(x - cx) > hw) return false;
+      return yy < len * 0.38 || Math.abs(x - cx) < hw * Math.max(0, 1 - Math.pow((yy - len * 0.38) / (len * 0.62), 1.5));
+    };
+  };
+  D.shield = build(28, 32, [
+    P('U', or(cap(14, 6, 4.4, 31.4, 1.2), cap(14, 6, 23.6, 31.4, 1.2), rrect(6.4, 25, 21.6, 26.8, 0.6)), orb(10, 10, 10, 20, WOOD), 'S'),
+    P('Q', heater(14, 2.4, 9.2, 23.6), orb(10, 4, 16, 18, IRON), 'N'),
+    P('x', heater(14, 3.8, 7.8, 20.8), function (x, y) {
+      var X = x + 0.5, Y = y + 0.5, ch = Math.abs(Y - (8 + Math.abs(X - 14) * 0.9) - 5) < 2;
+      return ch ? orb(10, 6, 14, 16, GOLD)(x, y) : orb(10, 5, 16, 18, RED)(x, y);
+    }, 'O')
+  ]);
+
+  // Saint-Malo: an old ship's cannon on its wooden carriage, a pile of
+  // cannonballs beside it
+  var GUN = 'fNNOP';
+  var truck = function (cx, cy, R) {
+    return P('U', ell(cx, cy, R, R), function (x, y) {
+      var d = Math.sqrt(Math.pow(x + 0.5 - cx, 2) + Math.pow(y + 0.5 - cy, 2));
+      // an iron tyre round a solid wooden wheel, an iron pin at its hub
+      if (d > R - 1.1) return orb(cx - 2, cy - 2, R, R, GUN)(x, y);
+      if (d < 1.1) return 'N';
+      return Math.abs(d - R * 0.55) < 0.5 ? 'T' : orb(cx - 1.6, cy - 1.6, R, R, WOOD)(x, y);
+    }, 'S');
+  };
+  D.cannon = build(44, 26, [
+    P('U', or(rrect(9.6, 12, 31.6, 18.6, 1.4), rrect(21.6, 8.6, 31.6, 18.6, 1.2)), function (x, y) { return y === 15 ? 'T' : orb(14, 10, 20, 10, WOOD)(x, y); }, 'S'),
+    truck(14.6, 20.8, 4.6), truck(27.6, 20.8, 4.6),
+    P('O', function (x, y) {
+      if (x < 0.6) return false;
+      var c = 9.6 + (x - 18) * 0.05, r = x < 3.8 ? 3.2 : 2.3 + Math.max(0, x - 3.8) / 28 * 2;
+      if (Math.abs(x - 12) < 1 || Math.abs(x - 24) < 1) r += 0.7;
+      return (x < 32 && Math.abs(y - c) < r) || ell(31.4, 10.4, 4.6, 4.6)(x, y) || ell(37, 10.6, 1.7, 1.7)(x, y) || cap(34, 10.6, 37, 10.6, 0.9)(x, y);
+    }, function (x, y) {
+      var c = 9.6 + (x - 18) * 0.05;
+      return orb(10, c - 3.6, 26, 7, GUN)(x, y);
+    }, 'f'),
+    O(37.6, 23.4, 2.3, 2.3, GUN, 'f'), O(42, 23.4, 2.3, 2.3, GUN, 'f'), O(39.8, 19.6, 2.3, 2.3, GUN, 'f')
+  ], [[0, 8, ['f', 'f', 'f', 'f']], [23, 6, ['N.N', '.N.']]]);
+
+  // Saint-Malo: a little crêpe cart with a blue-and-white striped awning,
+  // a hot griddle with a crêpe cooking, a folded one on a plate, a jar
+  D.crepestand = build(48, 56, [
+    P('Q', or(rrect(4, 9, 6, 30, 0.6), rrect(42, 9, 44, 30, 0.6)), orb(4, 10, 4, 20, IRON), 'O'),
+    P('w', function (x, y) {
+      if (x < 0.4 || x > 47.6 || y < 0.6) return false;
+      if (y < 8) return y > 0.6 + Math.pow((x - 24) / 24, 2) * 2.4;
+      var c = Math.floor(x / 6) * 6 + 3;
+      return ell(c, 8, 3.1, 3.4)(x, y);
+    }, function (x, y) { var t = orb(14, -2, 30, 12, Math.floor(x / 6) % 2 ? SNOW : SKY)(x, y); return y > 8 ? step(Math.floor(x / 6) % 2 ? SNOW : SKY, t, -1) : t; }, 'É'),
+    P('Y', rrect(2, 30.6, 46, 45, 1.6), function (x, y) { var Y = y + 0.5; return Y > 34 && Y < 35.6 || Y > 41 && Y < 42.6 ? orb(10, 30, 40, 16, SKY)(x, y) : orb(10, 30, 40, 16, CREAM)(x, y); }, 'V'),
+    P('U', or(rrect(5, 44, 8, 55.8, 0.6), rrect(3.6, 54.4, 9.4, 56, 0.6)), orb(5, 46, 3, 10, WOOD), 'S'),
+    wheel(35, 47.6, 7.8, 6, 'STTUV', GOLD, WOOD),
+    P('V', rrect(0.6, 28.4, 47.4, 31.4, 1), orb(10, 27, 40, 5, 'TUVXY'), 'T'),
+    P('g', rrect(8, 25.6, 23, 28.8, 1.2), orb(12, 25, 10, 4, INK), 'f'),
+    P('â', ell(15.4, 25.6, 6.6, 1.2), orb(12, 24, 8, 2, CRUST), 'à'),
+    P('W', rrect(27, 27.4, 37, 28.8, 0.6), orb(30, 27, 6, 2, SNOW), '2'),
+    P('â', tri(28, 27.6, 36, 27.6, 32.6, 22.4), orb(30, 23, 6, 6, CRUST), 'à'),
+    P('L', rrect(39.6, 21.6, 45, 28.6, 1.4), function (x, y) { return y < 24 ? orb(40, 21, 5, 3, RED)(x, y) : orb(40, 24, 5, 5, 'STUVX')(x, y); }, 'M')
+  ], [[31, 25, ['x']], [12, 25, ['o...o']]]);
 })();

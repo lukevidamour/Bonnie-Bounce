@@ -10,11 +10,18 @@
 
    A.family = {
      lucy:  { idle, blink, wave: [2], cheer }     24 x 38
-     luke:  { idle, blink, wave: [2], cheer }     24 x 40
+     luke:  { idle, blink, wave: [2], cheer,      24 x 40
+              run: [2], puff }                    (level 33: holding the
+                                                   bike seat, then puffed)
      brocco: { idle, happy, worried }             15 x 19 (Monsty's size)
      yeti:  { side: [2], full: [2] }              64 x 30 (wheels turning;
                                                    full = the family inside)
      yetiSmall: [2]                               18 x 10 (for the map)
+     bike:  { s, b: { ride: [4], air, cheer } }   Bonnie on his bike: s 23 x 23
+                                                   (air 23 x 24), b 27 x 31
+                                                   (air 27 x 32)
+     surf:  { s, b: { ride, wobble } }            Bonnie surfing: s 22 x 19,
+                                                   b 22 x 27
    }
    ========================================================================== */
 (function () {
@@ -78,16 +85,30 @@
   var EYES = { E: '#22224e', w: '#ffffff', I: '#4f86ea' };
   var EYE = ['EE', 'Ew', 'IE'], SHUT = ['..', 'EE'], JOY = ['.E.', 'E.E'];
 
-  var legParts = function (B) {
+  // bent: the sock follows the shin up from the foot (a straight standing
+  // leg keeps the sock it has always had)
+  var legParts = function (B, bent) {
     var parts = [];
     B.legs.forEach(function (L) {
       var hip = L[0], knee = L[1], foot = L[2];
       parts.push(P('s', limb([hip, knee, foot], B.leg), null, 'S'));
-      parts.push(P(B.sock, cap(foot[0], foot[1] - B.sockH, foot[0], foot[1] - 0.6, B.leg + 0.25), null, B.sockLine));
+      var top = [foot[0], foot[1] - B.sockH];
+      if (bent) { var sl = Math.hypot(knee[0] - foot[0], knee[1] - foot[1]) || 1; top = [foot[0] + (knee[0] - foot[0]) * B.sockH / sl, foot[1] + (knee[1] - foot[1]) * B.sockH / sl]; }
+      parts.push(P(B.sock, cap(top[0], top[1], foot[0], foot[1] - 0.6, B.leg + 0.25), null, B.sockLine));
       // a trainer: a rounded toe, a heel, and a sole along the bottom
       var sy = foot[1] + 1.2;
-      parts.push(P(B.shoe, or(ell(foot[0] + 1.1, sy, B.shoeRx, B.shoeRy), ell(foot[0] - 0.6, sy - 0.6, B.shoeRx * 0.62, B.shoeRy)),
-        function (x, y) { return y + 0.5 > sy + B.shoeRy - 1.6 ? B.sole : B.shoe; }, B.shoeLine));
+      var shoe = or(ell(foot[0] + 1.1, sy, B.shoeRx, B.shoeRy), ell(foot[0] - 0.6, sy - 0.6, B.shoeRx * 0.62, B.shoeRy));
+      var sole = function (x, y) { return y + 0.5 > sy + B.shoeRy - 1.6 ? B.sole : B.shoe; };
+      if (bent && foot[1] < B.ground - 0.5) {
+        // a foot off the ground points its toe square to the shin
+        var sx0 = foot[0] - knee[0], sy0 = foot[1] - knee[1], an = Math.atan2(sx0, -sy0);
+        if (Math.cos(an) < 0) an += Math.PI;
+        var co = Math.cos(an), si = Math.sin(an), flat = shoe;
+        var un = function (x, y) { var X = x - foot[0], Y = y - foot[1]; return [foot[0] + X * co + Y * si, foot[1] - X * si + Y * co]; };
+        shoe = function (x, y) { var q = un(x, y); return flat(q[0], q[1]); };
+        sole = function (x, y) { var q = un(x + 0.5, y + 0.5); return q[1] > sy + B.shoeRy - 1.6 ? B.sole : B.shoe; };
+      }
+      parts.push(P(B.shoe, shoe, sole, B.shoeLine));
     });
     return parts;
   };
@@ -142,6 +163,81 @@
       wave: [person(who, ps.wave0, 'wave'), person(who, ps.wave1, 'wave')],
       cheer: person(who, ps.cheer, 'cheer')
     };
+  };
+
+  /* A pose that bends the body, for running and stooping (person() above
+     only moves the arms, so the standing frames are left exactly as they
+     were). They're drawn nearly face on, so a stoop can't be a tip of the
+     body sideways across the picture — that reads as falling over. It's a
+     hunch: pose.hunch shortens the body (bending towards us), pose.lean
+     tips it only a little, pose.drop sinks it (bent knees) and pose.shift
+     carries it forward. pose.feet: where each foot goes, the knee found
+     from the leg's own lengths, bending forward or (pose.knees, -1) back;
+     pose.arms place the hands in the frame, after all that. The head is
+     moved, never turned or squashed, so it stays exactly as drawn and
+     rides on the neck. pose.shorts(legs, tilt) draws shorts round bent
+     legs; pose.extra(at) adds parts in front, at = how far the head moved. */
+  var kneeOf = function (hip, foot, L1, L2, dir) {
+    var dx = foot[0] - hip[0], dy = foot[1] - hip[1], d = Math.max(0.01, Math.hypot(dx, dy)), dd = Math.min(d, L1 + L2 - 0.01);
+    var a = (L1 * L1 - L2 * L2 + dd * dd) / (2 * dd), h = Math.sqrt(Math.max(0, L1 * L1 - a * a)), ux = dx / d, uy = dy / d;
+    var k1 = [hip[0] + ux * a - uy * h, hip[1] + uy * a + ux * h], k2 = [hip[0] + ux * a + uy * h, hip[1] + uy * a - ux * h];
+    // knees bend forward, whichever way the foot is (or back, dir -1)
+    return (k1[0] > k2[0]) === (dir !== -1) ? k1 : k2;
+  };
+  var posed = function (who, pose, kind) {
+    var B = who.body, piv = [(B.legs[0][0][0] + B.legs[1][0][0]) / 2, B.legs[0][0][1]], sx = pose.shift || 0, sy = pose.drop || 0;
+    // shortened by sq and turned by an about the hips, then carried and
+    // dropped: fwd takes a point of the standing body into the frame,
+    // back the other way
+    var turn = function (an, sq) {
+      var co = Math.cos(an), si = Math.sin(an);
+      return {
+        fwd: function (p) { var x = p[0] - piv[0], y = (p[1] - piv[1]) * sq; return [piv[0] + x * co - y * si + sx, piv[1] + x * si + y * co + sy]; },
+        back: function (X, Y) { var x = X - sx - piv[0], y = Y - sy - piv[1]; return [piv[0] + x * co + y * si, piv[1] + (-x * si + y * co) / sq]; }
+      };
+    };
+    var trunk = turn(pose.lean || 0, pose.hunch || 1), hips = turn(pose.hipLean === undefined ? pose.lean || 0 : pose.hipLean, 1);
+    var tiltBy = function (T) {
+      return function (p) {
+        return { c: p.c, line: p.line, f: function (x, y) { var q = T.back(x, y); return p.f(q[0], q[1]); },
+          tex: p.tex ? function (x, y) { var q = T.back(x + 0.5, y + 0.5); return p.tex(Math.floor(q[0]), Math.floor(q[1])); } : null };
+      };
+    };
+    // the head moves by whole pixels, so it is drawn exactly as it always is
+    var nt = [B.neck[0], B.neck[1]], nm = trunk.fwd(nt), hx = Math.round(nm[0] - nt[0]), hy = Math.round(nm[1] - nt[1]);
+    var move = function (p) {
+      return { c: p.c, line: p.line, f: function (x, y) { return p.f(x - hx, y - hy); }, tex: p.tex ? function (x, y) { return p.tex(x - hx, y - hy); } : null };
+    };
+    var L0 = B.legs[0], thigh = Math.hypot(L0[1][0] - L0[0][0], L0[1][1] - L0[0][1]), shin = Math.hypot(L0[2][0] - L0[1][0], L0[2][1] - L0[1][1]);
+    var legs = pose.feet.map(function (foot, i) { var hip = hips.fwd(B.legs[i][0]); return [hip, kneeOf(hip, foot, thigh, shin, (pose.knees || [])[i]), foot]; });
+    var LB = merge(B, { legs: legs, ground: B.legs[0][2][1] }), nb = trunk.fwd([B.neck[2], B.neck[3]]);
+    var parts = [].concat(
+      who.behind ? who.behind().map(move) : [],
+      legParts(LB, true),
+      pose.shorts ? pose.shorts(legs, tiltBy(hips)) : who.shorts().map(tiltBy(hips)),
+      [P('s', cap(B.neck[0] + hx, B.neck[1] + hy, nb[0], nb[1], B.neckR), null, 'q')],
+      who.top().map(tiltBy(trunk)),
+      armParts(merge(B, { sh: B.sh.map(trunk.fwd) }), pose.arms),
+      who.head().map(move),
+      pose.extra ? pose.extra([hx, hy]) : []
+    );
+    var rows = scene(FW, who.H, parts);
+    // the face, stamped where the head now is
+    var H = rows.length, tmp = [], x, y;
+    for (y = 0; y < H; y++) {
+      var r = '';
+      for (x = 0; x < FW; x++) { var X = x + hx, Y = y + hy; r += X >= 0 && Y >= 0 && X < FW && Y < H ? rows[Y].charAt(X) : '.'; }
+      tmp.push(r);
+    }
+    var was = tmp.slice();
+    who.face(tmp, kind);
+    for (y = 0; y < H; y++) {
+      if (tmp[y] === was[y] || !rows[y + hy]) continue;
+      var out = rows[y + hy].split('');
+      for (x = 0; x < FW; x++) if (tmp[y].charAt(x) !== was[y].charAt(x) && x + hx >= 0 && x + hx < FW) out[x + hx] = tmp[y].charAt(x);
+      rows[y + hy] = out.join('');
+    }
+    return paint(rows, who.pal, who.noLight);
   };
 
   /* ---- Lucy -----------------------------------------------------------------
@@ -386,6 +482,47 @@
       }
     };
     F.luke = setOf(LUKE);
+
+    /* Running alongside Bonnie's bike at the start of level 33, holding
+       the seat: stooped forward, his far arm reaching down and ahead, the
+       near one swinging; then, when he's let go, puffed out — hands on his
+       knees, a bead of sweat, grinning. His shorts bend with his legs: the
+       waistband turns with his hips and each leg of them runs down its
+       thigh to the frayed hem. */
+    var bentShorts = function (legs, tilt) {
+      var LEN = 10, legsOf = legs.map(function (L) {
+        var h = L[0], k = L[1], d = Math.hypot(k[0] - h[0], k[1] - h[1]), u = [(k[0] - h[0]) / d, (k[1] - h[1]) / d], a = [h[0] - u[0], h[1] - u[1]];
+        return { a: a, u: u, f: sleeve(a[0], a[1], a[0] + u[0] * LEN, a[1] + u[1] * LEN, 3.6) };
+      });
+      var band = tilt(P('j', rrect(16.8, 48, 31.8, 55, 2), function (x, y) { return x === 24 && y > 54 ? 'J' : 'j'; }, 'J'));
+      // how far down leg i of the shorts a point is (-1 if it isn't in it)
+      var down = function (i, X, Y) { var s = legsOf[i]; return s.f(X, Y) ? (X - s.a[0]) * s.u[0] + (Y - s.a[1]) * s.u[1] : -1; };
+      return [P('j', or(band.f, legsOf[0].f, legsOf[1].f), function (x, y) {
+        var X = x + 0.5, Y = y + 0.5, d0 = down(0, X, Y), d1 = down(1, X, Y), hem = LEN - 1.5;
+        // the frayed hem, only where it's the end of the shorts (not where
+        // one leg's hem lies across the other leg or the waistband)
+        var frayed = (d0 >= hem && !(d1 >= 0 && d1 < hem)) || (d1 >= hem && !(d0 >= 0 && d0 < hem));
+        if (frayed && !band.f(X, Y)) return (x & 1) ? 'x' : 'j';
+        return band.f(X, Y) ? band.tex(x, y) : 'j';
+      }, 'J')];
+    };
+    pal.d = '#c8eeff'; pal.D = '#4f8fd0';
+    // running: hunched a touch and leaning in, the far hand out low and
+    // ahead on the seat, the near arm swinging with his stride
+    var RUN = { lean: 0.2, hipLean: 0.05, hunch: 0.88, shift: -1.5, drop: 2, shorts: bentShorts };
+    var SEAT = [[39.4, 46.4], [43, 53.6]];
+    F.luke.run = [
+      posed(LUKE, merge(RUN, { feet: [[11, 69.5], [32, 76.4]], arms: [[[21, 43], [25.6, 47]], SEAT] }), 'wave'),
+      posed(LUKE, merge(RUN, { feet: [[25.5, 76.4], [16.5, 70]], arms: [[[14.6, 42.5], [11.6, 48.6]], SEAT] }), 'wave')
+    ];
+    // a bead of sweat flying off the back of his head
+    var drop = function (at) {
+      var x = 7.4 + at[0], y = 8.6 + at[1];
+      return [P('d', or(ell(x, y + 1.8, 2, 2.2), tri(x - 1.8, y + 1.3, x + 1.8, y + 1.3, x + 1.2, y - 2.6)), function (xx, yy) { return xx + 0.5 < x && yy + 0.5 < y + 1.6 ? 'h' : 'd'; }, 'D')];
+    };
+    // puffed: bent over towards us, knees out, hands on them, grinning
+    F.luke.puff = posed(LUKE, { lean: 0.1, hipLean: 0, hunch: 0.6, shift: 1, drop: 6, knees: [-1, 1], shorts: bentShorts, extra: drop,
+      feet: [[17.5, 76.4], [31, 76.4]], arms: [[[15.4, 55], [13.8, 62.4]], [[36.8, 56], [36.6, 62.6]]] }, 'cheer');
   })();
 
   /* A scene of parts with stamps on top, painted in its own palette and
@@ -683,5 +820,322 @@
       return build(36, 20, parts, [], pal);
     };
     F.yetiSmall = [small(0), small(1)];
+  })();
+
+  /* ==========================================================================
+     BONNIE'S BIKE — he has just learnt to ride, and level 33 is a ride
+     along the cycle paths and beaches near Hossegor. A little red bike,
+     side on and facing right like him: chunky tyres on spoked wheels with
+     the sky showing through, a chain, a wicker basket on the front and a
+     yellow bell on the bar.
+
+     Bonnie is A.bonnie.pose — his own head, hair, jumper, shorts and arms,
+     hands on the grips — with his legs tucked away under his shorts. His
+     legs are drawn here instead, from art.js's own parts in his own
+     colours (skin, socks, school shoes, the legs of his shorts): sitting
+     on a saddle puts his feet below the bottom of his frame, where pose()
+     can't reach, and drawn here the far leg can go behind the bike's frame
+     and the near one in front of it.
+
+     His frame is at the top left of every sprite, so his head is exactly
+     where it always is (10.75 game px in, his hair at the top) and the
+     game's hats still fit; the bike makes the sprite wider and taller.
+     The bike's colours are letters Bonnie and his outfits never use, so a
+     red jumper or a rainbow doesn't recolour it.
+
+     A.family.bike = { s, b: { ride: [4] (the pedals a quarter-turn on each
+     time, the wheels turning), air (nose up, legs tucked, 'wheee'), cheer
+     (stopped, an arm up) } }      small 23 x 23, big 27 x 31 (air a game
+                                   pixel taller: its back wheel drops)
+     ========================================================================== */
+  (function () {
+    var BON = A.bonnie;
+    if (!BON || !BON.pose) return;
+    var pal = {
+      // the frame: candy red, deep to shine
+      R: '#7a1830', d: '#c42a3e', r: '#ec4252', e: '#ff8478', i: '#ffd6ca',
+      // tyres
+      G: '#131016', T: '#2c2934', U: '#4f4b5c',
+      // steel: rims, spokes, cranks, the bar
+      L: '#4c5464', V: '#8c96a8', l: '#bcc4d2', v: '#e2e8f0', x: '#ffffff',
+      // the saddle, grips and pedals
+      A: '#17131d', a: '#302a3b', g: '#504860',
+      // the wicker basket
+      N: '#6a3c1a', J: '#a4682e', j: '#d69c54', M: '#f6cc88',
+      // the bell
+      P: '#b07c0c', O: '#ffd23a', Q: '#fff6c0'
+    };
+    var OWN = Object.keys(pal).join('');
+    // the line each of the bike's colours draws where it lies over something
+    var LINE = { R: 'R', d: 'R', r: 'R', e: 'R', i: 'R', G: 'G', T: 'G', U: 'G', L: 'L', V: 'L', l: 'L', v: 'L', x: 'L',
+      A: 'A', a: 'A', g: 'A', N: 'N', J: 'N', j: 'N', M: 'N', P: 'P', O: 'P', Q: 'P' };
+    // and Bonnie's, as art.js draws them
+    var HIS = { b: 'B', B: 'B', k: 'K', K: 'K', s: 'S', S: 'S', t: 'S', u: 'S', w: 'W', W: 'W', z: 'z', y: 'Y', Y: 'Y', 1: '1', 2: '1', 3: '1', 4: '1', 5: '1' };
+
+    /* The kit's scene(), but a part marked `bare` is never outlined: the
+       spokes and the chain are a pixel wide, and outlined they'd be nothing
+       but outline. */
+    var scene2 = function (W, H, parts) {
+      var own = [], x, y, i;
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+        var top = -1;
+        for (i = 0; i < parts.length; i++) if (parts[i].f(x + 0.5, y + 0.5)) top = i;
+        own.push(top);
+      }
+      var at = function (x, y) { return x < 0 || y < 0 || x >= W || y >= H ? -1 : own[y * W + x]; };
+      var rows = [];
+      for (y = 0; y < H; y++) {
+        var r = '';
+        for (x = 0; x < W; x++) {
+          var k = at(x, y);
+          if (k < 0) { r += '.'; continue; }
+          var p = parts[k], n = [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)];
+          if (!p.bare && n.indexOf(-1) > -1) r += '#';
+          else if (p.line && n.some(function (j) { return j > -1 && j < k; })) r += p.line;
+          else r += p.tex ? p.tex(x, y) : p.c;
+        }
+        rows.push(r);
+      }
+      return rows;
+    };
+    /* Bonnie over the bike. Where his outline now lies on the bike rather
+       than the sky it becomes the line his own colour draws there, and the
+       bike's outline against him the bike's line — just as a scene draws
+       one part over another. */
+    var compose = function (under, over) {
+      var H = under.length, W = under[0].length, g = [], who = [], x, y;
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+        var o = over[y] ? over[y].charAt(x) : '', u = under[y].charAt(x);
+        // his shorts run on into the legs of them drawn here: no seam
+        if (o === '#' && (u === 'k' || u === 'K')) o = '';
+        if (o && o !== '.') { g.push(o); who.push(1); } else { g.push(u); who.push(0); }
+      }
+      var at = function (x, y) { return x < 0 || y < 0 || x >= W || y >= H ? '.' : g[y * W + x]; };
+      var out = g.slice();
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+        var i = y * W + x;
+        if (g[i] !== '#') continue;
+        var n = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
+        if (n.some(function (q) { return at(q[0], q[1]) === '.'; })) continue;
+        var map = who[i] ? HIS : LINE, ln = null;
+        n.forEach(function (q) { var j = q[1] * W + q[0]; if (!ln && who[j] === who[i] && map[g[j]]) ln = map[g[j]]; });
+        if (ln) out[i] = ln;
+      }
+      var rows = [];
+      for (y = 0; y < H; y++) rows.push(out.slice(y * W, y * W + W).join(''));
+      return rows;
+    };
+
+    /* Where everything goes, in the sprite's own pixels (Bonnie's frame at
+       0, 0). leg, sock and shoe are art.js's SMALL and BIG; hips are where
+       his legs start under his shorts; his hands go on the grips. */
+    var SPEC = {
+      s: { W: 46, hips: [[21.6, 33.4], [23.4, 33.6]], thigh: 3.6, shin: 3.6, leg: 1.6, sock: 0, shoe: 2.5,
+        sh: [[11.2, 1.6], [20.8, 1.6]], legsAt: [[13.4, 9.5], [18.6, 9.5]], cheer: [[-0.5, -2], [-2, -7.5], 1],
+        R: 6.4, tyre: 1.9, rim: 1.4, hub: 1.1, spokes: 6, rear: [12, 40], front: [38, 40],
+        bb: [24.6, 40.4], crank: 1.9, ring: 2.4, cog: 1.3, tube: 1.3, arm: 0.75, pedal: [1.6, 0.7],
+        saddle: [19.6, 36.6, 3.6, 1.3], seat: [21, 38.2], headT: [34.1, 31.6], headB: [35.3, 35.2], stem: [33.5, 29.6], grip: [31, 29.6],
+        basket: [36.2, 27.6, 44.6, 34.6], bell: [34.3, 28.6, 1.5], bend: [1.6, 0.8] },
+      b: { W: 54, hips: [[21.6, 41.4], [23.6, 41.6]], thigh: 6.8, shin: 6.4, leg: 1.9, sock: 2.6, shoe: 2.9,
+        sh: [[11, 2.4], [21, 2.4]], legsAt: [[13.2, 17], [18.8, 17]], cheer: [[1.5, -1.5], [0, -8], 1],
+        R: 8.5, tyre: 2.3, rim: 1.6, hub: 1.5, spokes: 8, rear: [10, 54], front: [44, 54],
+        bb: [26, 54.4], crank: 2.7, ring: 3.3, cog: 1.7, tube: 1.6, arm: 0.95, pedal: [2.1, 0.85],
+        saddle: [20.4, 45.2, 4.6, 1.6], seat: [22, 47.8], headT: [40.4, 38.4], headB: [42, 43.8], stem: [39.6, 35.4], grip: [37, 35.6],
+        basket: [42.6, 32.8, 53.2, 42], bell: [40.6, 34, 1.9], bend: [2.4, 1.2] }
+    };
+
+    // tubes as one shape, so they join without seams, each lit across its
+    // round: light along the top, shade underneath, a shine on the very top
+    var tubes = function (list, c, line, tones) {
+      var caps = list.map(function (t) { return cap(t[0][0], t[0][1], t[1][0], t[1][1], t[2]); });
+      return P(c, function (x, y) { for (var i = 0; i < caps.length; i++) if (caps[i](x, y)) return true; return false; }, function (x, y) {
+        var X = x + 0.5, Y = y + 0.5, best = 1e9, s = 0;
+        list.forEach(function (t) {
+          var a = t[0], b = t[1], dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy;
+          var u = L ? Math.max(0, Math.min(1, ((X - a[0]) * dx + (Y - a[1]) * dy) / L)) : 0;
+          var ox = X - a[0] - u * dx, oy = Y - a[1] - u * dy, dd = Math.hypot(ox, oy) / t[2];
+          if (dd < best) { best = dd; s = -(0.6 * ox + 0.8 * oy) / t[2]; }
+        });
+        return s > 0.78 ? tones[3] : s > 0.3 ? tones[2] : s < -0.3 ? tones[0] : tones[1];
+      }, line);
+    };
+    // a wheel, turned rot: a chunky tyre catching the light on its upper
+    // left, a bright rim, thin spokes with the sky between them, the hub
+    var wheel = function (c, S, rot) {
+      var R0 = S.R, R1 = R0 - S.tyre, R2 = R1 - S.rim, k = 2 * Math.PI / S.spokes;
+      var d = function (x, y) { return Math.hypot(x - c[0], y - c[1]); };
+      var spoke = function (x, y) {
+        var r = d(x, y);
+        if (r > R2 + 0.4 || r < S.hub) return false;
+        var a = ((Math.atan2(y - c[1], x - c[0]) - rot) % k + k) % k;
+        return Math.min(a, k - a) * r < 0.5;
+      };
+      return [
+        P('T', function (x, y) { var r = d(x, y); return r <= R0 && r >= R1 - 0.6; }, function (x, y) {
+          var X = x + 0.5 - c[0], Y = y + 0.5 - c[1];
+          return X * 0.6 + Y * 0.8 < -R0 * 0.62 && Math.hypot(X, Y) > R1 + 0.3 ? 'U' : 'T';
+        }, 'G'),
+        P('v', function (x, y) { var r = d(x, y); return r < R1 && r >= R2; }, function (x, y) { return (x + 0.5 - c[0]) * 0.6 + (y + 0.5 - c[1]) * 0.8 < 0 ? 'v' : 'l'; }),
+        { c: 'V', f: spoke, bare: true },
+        P('l', ell(c[0], c[1], S.hub, S.hub), function (x, y) { return x + 0.5 < c[0] && y + 0.5 < c[1] ? 'x' : 'l'; }, 'L')
+      ];
+    };
+    // a crank and its pedal, seen edge on
+    var crank = function (bb, p, S) {
+      return [
+        tubes([[bb, p, S.arm]], 'l', 'L', ['V', 'l', 'v', 'x']),
+        P('a', rrect(p[0] - S.pedal[0], p[1] - S.pedal[1], p[0] + S.pedal[0], p[1] + S.pedal[1], S.pedal[1]), function (x, y) { return y + 0.5 < p[1] ? 'g' : 'a'; }, 'A')
+      ];
+    };
+    /* A leg of his, as art.js builds one: skin from mid-thigh through the
+       knee to the foot, a white sock up the shin (big Bonnie), his school
+       shoe, and the leg of his shorts down the top of the thigh. The ball
+       of his foot is on the pedal; the knee bends forward. Only the near
+       leg gets its shorts: the far thigh is hidden under the near one, and
+       two would draw a seam between them. */
+    var legOn = function (S, hip, p, shorts) {
+      var foot = [p[0] - 1, p[1] - S.pedal[1] - 1.6], knee = kneeOf(hip, foot, S.thigh, S.shin), mid = along(hip, knee, 0.5), out = [];
+      out.push(P('s', limb([mid, knee, foot], S.leg), null, 'S'));
+      if (S.sock) {
+        var sl = Math.hypot(knee[0] - foot[0], knee[1] - foot[1]) || 1, top = along(foot, knee, Math.min(1, (S.sock + 0.4) / sl));
+        out.push(P('w', cap(top[0], top[1], foot[0], foot[1] - 0.3, S.leg + 0.3), null, 'W'));
+      }
+      out.push(P('z', ell(foot[0] + 0.8, foot[1] + 0.4, S.shoe, 1.55), null, 'z'));
+      if (shorts) out.push(P('k', cap(hip[0], hip[1], mid[0], mid[1], S.leg + 1.4), null, 'K'));
+      return out;
+    };
+    // his arm i to a hand at h (in the sprite's pixels; pose() takes body
+    // coordinates), the elbow dropped by S.bend[i] below the straight line
+    var reach = function (S, i, h) {
+      var hd = [h[0] - 6, h[1] - 24 - 0.8], sh = S.sh[i], m = along(sh, hd, 0.5), dx = hd[0] - sh[0], dy = hd[1] - sh[1], L = Math.hypot(dx, dy) || 1;
+      return [[m[0] - dy / L * S.bend[i], m[1] + dx / L * S.bend[i]], hd];
+    };
+    var spin = function (p, o, a) {
+      if (!a) return p;
+      var x = p[0] - o[0], y = p[1] - o[1], co = Math.cos(a), si = Math.sin(a);
+      return [o[0] + x * co - y * si, o[1] + x * si + y * co];
+    };
+
+    /* One frame. o.pedal: the near pedal's angle (0 forward, turning
+       clockwise as the wheels do); o.rot: the wheels'; o.tilt: the bike
+       pitched nose up about the saddle (in the air); o.kind: his face;
+       o.wave: his left arm (as we look at him) up and waving, as in his
+       own cheer. */
+    var frame = function (size, o) {
+      var S = SPEC[size], piv = [S.saddle[0], S.saddle[1]], tl = o.tilt || 0;
+      // the sprite ends on the lowest row of the wheels, where they meet the
+      // ground (tipped back in the air, the rear wheel drops and it grows),
+      // made up to a whole number of game pixels by dropping the bike the
+      // odd row clear of his seat
+      var rows0 = function (c) {
+        var f = c[0] - 0.5 - Math.floor(c[0] - 0.5), dx = Math.min(f, 1 - f);
+        return Math.floor(c[1] + Math.sqrt(S.R * S.R - dx * dx) - 0.5) + 1;
+      };
+      var low = Math.max(rows0(spin(S.rear, piv, tl)), rows0(spin(S.front, piv, tl)));
+      var H = low + (low & 1), W = S.W, dn = H - low;
+      var at = function (p) { var q = spin(p, piv, tl); return [q[0], q[1] + dn]; };
+      var ra = at(S.rear), fa = at(S.front), bb = at(S.bb), seat = at(S.seat), hT = at(S.headT), hB = at(S.headB), stem = at(S.stem), grip = at(S.grip);
+      var sd = at(piv), bell = at([S.bell[0], S.bell[1]]);
+      var pedal = function (a) { return [bb[0] + Math.cos(a) * S.crank, bb[1] + Math.sin(a) * S.crank]; };
+      var near = pedal(o.pedal), far = pedal(o.pedal + Math.PI), t = S.tube, parts = [];
+      // the far side: its crank and pedal, his far leg
+      parts = parts.concat(crank(bb, far, S), legOn(S, S.hips[0], far));
+      // the wheels, behind the frame, and the little cog on the back one
+      parts = parts.concat(wheel(ra, S, o.rot), wheel(fa, S, o.rot));
+      parts.push(P('l', ell(ra[0], ra[1], S.cog, S.cog), function (x, y) { return (x + y) & 1 ? 'V' : 'l'; }, 'L'));
+      // the seat post, then the frame: seat tube, top tube, down tube,
+      // chain and seat stays, the head tube a little stouter, the fork
+      parts.push(tubes([[seat, along(seat, sd, 1.2), t * 0.62]], 'l', 'L', ['V', 'l', 'v', 'x']));
+      parts.push(tubes([
+        [bb, seat, t], [along(seat, bb, 0.12), along(hT, hB, 0.55), t], [bb, along(hT, hB, 0.8), t],
+        [bb, ra, t * 0.8], [seat, ra, t * 0.8], [hT, hB, t * 1.2], [hB, fa, t * 0.9]
+      ], 'r', 'R', ['d', 'r', 'e', 'i']));
+      // the chain, on this side of the frame, from the top of the chainring
+      // to the top of the cog (its lower run, under the chainstay, boxed
+      // the stay in and read as clutter)
+      parts.push({ c: 'L', bare: true, f: cap(bb[0], bb[1] - S.ring + 0.5, ra[0], ra[1] - S.cog + 0.3, 0.5) });
+      // the chainring
+      parts.push(P('l', ell(bb[0], bb[1], S.ring, S.ring), function (x, y) {
+        var X = x + 0.5 - bb[0], Y = y + 0.5 - bb[1], r = Math.hypot(X, Y);
+        if (r < S.ring * 0.42) return X + Y < 0 ? 'x' : 'v';
+        if (r > S.ring - 0.9) return Math.floor(Math.atan2(Y, X) * 3 + 20) & 1 ? 'V' : 'l';
+        return X * 0.6 + Y * 0.8 < 0 ? 'v' : 'l';
+      }, 'L'));
+      // the stem and the bar, swept back to the grip
+      parts.push(tubes([[hT, stem, t * 0.7], [stem, grip, t * 0.62]], 'l', 'L', ['V', 'l', 'v', 'x']));
+      parts.push(tubes([[along(grip, stem, 0.05), along(grip, stem, -0.32), t * 0.95]], 'a', 'A', ['a', 'a', 'g', 'g']));
+      // the bell, on the bar by the stem: a little gold dome
+      parts.push(P('O', or(both(ell(bell[0], bell[1], S.bell[2] * 1.15, S.bell[2]), function (x, y) { return y <= bell[1] + 0.3; }), rrect(bell[0] - 0.5, bell[1], bell[0] + 0.5, bell[1] + S.bell[2] * 0.9, 0.3)), function (x, y) {
+        return x + 0.5 < bell[0] && y + 0.5 < bell[1] ? 'Q' : 'O';
+      }, 'P'));
+      // the saddle: a soft dark wedge, its nose forward
+      var sw = S.saddle[2], sh = S.saddle[3];
+      parts.push(P('a', or(ell(sd[0] - sw * 0.25, sd[1], sw * 0.75, sh), ell(sd[0] + sw * 0.45, sd[1] + sh * 0.2, sw * 0.55, sh * 0.62)), function (x, y) { return y + 0.5 < sd[1] - sh * 0.2 ? 'g' : 'a'; }, 'A'));
+      // the basket: wicker, woven in a check, a light rim round the top,
+      // hung off the front of the bar over the front wheel
+      var bk = S.basket, bx0 = bk[0], by0 = bk[1], bx1 = bk[2], by1 = bk[3];
+      var corners = [[bx0, by0], [bx1, by0], [bx1 - 1.1, by1], [bx0 + 0.9, by1]].map(at);
+      parts.push(P('j', poly(corners, 1), function (x, y) {
+        var q = spin([x + 0.5, y + 0.5 - dn], piv, -tl), X = q[0] - bx0, Y = q[1] - by0;
+        if (Y < 1.6) return Y < 0.8 && X < (bx1 - bx0) * 0.6 ? 'M' : 'j';
+        var band = Math.floor((Y - 1.6) / 1.5), stake = Math.floor((X + (band & 1) * 1.5) / 3);
+        if (Y > by1 - by0 - 1.2) return 'J';
+        return (band + stake) & 1 ? 'J' : X < (bx1 - bx0) * 0.5 && !(band & 1) ? 'M' : 'j';
+      }, 'N'));
+      // the near side: its crank and pedal, then his near leg
+      parts = parts.concat(crank(bb, near, S), legOn(S, S.hips[1], near, true));
+      var rows = scene2(W, H, parts);
+
+      // Bonnie: his arms to the grip (one waving, when he cheers), his legs
+      // tucked under his shorts out of the way
+      var arms = [reach(S, 0, [grip[0] - 0.6, grip[1] + 0.3]), reach(S, 1, grip)];
+      if (o.wave) arms[0] = S.cheer;
+      var tuck = S.legsAt.map(function (h) { return [h, [h[0] - 1, h[1] - 0.3]]; });
+      var him = BON.pose(size, { arms: arms, legs: tuck }, o.kind);
+      var sp = BB.sprHi(compose(rows, him.rows), merge(him.pal, pal), 'shade');
+      sp.noLight = [].concat(him.noLight || []).join('') + OWN;
+      return sp;
+    };
+    var Q = Math.PI / 2, set = function (size) {
+      var n = SPEC[size].spokes, step = 2 * Math.PI / n / 4;
+      return {
+        ride: [0, 1, 2, 3].map(function (k) { return frame(size, { pedal: Q / 2 + k * Q, rot: k * step }); }),
+        air: frame(size, { pedal: -0.2, rot: step / 2, tilt: -0.12, kind: 'wheee' }),
+        cheer: frame(size, { pedal: 0, rot: 0, wave: true })
+      };
+    };
+    F.bike = { s: set('s'), b: set('b') };
+
+    /* ==========================================================================
+       SURFING at Hossegor: just Bonnie — the game draws the board under
+       his feet — crouched, knees bent and feet apart, arms out for balance,
+       looking ahead; and wobbling, his arms windmilling, an 'oh!' face.
+       His own frame, cut off under his shoes so they stand on its bottom
+       row: crouched, his head sits a game pixel lower than standing (it's
+       still 10.75 in from the left).
+
+       A.family.surf = { s, b: { ride, wobble } }      small 22 x 19, big 22 x 27
+       ========================================================================== */
+    var surf = function (size, arms, legs, kind) {
+      var sp = BON.pose(size, { arms: arms, legs: legs }, kind), rows = sp.rows.slice();
+      while (rows.length > 1 && /^\.*$/.test(rows[rows.length - 1])) rows.pop();
+      var out = BB.sprHi(rows, sp.pal, 'shade');
+      out.noLight = sp.noLight;
+      return out;
+    };
+    var LEGS = {
+      s: [[[10.6, 11], [9, 12]], [[21.6, 10.8], [23, 12]]],
+      b: [[[8.8, 22.2], [7, 27.8]], [[23.4, 22], [25.2, 27.8]]]
+    };
+    F.surf = {
+      s: {
+        ride: surf('s', [[[5.4, 2.2], [1, 3.6]], [[26.6, 2.8], [31, 4.6]]], LEGS.s),
+        wobble: surf('s', [[[4.6, -1.6], [1.6, -6], 1], [[26.4, 4.8], [28.6, 8.6]]], LEGS.s, 'gasp')
+      },
+      b: {
+        ride: surf('b', [[[4.8, 4.6], [0.2, 7.2]], [[27.2, 5.6], [32, 8.4]]], LEGS.b),
+        wobble: surf('b', [[[4.4, -1.2], [1, -7], 1], [[27, 9], [29.8, 14]]], LEGS.b, 'gasp')
+      }
+    };
   })();
 })();

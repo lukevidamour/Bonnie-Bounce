@@ -19,7 +19,9 @@
      fall does lose the ground it made, so a level it finishes is one
      that can really be finished. For the boss levels, "the end" is the
      boss until it's beaten, then whatever it leaves behind.
-     /tools/playtest.html?level=11   (or ?level=11-20, or ?level=all) -->
+     /tools/playtest.html?level=11   (or ?level=11-20, or ?level=all;
+     &from=120 starts it partway along a level, to check one stretch;
+     &medals=1 sends it after each of a level's three medals instead) -->
 <canvas id="screen" width="240" height="144"></canvas>
 <div id="pad"><div data-dpad></div></div>
 <div id="out"></div>
@@ -32,12 +34,15 @@
 <script src="../js/map.js"></script>
 <script src="../js/music.js"></script>
 <script src="../js/levels.js"></script>
+<script src="../js/levels2.js"></script>
+<script src="../js/levels3.js"></script>
+<script src="../js/levels4.js"></script>
 <script src="../js/ui.js"></script>
 <script src="../js/voice.js"></script>
 <script src="../js/game.js"></script>
 <script>
 (function () {
-  var T = 8, STEP = 6, BUDGET = 100000;
+  var T = 8, STEP = 6, BUDGET = 200000;
   var out = document.getElementById('out');
   var say = function (html) { var d = document.createElement('div'); d.innerHTML = html; out.appendChild(d); };
   // the parts of the world that never change are shared, not copied
@@ -62,7 +67,13 @@
     { left: 1 }, { left: 1, a: 'press' }, { left: 1, b: 1, a: 'press' }, {}
   ];
   var keys = function (m, a) { return { left: !!m.left, right: !!m.right, b: !!m.b, a: a, up: false, down: false, start: false, select: false }; };
+  /* &medals=1: instead of the finish, the robot goes after each of the
+     level's three medals in turn (from the start), to prove each can be
+     reached — a medal sealed in rock or out of reach shows as ✗ */
+  var TARGET = -1;
+  var medalEnt = function (G) { for (var i = 0; i < G.ents.length; i++) { var e = G.ents[i]; if (e.k === 'medal' && e.sp.i === TARGET) return e; } return null; };
   var goalOf = function (G) {
+    if (TARGET >= 0) { var me = medalEnt(G); return me && me.alive ? me : null; }
     var p = G.p, best = null, bd = 1e9;
     G.ents.forEach(function (e) {
       // a boss until he's beaten; then whoever (or whatever) he was keeping
@@ -77,6 +88,7 @@
   // the boss still needs counts as a long way
   var h = function (G) {
     var p = G.p, g = goalOf(G);
+    if (TARGET >= 0) return g ? Math.abs(g.x + g.w / 2 - p.x - p.w / 2) + Math.abs(g.y + g.h / 2 - p.y - p.h / 2) * 1.5 : 0;
     if (!g) return G.def.boss && !G.bossDone ? 1e6 : 0;
     // a flying boss is reached by being under him, not up in the air with him
     if (G.def.boss && !G.bossDone) return Math.abs(g.x + g.w / 2 - p.x - p.w / 2) + (g.hp || 0) * 400;
@@ -95,15 +107,27 @@
   };
   var bossHp = function (G) { var b = goalOf(G); return b && !G.bossDone ? (b.hp || 0) + (b.st || '') : 'D'; };
   var run = function (n) {
+    if (!MEDALS) return runOne(n);
+    var name = BB.LEVELS[n - 1].name, got = [];
+    for (TARGET = 0; TARGET < 3; TARGET++) got.push(runOne(n, true));
+    TARGET = -1;
+    say((got.every(function (r) { return r.ok; }) ? '<span class="ok">✓ ' : '<span class="bad">✗ ') + n + ' ' + name + '</span> — medals: ' + got.map(function (r, i) { return (i + 1) + (r.ok ? ' ✓' : ' ✗ (got to tile ' + r.bestX + ', row ' + r.bestRow + ')'); }).join(', '));
+    window.results = (window.results || []).concat([{ n: n, medals: got.map(function (r) { return r.ok; }) }]);
+  };
+  var runOne = function (n, quiet) {
     var t0 = performance.now();
     BB.game.startLevel(n); BB.game.go('play');
-    BB.steps(2, keys({}, false));
     var G = BB.game.G();
+    // &from=x: start the robot partway along (on the floor at tile x), to check one stretch on its own
+    if (FROM) { var fp = G.p; fp.x = FROM * T; for (var fy = 0; fy < G.h; fy++) if (G.map[fy * G.w + FROM]) { fp.y = fy * T - fp.h; break; } G.safe = { x: fp.x, y: fp.y }; }
+    BB.steps(2, keys({}, false));
     var heap = [{ s: snap(), f: h(G), heldA: false, d: 0 }], seen = {}, done = null, n2 = 0, bumps = 0, best = 1e9, bestX = 0, bestRow = 0;
     var push = function (node) { heap.push(node); var i = heap.length - 1; while (i > 0) { var j = (i - 1) >> 1; if (heap[j].f <= heap[i].f) break; var t = heap[i]; heap[i] = heap[j]; heap[j] = t; i = j; } };
     var pop = function () { var top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; var i = 0; for (;;) { var l = i * 2 + 1, r = l + 1, m = i; if (l < heap.length && heap[l].f < heap[m].f) m = l; if (r < heap.length && heap[r].f < heap[m].f) m = r; if (m === i) break; var t = heap[i]; heap[i] = heap[m]; heap[m] = t; i = m; } } return top; };
     // a boss fight is long (a flight between each chance to stomp), so it gets more tries
-    var budget = G.def.boss ? BUDGET * 4 : BUDGET;
+    // longer levels get more tries, in proportion
+    var budget = Math.round((G.def.boss ? BUDGET * 4 : BUDGET) * Math.max(1, G.w / 220));
+    var medals = G.ents.filter(function (e) { return e.k === 'medal'; }).length;
     while (heap.length && n2 < budget && !done) {
       var node = pop();
       for (var mi = 0; mi < MOVES.length && !done; mi++) {
@@ -120,7 +144,8 @@
         G.hp = 6;
         // a fall (he's popped back in a bubble) or the last heart: not a way forward
         if (p.st === 'dead' || p.bubble || BB.game.scene() !== 'play' || doomed(G)) continue;
-        if (p.st === 'arch' || p.st === 'cheer' || p.st === 'walk' || p.st === 'in') { done = { frames: (node.d + 1) * STEP }; break; }
+        if (TARGET >= 0) { var tm = medalEnt(G); if (tm && !tm.alive) { done = { frames: (node.d + 1) * STEP }; break; } }
+        else if (p.st === 'arch' || p.st === 'cheer' || p.st === 'walk' || p.st === 'in') { done = { frames: (node.d + 1) * STEP }; break; }
         /* a place, and roughly when: moving platforms, fire bars and
            bosses all go round in cycles, so the same spot at a different
            moment can be a different chance (and a boss fight is long, so
@@ -135,12 +160,14 @@
     }
     var ms = Math.round(performance.now() - t0);
     BB.steps(0, null);
+    if (quiet) return { ok: !!done, bestX: bestX, bestRow: bestRow };
     var name = BB.LEVELS[n - 1].name;
-    if (done) say('<span class="ok">✓ ' + n + ' ' + name + '</span> — finished in ' + (done.frames / 60).toFixed(1) + 's of play (' + n2 + ' tries, ' + ms + 'ms)');
+    var mnote = medals === 3 ? '' : ' <span class="bad">— ' + medals + ' medals (every level should have 3)</span>';
+    if (done) say('<span class="ok">✓ ' + n + ' ' + name + '</span> — finished in ' + (done.frames / 60).toFixed(1) + 's of play (' + n2 + ' tries, ' + ms + 'ms, ' + G.w + ' tiles long)' + mnote);
     else say('<span class="bad">✗ ' + n + ' ' + name + '</span> —  got no nearer than tile ' + bestX + ', row ' + bestRow + ' (' + Math.round(best) + 'px from the end) after ' + n2 + ' tries');
-    window.results = (window.results || []).concat([{ n: n, ok: !!done, bestX: bestX, tries: n2 }]);
+    window.results = (window.results || []).concat([{ n: n, ok: !!done, bestX: bestX, tries: n2, medals: medals, w: G.w, secs: done ? done.frames / 60 : 0 }]);
   };
-  var q = location.search, m1 = /level=(\d+)(?:-(\d+))?/.exec(q), list = [];
+  var q = location.search, m1 = /level=(\d+)(?:-(\d+))?/.exec(q), list = [], FROM = +((/from=(\d+)/.exec(q) || [0, 0])[1]), MEDALS = /medals=1/.test(q);
   if (/level=all/.test(q)) list = BB.LEVELS.map(function (d) { return d.n; });
   else if (m1) for (var i = +m1[1]; i <= +(m1[2] || m1[1]); i++) list.push(i);
   else list = [1];
