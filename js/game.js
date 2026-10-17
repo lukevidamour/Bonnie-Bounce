@@ -39,7 +39,9 @@
      easy now", with three hearts to lean on): baddies at SLOW 0.94, one
      in ten left out rather than one in seven, and half a heart back
      every HEAL_STARS stars rather than every 10. The jump and the
-     forgiveness settings are unchanged: the feel stays the same. */
+     forgiveness settings are unchanged: the feel stays the same.
+     Then one heart instead of three (owner, 17 Oct: "he is finding it
+     very easy now"): see HP_MAX. */
   var SLOW = 0.94, THIN = 10, HEAL_STARS = 12;
   var PW = 10, SMALL_H = 15, BIG_H = 25;
   var RUN_CYCLE = ['run1', 'run2', 'run3', 'run2'];
@@ -1628,13 +1630,16 @@
     else { G.flash = 30; sfx('power'); }
   };
   /* ---- hearts ------------------------------------------------------------------------
-     Three hearts (owner, 16 Oct): a bump costs one and Bonnie carries on;
-     every 10 stars gives half a heart back, and a heart from a present a
-     whole one. Falling in a pit or the lava costs one too, and he pops
-     back up in a bubble on the last safe ground he stood on. Only with
-     the last heart gone does he go back to the checkpoint — with all
-     three again, and as many tries as he likes. Kept in half-hearts. */
-  var HP_MAX = 6;
+     One heart (owner, 17 Oct: three made it "very easy now"). A bump
+     while he's small, or a fall into a pit or the lava, sends him back
+     to the checkpoint, with as many tries as he likes; when he's big, a
+     bump only shrinks him. Three hearts (16 Oct) worked like this: a
+     bump cost one and he carried on, a fall cost one and he popped back
+     up in a bubble on the last safe ground, stars and presents gave
+     hearts back. All of that is still here and comes back on its own if
+     HP_MAX goes up again (2 a heart: they're kept in half-hearts). With
+     one heart he's always full, so a heart from a present is points. */
+  var HP_MAX = 2;
   var heal = function (half, x, y) {
     if (G.hp >= HP_MAX) return false;
     G.hp = Math.min(HP_MAX, G.hp + half); G.hpGlow = 40;
@@ -2808,16 +2813,19 @@
   BB.medalIcon = function (ctx, x, y, got) { medalIcon(ctx, x, y, got); };
   var drawHud = function (ctx) {
     var W = BB.W, o = { color: '#ffffff', outline: HUDINK };
-    // three hearts; the last one left beats gently
-    for (var hi = 0; hi < 3; hi++) {
-      var f = Math.max(0, Math.min(2, G.hp - hi * 2)), beat = G.hp <= 2 && f && !reduce ? (Math.floor(tick / 16) % 2 ? -0.5 : 0) : 0;
+    /* the hearts; the last one left beats gently (but not a lone heart:
+       it would beat all the time and stop meaning anything) */
+    var hearts = HP_MAX / 2, hx = 3 + hearts * 9 + 1;
+    for (var hi = 0; hi < hearts; hi++) {
+      var f = Math.max(0, Math.min(2, G.hp - hi * 2)), beat = hearts > 1 && G.hp <= 2 && f && !reduce ? (Math.floor(tick / 16) % 2 ? -0.5 : 0) : 0;
       heartIcon(ctx, 3 + hi * 9, 3 + beat, f, G.hpGlow > 0 && G.hpGlow % 10 < 5);
     }
-    // the level's three medals, under the hearts: gold once found
+    // the level's three medals, under the hearts and stars: gold once found
     if (G.medals) for (var mi = 0; mi < 3; mi++) medalIcon(ctx, 6 + mi * 8, 16.5, medalBits(G.n) & (1 << mi));
-    BB.draw(ctx, A.starSmall, 31, 4.5);
-    BB.text(ctx, pad(save.stars, 2), 40, 4, { color: '#ffe048', outline: HUDINK });
-    if (bearWith === G.n) BB.draw(ctx, A.bearHead, 55, 4);
+    // the stars count follows on from the hearts, however many there are
+    BB.draw(ctx, A.starSmall, hx, 4.5);
+    BB.text(ctx, pad(save.stars, 2), hx + 9, 4, { color: '#ffe048', outline: HUDINK });
+    if (bearWith === G.n) BB.draw(ctx, A.bearHead, hx + 24, 4);
     BB.text(ctx, pad(save.score, 6), W / 2, 4, { color: '#ffffff', outline: HUDINK, align: 'center' });
     var right = W - 2;
     if (BB.inputMode === 'touch') { BB.hud.pause = { on: 'screen', x: W - 18, y: 0, w: 18, h: 16 }; BB.icons.pause(ctx, W - 13, 2.5); right = W - 16; }

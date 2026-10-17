@@ -128,14 +128,15 @@ the map, the level's card and the HUD, and win the football kits);
 behind; **balloons** that float Bonnie up into the sky for a while;
 **musical blocks** that play their note as he lands on or runs across them.
 
-**Hearts:** Bonnie has three. A bump from a baddie costs one and he
-carries on (blinking for a moment, so he can get clear). A fall into a
-pit or lava costs one too, and a bubble pops him back onto the last safe
-ground he stood on. Only when the last heart goes does he start again —
-from the checkpoint flag if he reached it, after a one-second card.
-Every 12 stars gives half a heart back, and a heart from a present gives
-a whole one (or a burst of points if he's full). Lives are unlimited.
-When he's big, a bump shrinks him first, as before, without costing a heart.
+**Hearts:** Bonnie has one (it was three, until he found the game "very
+easy"). A bump from a baddie while he's small, or a fall into a pit or
+lava, and he starts again — from the checkpoint flag if he reached it,
+after a one-second card. Lives are unlimited. When he's big, a bump
+shrinks him first, without costing the heart. A heart from a present is
+a burst of points. To give him more hearts again, raise `HP_MAX` in
+`js/game.js` (2 a heart): the three-heart rules — carrying on after a
+bump, a bubble back to safe ground after a fall, half a heart back every
+12 stars — all return on their own.
 
 **Bear** hides in every level — up on a stump, a ledge, the top of a
 climbing frame. Touch him and he meows and follows Bonnie home (he walks
@@ -214,8 +215,10 @@ Handy while editing:
 - `tools/playtest.html?level=all` sends a robot through every level (or
   `?level=11-20`, `?level=19`), to prove each can be finished after a
   change. It searches short moves — walk, run, jump, hold, wait — always
-  carrying on from the spot nearest the end; bumps don't stop it, falls
-  do; it also checks every level has its three medals. All thirty-five pass (the whole run takes a minute or two; the boss
+  carrying on from the spot nearest the end. It starts small with the
+  game's one heart, so a bump or a fall ends that try: a level it
+  finishes can be finished without a single hit. It also checks every
+  level has its three medals (`&medals=1` goes after each of them). All thirty-five pass (the whole run takes a minute or two; the boss
   fights take longest). If one fails, it says how far it got.
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).
@@ -223,7 +226,8 @@ Handy while editing:
 - How hard it is: `SLOW` (how fast baddies and hazards move, 0.94 now),
   `THIN` (one baddie in THIN is left out, 10 now) and `HEAL_STARS` (stars
   for half a heart, 12 now) at the top of `js/game.js`, next to the jump
-  and forgiveness settings.
+  and forgiveness settings; and `HP_MAX`, the hearts (2 a heart, so 2 now
+  for one heart, 6 for three), under "hearts" further down.
 - Level 1's signposts are `L.tip(x, 'jump')` and so on; the words and
   pictures for each are `TIPS` in `js/game.js`.
 

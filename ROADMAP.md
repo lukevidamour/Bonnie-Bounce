@@ -138,6 +138,9 @@ Mario Wonder, Alto, Dadish), where 90+ is best in class.
   carry Bonnie over a gap) — the single best feature for this age.
 - *Done 16 Oct:* three hearts, so one bump never undoes a good run, and a
   fall into a pit costs a heart rather than the level.
+- *Changed 17 Oct:* back to one heart — with three, and longer levels,
+  Bonnie found it "very easy". The three-heart rules stay in the code
+  behind `HP_MAX`, ready if he needs them again.
 
 ### 6. Rewards and replay
 - **P1** Three big hidden **Monsty badges** per level (like star coins),

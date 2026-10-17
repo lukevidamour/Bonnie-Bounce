@@ -15,9 +15,10 @@
      by search — from a saved moment it tries a handful of short moves
      (walk, run, jump, hold the jump, go back, wait), keeps the ones that
      reach somewhere new, and always carries on from the place nearest the
-     end of the level. Bumps don't stop it (hearts are topped up), but a
-     fall does lose the ground it made, so a level it finishes is one
-     that can really be finished. For the boss levels, "the end" is the
+     end of the level. It starts small and plays by the game's own
+     hearts (one, since 17 Oct), so a bump while small or a fall loses
+     the ground it made: a level it finishes can be finished without a
+     single hit. For the boss levels, "the end" is the
      boss until it's beaten, then whatever it leaves behind.
      /tools/playtest.html?level=11   (or ?level=11-20, or ?level=all;
      &from=120 starts it partway along a level, to check one stretch;
@@ -116,12 +117,14 @@
   };
   var runOne = function (n, quiet) {
     var t0 = performance.now();
+    // small, as he is after a bump: the hardest way to play it
+    BB.game.save().power = 0;
     BB.game.startLevel(n); BB.game.go('play');
     var G = BB.game.G();
     // &from=x: start the robot partway along (on the floor at tile x), to check one stretch on its own
     if (FROM) { var fp = G.p; fp.x = FROM * T; for (var fy = 0; fy < G.h; fy++) if (G.map[fy * G.w + FROM]) { fp.y = fy * T - fp.h; break; } G.safe = { x: fp.x, y: fp.y }; }
     BB.steps(2, keys({}, false));
-    var heap = [{ s: snap(), f: h(G), heldA: false, d: 0 }], seen = {}, done = null, n2 = 0, bumps = 0, best = 1e9, bestX = 0, bestRow = 0;
+    var heap = [{ s: snap(), f: h(G), heldA: false, d: 0 }], seen = {}, done = null, n2 = 0, best = 1e9, bestX = 0, bestRow = 0;
     var push = function (node) { heap.push(node); var i = heap.length - 1; while (i > 0) { var j = (i - 1) >> 1; if (heap[j].f <= heap[i].f) break; var t = heap[i]; heap[i] = heap[j]; heap[j] = t; i = j; } };
     var pop = function () { var top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; var i = 0; for (;;) { var l = i * 2 + 1, r = l + 1, m = i; if (l < heap.length && heap[l].f < heap[m].f) m = l; if (r < heap.length && heap[r].f < heap[m].f) m = r; if (m === i) break; var t = heap[i]; heap[i] = heap[m]; heap[m] = t; i = m; } } return top; };
     // a boss fight is long (a flight between each chance to stomp), so it gets more tries
@@ -135,13 +138,10 @@
         if (m.a === 'hold' && !node.heldA) continue;
         restore(node.s); n2++;
         G = BB.game.G();
-        var hp0 = G.hp;
         if (m.a === 'press') BB.steps(1, keys(m, false), true);
         BB.steps(m.a === 'press' ? STEP - 1 : STEP, keys(m, !!m.a), true);
         G = BB.game.G();
         var p = G.p;
-        if (G.hp < hp0) bumps++;
-        G.hp = 6;
         // a fall (he's popped back in a bubble) or the last heart: not a way forward
         if (p.st === 'dead' || p.bubble || BB.game.scene() !== 'play' || doomed(G)) continue;
         if (TARGET >= 0) { var tm = medalEnt(G); if (tm && !tm.alive) { done = { frames: (node.d + 1) * STEP }; break; } }
