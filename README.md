@@ -138,6 +138,12 @@ a burst of points. To give him more hearts again, raise `HP_MAX` in
 bump, a bubble back to safe ground after a fall, half a heart back every
 12 stars — all return on their own.
 
+**Bosses:** landing on top of a boss never hurts. At the right moment
+(Grumble any time, the Captain when he's landed, Rascal when he's dizzy)
+it's a hit; at any other it's a bounce. A boss that's just been hit
+flashes, and can't hurt Bonnie until he stops. Only touching him from
+the side or below, or his fire, eggs and baguettes, costs the heart.
+
 **Bear** hides in every level — up on a stump, a ledge, the top of a
 climbing frame. Touch him and he meows and follows Bonnie home (he walks
 the very path Bonnie takes, a moment behind, and keeps him company after

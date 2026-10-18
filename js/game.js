@@ -1971,7 +1971,19 @@
         points(COMBO[Math.min(p.combo - 1, 7)], e.x, e.y);
         continue;
       }
-      var fromAbove = p.vy > 0 && p.y + p.h - p.vy <= e.y + 8;
+      /* (against where it was at the start of the frame too, so a baddie
+         moving up into his feet — Grumble hops when Bonnie's close — is
+         still landed on, not bumped into) */
+      var fromAbove = p.vy > 0 && p.y + p.h - p.vy <= Math.max(e.y, e.oy === undefined ? e.y : e.oy) + 8;
+      /* A boss that's just been stomped is reeling, and can't hurt Bonnie
+         until he stops flashing; nor can one Bonnie has just bounced off,
+         for half a second, while they part. Landing on him meanwhile is a
+         harmless bounce. Without this, Bonnie bounced up off him as he
+         leapt or rose away, still touching him, and that counted as a
+         bump from below: a lost heart when there were three, back to the
+         flag with one (owner, 18 Oct: "hitting them on the correct part
+         at the right time but we are still dying"). */
+      if (K.boss && (e.hurtT || G.tick < (e.bouncedTill || 0))) { if (fromAbove) bounce(p); continue; }
       if (K.stomp === 'shell' && e.shell) {
         if (e.kickT) continue;
         if (fromAbove && e.vx) { e.vx = 0; e.combo = 0; bounce(p); sfx('stomp'); e.kickT = 8; continue; }
@@ -1990,8 +2002,11 @@
           if (e.stun) { squash(e); e.dying = 'flip'; e.vy = -2; }
           else { e.stun = 200; e.vx = 0; sfx('stomp'); }
         } else if (K.stomp === 'boss') {
-          // the Captain only when he's landed, Rascal only when he's dizzy
-          if (K.stompWhen && !K.stompWhen(e)) { hurt(); continue; }
+          /* the Captain only when he's landed, Rascal only when he's
+             dizzy; on top of him at any other moment Bonnie just bounces
+             off (it used to hurt: with one heart, landing on the right
+             part should never cost the level) */
+          if (K.stompWhen && !K.stompWhen(e)) { bounce(p); sfx('boing'); e.bouncedTill = G.tick + 30; continue; }
           bossHit(e, 'stomp'); p.vy = -4.8; p.holdT = 0; continue;
         }
         else squash(e);
@@ -2241,6 +2256,7 @@
       e.t++;
       if (e.dying === 'flat') { if (e.t === 16) { bloom(e); e.alive = false; } continue; }
       if (e.dying === 'flip') { e.vy = Math.min(FALL, e.vy + 0.25); e.y += e.vy; e.x += e.vx; if (e.y > cy + H + 32) e.alive = false; if (e.k !== 'dragon') continue; }
+      e.oy = e.y; // where it stood at the start of the frame (touch: fromAbove)
       e.K.update(e);
       if (!e.K.fly && e.y > G.h * T + 24 && e.k !== 'plat') e.alive = false;
     }
