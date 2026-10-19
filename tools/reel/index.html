@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bonnie Bounce — reel</title>
+<style>
+  body { margin: 0; background: #111; color: #eee; font: 12px/1.5 ui-monospace, monospace; }
+  #screen { image-rendering: pixelated; width: 768px; display: block; }
+  #pad { display: none; }
+  #out { padding: 10px; }
+  .ok { color: #7ee078; } .bad { color: #ff7a7a; }
+</style>
+</head>
+<body>
+<!-- A dev tool: films a trailer of the game (README: "Making a trailer").
+     It plays each scene in reel.js frame by frame, with the HUD and the
+     floating words switched off (BB.reel), and sends every frame back to
+     serve.js; then the sounds it heard are played again into an offline
+     sound chip, with a song under them, for the soundtrack. encode.swift
+     makes the video. -->
+<canvas id="screen" width="512" height="288"></canvas>
+<div id="pad"><div data-dpad></div></div>
+<div id="out"></div>
+<script>
+  /* Before the game loads: a 16:9 window (1280x720 is a 256x144 view),
+     no live loop — reel.js steps every frame itself, so nothing moves
+     between frames — and no sound chip until the soundtrack is made. */
+  Object.defineProperty(window, 'innerWidth', { get: function () { return 1280; } });
+  Object.defineProperty(window, 'innerHeight', { get: function () { return 720; } });
+  window.requestAnimationFrame = function () {};
+  window.AudioContext = undefined;
+</script>
+<script src="../../js/core.js"></script>
+<script>
+  // every sound the game makes, and when (game.js keeps its own copy of BB.sfx, so this goes first)
+  (function () {
+    var R = window.REEL = { t: 0, listen: false, sounds: [], sfx: BB.sfx, note: BB.playNote };
+    BB.sfx = function (n) { if (R.listen) R.sounds.push({ t: R.t, n: n }); return R.sfx(n); };
+    BB.playNote = function (n) { if (R.listen) R.sounds.push({ t: R.t, note: n }); return R.note(n); };
+  })();
+</script>
+<script src="../../js/art.js"></script>
+<script src="../../js/creatures.js"></script>
+<script src="../../js/family.js"></script>
+<script src="../../js/backdrop.js"></script>
+<script src="../../js/light.js"></script>
+<script src="../../js/map.js"></script>
+<script src="../../js/music.js"></script>
+<script src="../../js/levels.js"></script>
+<script src="../../js/levels2.js"></script>
+<script src="../../js/levels3.js"></script>
+<script src="../../js/levels4.js"></script>
+<script src="../../js/ui.js"></script>
+<script src="../../js/game.js"></script>
+<script src="reel.js"></script>
+</body>
+</html>

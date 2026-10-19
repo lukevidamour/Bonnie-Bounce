@@ -2715,7 +2715,7 @@
         case 'note': ctx.fillStyle = f.col; ctx.fillRect(x, y, 1.5, 1.5); ctx.fillRect(x + 1, y - 3.5, 0.5, 4); ctx.fillRect(x + 1, y - 3.5, 1.5, 0.5); break;
         case 'ember': ctx.fillStyle = f.t < 8 ? '#ffd23c' : '#fa9c38'; ctx.fillRect(x, y, 1, 1); break;
         case 'bubble': BB.draw(ctx, A.bubble[f.t > 40 ? 1 : 0], x, y); break;
-        case 'text': BB.text(ctx, f.s, x, y, { color: f.col || '#ffffff', outline: '#1c1428' }); break;
+        case 'text': if (!BB.reel) BB.text(ctx, f.s, x, y, { color: f.col || '#ffffff', outline: '#1c1428' }); break;
         case 'heart': ctx.globalAlpha = Math.max(0, 1 - f.t / f.life); BB.draw(ctx, A.heartSmall, x, y); ctx.globalAlpha = 1; break;
         case 'petal': ctx.globalAlpha = Math.max(0, 1 - f.t / f.life); ctx.fillStyle = f.col; ctx.fillRect(x, y, f.t % 10 < 5 ? 1.5 : 1, f.t % 10 < 5 ? 1 : 1.5); ctx.globalAlpha = 1; break;
         case 'breath': ctx.globalAlpha = 0.55 * Math.max(0, 1 - f.t / f.life); ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, 1 + f.t / 20, 1 + f.t / 20); ctx.globalAlpha = 1; break;
@@ -2786,7 +2786,8 @@
     ambient(ctx);
     G.light.render(ctx, c, reduce);
     c.x = cx; c.y = cy;
-    if (hud !== false) drawHud(ctx);
+    // (BB.reel: tools/reel films the game with no HUD and no words)
+    if (hud !== false && !BB.reel) drawHud(ctx);
   };
 
   /* The HUD is the game's own type and icons, outlined so they read over

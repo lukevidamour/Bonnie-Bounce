@@ -237,6 +237,28 @@ Handy while editing:
 - Level 1's signposts are `L.tip(x, 'jump')` and so on; the words and
   pictures for each are `TIPS` in `js/game.js`.
 
+### Making a trailer
+
+`tools/reel/` films a 16:9 trailer straight from the game — no HUD, no
+words, only play — with the game's own sound effects and the title tune
+under it, cut on the music's bars. It made the 25-second LinkedIn video
+(19 Oct). The scenes are a list at the top of `tools/reel/reel.js`: a
+level, a tile to start at, how long, an outfit, and something to do on
+the way (find Bear, catch the balloons, ride the steam, a surfboard, a
+catapult, a stomp on Rascal). For each, the playtest robot finds a run
+that's never hit; Luke and Lucy are kept out of shot.
+
+1. `node tools/reel/serve.js 8171`, and open `localhost:8171/tools/reel/`
+   (it serves the game and saves what the page sends it).
+2. In the page's console: `REEL.film()`. About a minute: the frames and
+   the soundtrack land in `tools/reel/out/` (ignored by git).
+   `REEL.look(18, 140)` shows a frame of level 18 at tile 140, to choose
+   a spot; `REEL.plan(i)` and `REEL.show(i, frame)` try out scene `i`.
+3. `swiftc -O -swift-version 5 tools/reel/encode.swift -o /tmp/reel-encode`
+   then `/tmp/reel-encode tools/reel/out ~/Desktop/trailer.mp4` — a
+   1920x1080, 60fps H.264 MP4 with AAC sound, using only what comes with
+   macOS (the Xcode command line tools).
+
 Levels are written with short commands — `L.ground(0, 56)`, `L.row(16, 11, 'BPB?B')`,
 `L.medal(x, row)`, `L.secret(x0, y0, x1, y1)`, `L.balloons(x, row)`, `L.notes(x, row, 'CDEFG')`, `L.water(…)`,
 `L.pipe(28, 2)` (a column in the world's own style — a stump, a tower, a chimney), `L.e('grumbug', 24)`,
