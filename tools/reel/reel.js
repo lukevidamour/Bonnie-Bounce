@@ -23,7 +23,11 @@
 (function () {
   'use strict';
   var R = window.REEL, T = 8, STEP = 6, FPS = 60;
-  var SONG = 'hills', FADE_IN = 10, FADE_OUT = 40;
+  /* Hard cuts, start and end (owner, 19 Oct): where video doesn't
+     autoplay, the first frame is the picture people see, so it must be
+     play, not a dark screen; the sound only eases out over DECLICK
+     seconds at the very end, so it stops without a click. */
+  var SONG = 'hills', DECLICK = 0.03;
   var out = document.getElementById('out');
   var say = function (html) { var d = document.createElement('div'); d.innerHTML = html; out.appendChild(d); return d; };
   BB.reel = true;
@@ -339,9 +343,6 @@
         R.t = gi / FPS; R.listen = true;
         BB.steps(1, pl.fr[pre + f] || keys({}, false), false);
         R.listen = false;
-        // in from black at the start, and out to black at the end
-        var a = Math.max(gi < FADE_IN ? 1 - gi / FADE_IN : 0, gi >= total - FADE_OUT ? (gi - (total - FADE_OUT) + 1) / FADE_OUT : 0);
-        if (a > 0) { BB.ctx.setTransform(1, 0, 0, 1, 0, 0); BB.ctx.fillStyle = 'rgba(12,8,20,' + Math.min(1, a).toFixed(3) + ')'; BB.ctx.fillRect(0, 0, BB.cv.width, BB.cv.height); }
         grab(); gi++;
         if (batch.length === 24) await flush();
       }
@@ -384,8 +385,8 @@
     R.realMusic('');
     var buf = await off.startRendering();
     // as loud as it can be without clipping (the game plays it quietly,
-    // under whatever else is on), and the last moments fade with the picture
-    var fo = Math.round(sr * FADE_OUT / FPS), peak = 0, c, d, i;
+    // under whatever else is on), and no click as it stops
+    var fo = Math.round(sr * DECLICK), peak = 0, c, d, i;
     for (c = 0; c < 2; c++) { d = buf.getChannelData(c); for (i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i])); }
     var gain = peak ? 0.9 / peak : 1;
     for (c = 0; c < 2; c++) { d = buf.getChannelData(c); for (i = 0; i < d.length; i++) d[i] *= gain * (i >= d.length - fo ? (d.length - i) / fo : 1); }
