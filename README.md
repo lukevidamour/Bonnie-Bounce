@@ -241,17 +241,23 @@ Handy while editing:
 
 `tools/reel/` films a 16:9 trailer straight from the game — no HUD, no
 words, only play — with the game's own sound effects and the title tune
-under it, cut on the music's bars. It made the 25-second LinkedIn video
+under it, cut on the music's bars. It made the 29-second LinkedIn video
 (19 Oct). The scenes are a list at the top of `tools/reel/reel.js`: a
-level, a tile to start at, how long, an outfit, and something to do on
-the way (find Bear, catch the balloons, ride the steam, a surfboard, a
-catapult, a stomp on Rascal). For each, the playtest robot finds a run
-that's never hit; Luke and Lucy are kept out of shot.
+level, a tile to start at, how long, an outfit, and the beats to happen
+in order (find Bear, the balloons, the steam, a surfboard, a catapult, a
+secret room and its medal, a baguette jumped and a stomp on Rascal). For
+each, the playtest robot finds a run that's never hit and that plays the
+way a person would: `STYLE` makes jumps dear (and held once made),
+going back and dawdling a little dear, running free — without it the
+robot hops about all the time. Luke and Lucy are kept out of shot.
+`REEL.sheet(i, 12, 'name')` saves a contact sheet of scene `i` to
+`tools/reel/out/name.png`, to check a scene before filming it all.
 
 1. `node tools/reel/serve.js 8171`, and open `localhost:8171/tools/reel/`
    (it serves the game and saves what the page sends it).
-2. In the page's console: `REEL.film()`. About a minute: the frames and
-   the soundtrack land in `tools/reel/out/` (ignored by git).
+2. In the page's console: `REEL.film()`. About a minute (two, in a
+   background tab): the frames and the soundtrack land in
+   `tools/reel/out/` (ignored by git).
    `REEL.look(18, 140)` shows a frame of level 18 at tile 140, to choose
    a spot; `REEL.plan(i)` and `REEL.show(i, frame)` try out scene `i`.
 3. `swiftc -O -swift-version 5 tools/reel/encode.swift -o /tmp/reel-encode`

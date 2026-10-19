@@ -2260,13 +2260,16 @@
       e.K.update(e);
       if (!e.K.fly && e.y > G.h * T + 24 && e.k !== 'plat') e.alive = false;
     }
-    // walkers that meet turn round
+    /* walkers that meet turn round — but not a thing thrown: it starts
+       inside whoever threw it, and was turned round with them, so every
+       baguette of Rascal's flew off to the right, whichever side Bonnie
+       was on, and Rascal spun about (found filming the trailer, 19 Oct) */
     for (i = 0; i < G.ents.length; i++) {
       var a = G.ents[i];
-      if (!a.alive || a.dying || !a.enemy || a.K.fly || a.shell || !a.vx) continue;
+      if (!a.alive || a.dying || !a.enemy || a.K.fly || a.K.shot || a.shell || !a.vx) continue;
       for (var j = i + 1; j < G.ents.length; j++) {
         var b = G.ents[j];
-        if (!b.alive || b.dying || !b.enemy || b.K.fly || b.shell || !b.vx || !overlap(a, b)) continue;
+        if (!b.alive || b.dying || !b.enemy || b.K.fly || b.K.shot || b.shell || !b.vx || !overlap(a, b)) continue;
         var l = a.x <= b.x ? a : b, r = l === a ? b : a;
         l.vx = -Math.abs(l.vx); r.vx = Math.abs(r.vx);
       }

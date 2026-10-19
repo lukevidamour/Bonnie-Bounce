@@ -29,6 +29,13 @@
   Object.defineProperty(window, 'innerHeight', { get: function () { return 720; } });
   window.requestAnimationFrame = function () {};
   window.AudioContext = undefined;
+  /* the music player's timer, kept so reel.js can run it by hand: a page
+     in the background has its timers slowed to once a second or less */
+  window.REEL_TIMERS = {};
+  (function (set, clear) {
+    window.setInterval = function (fn) { var id = set.apply(window, arguments); window.REEL_TIMERS[id] = fn; return id; };
+    window.clearInterval = function (id) { delete window.REEL_TIMERS[id]; return clear(id); };
+  })(window.setInterval, window.clearInterval);
 </script>
 <script src="../../js/core.js"></script>
 <script>
