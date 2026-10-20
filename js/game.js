@@ -1483,7 +1483,6 @@
         e.t2++;
         if (e.t2 === 96) {
           e.alive = false; sfx('medal'); points(2000, e.x, e.y);
-          save.dex = save.dex || {}; save.dex[mon] = 1; store();
           for (var k = 0; k < 10; k++) fx('spark', e.x + 5, e.y + 4, { vx: Math.cos(k * 0.63) * 1.4, vy: Math.sin(k * 0.63) * 1.4, life: 30, col: k % 2 ? '#ffe048' : '#ffffff' });
           fx('text', e.x - 10, e.y - 12, { s: 'GOTCHA!', vy: -0.4, life: 60, col: '#ffe048' });
         } else if (e.t2 % 30 === 10 && e.t2 < 96) sfx('tick');
@@ -1504,6 +1503,8 @@
       if (p.st === 'play' && overlap(p, e)) {
         e.mode = 'caught'; e.t2 = 0; e.vx = 0; sfx('throw');
         if (!save.dex || !save.dex[mon]) fx('text', e.x - 6, e.y - 14, { s: mon.toUpperCase() + '!', vy: -0.35, life: 70, col: '#ffffff' });
+        // in the Pokédex at once: a bump during the wobble mustn't lose it
+        save.dex = save.dex || {}; save.dex[mon] = 1; store();
       }
     },
     draw: function (ctx, e) {
@@ -2582,9 +2583,12 @@
     var f = p.face || 1;
     p.rocket--; p.rocketX = (p.rocketX || 0) + 1; p.ground = false; p.on = null; p.coy = 0; p.crouch = false;
     p.vx = f * ROCKET_V;
-    // rising over what's ahead: a wall, or the ground climbing
+    /* it cruises a little above the ground (through the baddies and along
+       the stars), rising over anything ahead, or when jump is held; over a
+       gap it keeps its height */
     var ahead = boxSolid(p.x + f * 10, p.y, p.w, p.h) || boxSolid(p.x + f * 22, p.y + 2, p.w, p.h - 2);
-    var want = ahead ? -2.2 : (BB.key('a') || BB.key('up')) ? -1.4 : 0;
+    var fl = floorBelow(p.x + p.w / 2, p.y + p.h, 96), cruise = fl === null ? p.y : fl - p.h - 6;
+    var want = ahead ? -2.2 : (BB.key('a') || BB.key('up')) ? -1.4 : Math.max(-1.2, Math.min(1.2, (cruise - p.y) * 0.08));
     p.vy += (want - p.vy) * 0.25;
     if (p.y < G.cam.y + 14 && p.vy < 0) p.vy = 0;
     if (moveX(p, p.vx)) p.vx = 0;
@@ -4494,7 +4498,7 @@
         var hop = on && !reduce ? -Math.round(Math.abs(Math.sin(sceneT * 0.1)) * 2) : 0;
         BB.draw(ctx, f, snap(cx - f.w / 2), feet - f.h + hop, false, on ? null : null);
         BB.text(ctx, NAME_OF[c.w], cx, feet + 12, { color: on ? PICK : INK, align: 'center' });
-        if (on) UI.cursor(ctx, c.x + 3, c.y + 4, tick);
+        if (on) UI.cursor(ctx, snap(cx - 4), feet - f.h - 12, tick);
       });
       BB.text(ctx, 'TAP WHO YOU WANT TO BE', W / 2, 16, { color: INK, align: 'center' });
     } else if (pg === 'pokedex') {
