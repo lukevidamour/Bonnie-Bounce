@@ -192,6 +192,11 @@
       var bear = spawn({ k: 'bear', x: p.x - 14, row: (chk ? chk.sp.row : start.row) });
       bear.mode = 'follow'; bear.active = true; G.ents.push(bear);
     } else bearWith = 0;
+    // the Pokémon he'd caught before a fall are still with him (and not back in the grass)
+    if (!palsWith || palsWith.n !== n) palsWith = { n: n, mons: [] };
+    palsWith.mons.forEach(function (mon, i) { addEnt('pal', p.x, p.y + p.h - KINDS.pal.h, { sp: { mon: mon }, n: i + 1 }); });
+    G.ents.forEach(function (e) { if (e.k === 'grass' && palsWith.mons.indexOf(e.sp.mon) > -1) e.out = true; });
+    lineUp();
     G.cam.x = Math.max(0, Math.min(G.w * T - BB.W, p.x - BB.W * 0.4));
     G.cam.y = Math.max(0, Math.min(G.h * T - H, p.y - H * 0.55));
     BB.music(th.music);
@@ -1446,23 +1451,21 @@
   /* ---- 36 · Pokémon: the long grass, the wild Pokémon, Pikachu -------------- */
   /* A clump of long grass (levels.js: L.e('grass', x, row, { mon: 'eevee' })):
      drawn in front of Bonnie; it rustles as he goes through, and the first
-     time, out pops the Pokémon hiding in it. */
+     time, out leaps the Pokémon hiding in it. A clump with a Pokémon in it
+     gives a little rustle of its own now and then — something's in there. */
   KINDS.grass = {
     w: 16, h: 10, front: true,
-    init: function (e) { e.x -= 0; e.rus = 0; },
+    init: function (e) { e.rus = 0; },
     update: function (e) {
       var p = G.p;
       if (e.rus) e.rus--;
+      if (e.sp.mon && !e.out && !reduce && e.t % 110 === 0) e.rus = 10;
+      // the friends walking behind him rustle it too
+      for (var j = 0; j < G.ents.length; j++) { var q = G.ents[j]; if (q.K.line && q.alive && q.moving && overlap(q, e)) { e.rus = Math.max(e.rus, 8); break; } }
       if (p.st === 'play' && overlap(p, e) && Math.abs(p.vx) > 0.2) {
         if (!e.rus) sfx('step');
         e.rus = 12;
-        if (e.sp.mon && !e.out) {
-          e.out = true;
-          var w = addEnt('wild', e.x + 3, e.y - 2, { sp: { mon: e.sp.mon } });
-          w.vy = -3.4; w.mode = 'out'; w.face = towards(w) * -1;
-          sfx('sprout');
-          for (var i = 0; i < 5; i++) fx('chip', e.x + 8, e.y + 2, { vx: (i - 2) * 0.5, vy: -1.6 - (i % 2), life: 22, col: '#6ad048' });
-        }
+        if (e.sp.mon && !e.out) { e.out = true; leapOut(e, e.sp.mon); }
       }
     },
     draw: function (ctx, e) {
@@ -1471,24 +1474,48 @@
       BB.draw(ctx, e.rus && !reduce ? g[1 + (Math.floor(e.rus / 3) % 2)] : g[0], snap(e.x + e.w / 2 - g[0].w / 2 - G.cam.x), snap(e.y + e.h - g[0].h + 1 - G.cam.y));
     }
   };
+  /* Out it leaps: high over the grass and clear of it, the way Bonnie's
+     going, so he sees who it is before he catches it (the owner, 21 Oct:
+     they used to pop up inside the grass and get caught there, hidden).
+     It lands on ground near the grass's own — as far on as there is. */
+  var leapOut = function (g, mon) {
+    var p = G.p, cx = g.x + g.w / 2, feet = g.y + g.h, d = p.vx > 0 ? 1 : -1, dist = 0;
+    [46, 38, 30, 22, 14].some(function (k) { var y = floorBelow(cx + d * k, feet - 16, 32); if (y !== null) { dist = k; return true; } return false; });
+    var w = addEnt('wild', cx - 5, feet - 10, { sp: { mon: mon } });
+    w.mode = 'leap'; w.vy = -4.4; w.vx = d * dist / 21; w.face = d;
+    sfx('sprout');
+    var name = mon.toUpperCase() + '!';
+    fx('text', cx + d * dist / 2 - BB.textW(name) / 2, feet - 44, { s: name, vy: -0.3, life: 70, col: '#ffffff' });
+    for (var i = 0; i < 5; i++) fx('chip', cx, feet - 6, { vx: (i - 2) * 0.5, vy: -1.6 - (i % 2), life: 22, col: '#6ad048' });
+  };
   /* A wild Pokémon: it hops about, and runs off when Bonnie comes near —
-     catch up and touch it, and a Poké Ball pops round it, wobbles
-     three times and clicks: caught, and in the Pokédex for good. */
+     catch up and touch it, and a Poké Ball pops round it, wobbles three
+     times and clicks: caught, and in the Pokédex for good. Then out it
+     comes again, to walk behind him with Pikachu. Drawn in front of the
+     grass, so it's never lost in it. */
   KINDS.wild = {
-    w: 10, h: 10,
+    w: 10, h: 10, front: true,
     init: function (e) { e.mode = e.sp.out === false ? 'hide' : 'out'; e.flee = 0; },
     update: function (e) {
       var p = G.p, mon = e.sp.mon;
       if (e.mode === 'caught') {
         e.t2++;
         if (e.t2 === 96) {
-          e.alive = false; sfx('medal'); points(2000, e.x, e.y);
+          sfx('medal'); points(2000, e.x, e.y);
           for (var k = 0; k < 10; k++) fx('spark', e.x + 5, e.y + 4, { vx: Math.cos(k * 0.63) * 1.4, vy: Math.sin(k * 0.63) * 1.4, life: 30, col: k % 2 ? '#ffe048' : '#ffffff' });
-          fx('text', e.x - 10, e.y - 12, { s: 'GOTCHA!', vy: -0.4, life: 60, col: '#ffe048' });
+          fx('text', e.x + 5 - BB.textW('GOTCHA!') / 2, e.y - 12, { s: 'GOTCHA!', vy: -0.4, life: 60, col: '#ffe048' });
         } else if (e.t2 % 30 === 10 && e.t2 < 96) sfx('tick');
+        if (e.t2 === 124) { e.alive = false; joinLine(mon, e.x + e.w / 2, e.y + e.h); }
         return;
       }
       e.vy = Math.min(FALL, e.vy + GRAV);
+      if (e.mode === 'leap') {
+        // (nobody can catch it in the air: it's showing itself)
+        moveX(e, e.vx);
+        var down = e.vy > 0;
+        if (moveY(e, e.vy)) { e.vy = 0; if (down) { e.mode = 'out'; e.vx = 0; e.flee = 30; fx('puff', e.x + 2, e.y + e.h - 6, { life: 14 }); } }
+        return;
+      }
       if (moveY(e, e.vy)) e.vy = 0;
       var dx = p.x + p.w / 2 - (e.x + e.w / 2), close = Math.abs(dx) < 44 && Math.abs(p.y - e.y) < 30;
       if (close && !e.flee) { e.flee = 70; }
@@ -1502,9 +1529,9 @@
       } else if (e.vy === 0 && e.t % 50 === 0) { e.vy = -1.8; e.face = -e.face; }
       if (p.st === 'play' && overlap(p, e)) {
         e.mode = 'caught'; e.t2 = 0; e.vx = 0; sfx('throw');
-        if (!save.dex || !save.dex[mon]) fx('text', e.x - 6, e.y - 14, { s: mon.toUpperCase() + '!', vy: -0.35, life: 70, col: '#ffffff' });
-        // in the Pokédex at once: a bump during the wobble mustn't lose it
+        // in the Pokédex and the line at once: a bump during the wobble mustn't lose it
         save.dex = save.dex || {}; save.dex[mon] = 1; store(); hooray();
+        if (palsWith && palsWith.mons.indexOf(mon) < 0) palsWith.mons.push(mon);
       }
     },
     draw: function (ctx, e) {
@@ -1515,25 +1542,65 @@
         return;
       }
       var a = art(e.sp.mon, 'gummy');
+      shadowUnder(ctx, e.x + e.w / 2, e.y + e.h, 9);
       drawE(ctx, e, frameOf(a, e.vy < 0 ? 1 : Math.floor(e.t / 14)), e.face > 0);
     }
   };
-  /* A follower: walks Bonnie's own path a moment behind him, like Bear —
-     Pikachu (from the start of level 36), and the baby dinosaurs that
-     hatch in level 44 (one behind the other). */
-  var FOLLOW_LAG = { buddy: 26, baby: 38 };
+  /* The line behind Bonnie: Pikachu and the Pokémon he catches in level
+     36, the baby dinosaurs that hatch in level 44. Each walks his own path
+     a moment behind him, like Bear — the further back in the line, the
+     longer behind — and when he stops they stop a step apart, not on top
+     of him or each other. Bear, once he's found, walks first. The
+     Pokémon caught stay in the line through a fall, like Bear; going
+     back to the map lets them go (the owner, 21 Oct: "by the end of the
+     level you could have a load of Pokémon following"). */
+  var palsWith = null;   // { n: the level, mons: the Pokémon caught in it, in order }
+  var lineAt = function (e) {
+    var n = e.n || 0;
+    if (e.k === 'baby') return { lag: 38 + n * 10, gap: 23 + n * 9 };
+    var s = n + (bearWith === G.n ? 1 : 0);
+    return { lag: 26 + s * 9, gap: 13 + s * 12 };
+  };
   var follower = function (e) {
-    var p = G.p, tr = G.trail, lag = (FOLLOW_LAG[e.k] || 26) + (e.n || 0) * 10, tg = tr.length > lag ? tr[tr.length - 1 - lag] : tr[0];
+    var p = G.p, tr = G.trail, at = lineAt(e), tg = tr.length > at.lag ? tr[tr.length - 1 - at.lag] : tr[0];
     e.moving = false;
     if (!tg) { e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy, true)) e.vy = 0; return; }
-    var bx = e.x + e.w / 2, nx = tg.x, gap = 13 + (e.n || 0) * 9 + (e.k === 'baby' ? 10 : 0);
-    // (when he stops, they stop a step behind him — one behind the other — not on top of him)
-    if (Math.abs(p.x + p.w / 2 - nx) < gap && Math.abs(p.y + p.h - tg.y) < 4 && Math.abs(tg.y - (e.y + e.h)) < 1) { e.face = p.x + p.w / 2 > bx ? 1 : -1; return; }
+    var bx = e.x + e.w / 2, nx = tg.x, tx = nx - e.w / 2, ty = tg.y - e.h;
+    // (and only once it's caught up: one still hurrying from far behind keeps coming)
+    if (Math.abs(p.x + p.w / 2 - nx) < at.gap && Math.abs(p.y + p.h - tg.y) < 4 && Math.abs(tg.y - (e.y + e.h)) < 1 && Math.abs(bx - (p.x + p.w / 2)) < at.gap + 3) {
+      var px = p.x + p.w / 2, side = Math.abs(bx - px) > 2 ? (bx > px ? 1 : -1) : -p.face, to = px + side * at.gap;
+      e.face = px > bx ? 1 : -1;
+      // (one just caught beside him, while he stands: it steps back to its place in the line)
+      var feet = e.y + e.h, ground = function (x) { return floorBelow(x, feet - 1, 4) === feet; };
+      if (Math.abs(bx - px) < at.gap - 3 && ground(to) && ground(bx + side * (e.w / 2 + 1)) && !moveX(e, side * 0.8)) { e.face = side; e.moving = true; }
+      return;
+    }
     if (Math.abs(nx - bx) > 0.2) { e.face = nx > bx ? 1 : -1; e.moving = true; }
-    e.x = nx - e.w / 2; e.y = tg.y - e.h;
+    // a long way from its place (just caught, or moved back one for Bear): it hurries there, a bit faster than Bonnie runs
+    var hurry = function (d) { return Math.max(-4, Math.min(4, d * 0.2)); };
+    if (Math.abs(tx - e.x) > 10 || Math.abs(ty - e.y) > 10) { e.x += hurry(tx - e.x); e.y += hurry(ty - e.y); e.moving = true; }
+    else { e.x = tx; e.y = ty; }
+  };
+  // everyone in the line, just behind Bonnie (a new start, or back up after a fall)
+  var lineUp = function () {
+    var p = G.p, px = p.x + p.w / 2, feet = p.y + p.h;
+    G.ents.forEach(function (e) {
+      if (!e.alive || !e.K.line) return;
+      var x = px - p.face * lineAt(e).gap;
+      if (x < 4 || floorBelow(x, feet - 1, 4) === null) x = px;
+      e.x = x - e.w / 2; e.y = feet - e.h; e.vy = 0; e.join = 0; e.active = true;
+    });
+  };
+  // a Pokémon just caught: out of its ball with a hop and a heart, and off to the back of the line
+  var joinLine = function (mon, x, feet) {
+    var n = palsWith ? palsWith.mons.indexOf(mon) + 1 : 1;
+    addEnt('pal', x - KINDS.pal.w / 2, feet - KINDS.pal.h, { sp: { mon: mon }, n: Math.max(1, n), join: 22, vy: -3.2, face: towards({ x: x, w: 0 }) });
+    sfx('pop');
+    fx('sparkle', x - 4, feet - 10, { life: 14 });
+    if (!reduce) for (var i = 0; i < 4; i++) fx('heart', x - 2, feet - 10, { vx: (i - 1.5) * 0.4, vy: -0.7 - (i % 2) * 0.3, life: 46 });
   };
   KINDS.buddy = {
-    w: 9, h: 9,
+    w: 9, h: 9, line: true,
     init: function (e) { e.face = 1; },
     update: function (e) { follower(e); if (G.p.st === 'cheer' || G.p.st === 'arch') e.cheer = 1; },
     draw: function (ctx, e) {
@@ -1542,6 +1609,28 @@
       var joy = G.cheerT > 0 && !reduce, f = (e.cheer || joy) && P2.cheer ? P2.cheer : !e.moving ? P2.idle : G.p.ground ? frameOf(P2.run, Math.floor(e.t / 5)) : P2.jump || P2.idle;
       shadowUnder(ctx, e.x + e.w / 2, e.y + e.h, 8);
       BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 0.5 - G.cam.y - (joy ? Math.abs(Math.sin(G.cheerT * 0.28)) * 5 : 0)), e.face > 0);
+    }
+  };
+  // a Pokémon in the line: it hops along on its two frames, and joins in every cheer, a beat after the one in front
+  KINDS.pal = {
+    w: 10, h: 10, line: true,
+    update: function (e) {
+      if (e.join) {
+        e.join--; e.moving = true; e.face = towards(e);
+        e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy, true)) e.vy = 0;
+        return;
+      }
+      follower(e);
+      if (G.p.st === 'cheer' || G.p.st === 'arch') e.cheer = 1;
+    },
+    draw: function (ctx, e) {
+      var a = E[e.sp.mon];
+      if (!a) return;
+      var ph = (e.n || 0) * 0.9, joy = !reduce && (G.cheerT > 0 || e.cheer);
+      var up = !joy ? 0 : e.cheer ? Math.abs(Math.sin(e.t * 0.16 + ph)) * 4 : Math.abs(Math.sin(G.cheerT * 0.28 - ph)) * 5;
+      var f = frameOf(a, e.vy < 0 || up > 2 ? 1 : e.moving ? Math.floor((e.t + e.n * 3) / 6) : 0);
+      shadowUnder(ctx, e.x + e.w / 2, e.y + e.h, 8);
+      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 0.5 - G.cam.y - up), e.face > 0);
     }
   };
 
@@ -1567,7 +1656,7 @@
     }
   };
   KINDS.baby = {
-    w: 9, h: 9,
+    w: 9, h: 9, line: true,
     update: function (e) { if (e.vy < 0 || !G.trail.length) { e.vy = Math.min(FALL, e.vy + GRAV); moveY(e, e.vy, true); if (onGround(e)) e.vy = 0; } follower(e); },
     draw: function (ctx, e) {
       var B2 = E.babydino;
@@ -2323,6 +2412,7 @@
     G.ents.forEach(function (e) { if (e.surf) { e.x = e.sx0; e.state = 'wait'; } });
     G.trail = [];
     G.ents.forEach(function (b) { if (b.k === 'bear' && b.mode === 'follow') { b.x = p.x - 12; b.y = p.y + p.h - b.h; } });
+    lineUp();
     sfx('swim');
   };
   var die = function () {
@@ -3886,7 +3976,7 @@
     sceneT++;
     if (wipe) return;
     if ((sceneT > 20 && (BB.hit('a') || BB.hit('start') || BB.tap)) || sceneT > STORY_T) {
-      save.seenStory = true; save.at = 1; store(); sfx('start'); cardCheck = false; bearWith = 0;
+      save.seenStory = true; save.at = 1; store(); sfx('start'); cardCheck = false; bearWith = 0; palsWith = null;
       wipeTo(function () { go('card'); });
     }
   };
@@ -3931,7 +4021,7 @@
     sceneT++;
     if (wipe) return;
     if ((sceneT > 20 && (BB.hit('a') || BB.hit('start') || BB.tap)) || sceneT > 300) {
-      save.seenStory3 = true; save.at = 21; save.unlocked = Math.max(save.unlocked, 21); store(); sfx('start'); cardCheck = false; bearWith = 0;
+      save.seenStory3 = true; save.at = 21; save.unlocked = Math.max(save.unlocked, 21); store(); sfx('start'); cardCheck = false; bearWith = 0; palsWith = null;
       wipeTo(function () { go('card'); });
     }
   };
@@ -3985,7 +4075,7 @@
     sceneT++;
     if (wipe) return;
     if ((sceneT > 20 && (BB.hit('a') || BB.hit('start') || BB.tap)) || sceneT > 260) {
-      save.seenStory4 = true; save.at = 31; save.unlocked = Math.max(save.unlocked, 31); store(); sfx('start'); cardCheck = false; bearWith = 0;
+      save.seenStory4 = true; save.at = 31; save.unlocked = Math.max(save.unlocked, 31); store(); sfx('start'); cardCheck = false; bearWith = 0; palsWith = null;
       wipeTo(function () { go('card'); });
     }
   };
@@ -4027,7 +4117,7 @@
     if (sceneT === 280) sfx('lift');
     if (wipe) return;
     if ((sceneT > 20 && (BB.hit('a') || BB.hit('start') || BB.tap)) || sceneT > 380) {
-      save.seenStory5 = true; save.at = 36; save.unlocked = Math.max(save.unlocked, 36); store(); sfx('start'); cardCheck = false; bearWith = 0;
+      save.seenStory5 = true; save.at = 36; save.unlocked = Math.max(save.unlocked, 36); store(); sfx('start'); cardCheck = false; bearWith = 0; palsWith = null;
       wipeTo(function () { go('card'); });
     }
   };
@@ -4087,7 +4177,7 @@
     sceneT++;
     if (wipe) return;
     if ((sceneT > 20 && (BB.hit('a') || BB.hit('start') || BB.tap)) || sceneT > 230) {
-      save.seenStory2 = true; save.at = 11; save.unlocked = Math.max(save.unlocked, 11); store(); sfx('start'); cardCheck = false; bearWith = 0;
+      save.seenStory2 = true; save.at = 11; save.unlocked = Math.max(save.unlocked, 11); store(); sfx('start'); cardCheck = false; bearWith = 0; palsWith = null;
       wipeTo(function () { go('card'); });
     }
   };
@@ -4162,7 +4252,7 @@
   // the PLAY button on the map's bottom strip (touch), in screen pixels
   var playBtn = function () { return { x: BB.W / 2 + 22, y: H - 17, w: 36, h: 15 }; };
   var playLevel = function () {
-    sfx('start'); store(); cardCheck = false; mapGoal = 0; bearWith = 0;
+    sfx('start'); store(); cardCheck = false; mapGoal = 0; bearWith = 0; palsWith = null;
     // a new land's first level: its story first, if it hasn't been seen
     if (save.at === 11 && !save.seenStory2) { wipeTo(function () { go('story2'); BB.music('map2'); }); return; }
     if (save.at === 21 && !save.seenStory3) { wipeTo(function () { go('story3'); BB.music('map3'); }); return; }
@@ -4692,7 +4782,7 @@
     if (BB.hit('a') || tapped >= 0 || (BB.hit('start') && pauseAt === 0)) {
       sfx('select');
       if (pauseAt === 0) go('play');
-      else if (pauseAt === 1) { save.power = G.p.power; store(); cardCheck = false; bearWith = 0; wipeTo(function () { go('card'); }); }
+      else if (pauseAt === 1) { save.power = G.p.power; store(); cardCheck = false; bearWith = 0; palsWith = null; wipeTo(function () { go('card'); }); }
       else if (pauseAt === 2) { save.power = G.p.power; store(); wipeTo(function () { go('map'); mapEnter(); }); }
       else if (pauseAt === 3) BB.setMute(!BB.muted());
       else openGrownups('pause');

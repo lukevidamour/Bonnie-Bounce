@@ -136,7 +136,7 @@ paper aeroplane flies him across the map and waits at the end of each level.
 | 33 | The Bike Ride | Bonnie on his bike — Dad runs alongside holding the seat, then lets go; a musical bridge |
 | 34 | Puy du Fou | knights (two stomps), falcons, catapults over the castle walls, chariots, a Viking longship |
 | 35 | Saint-Malo | the ramparts and corsairs, stepping stones to the fort, the sea pool — and the ferry home |
-| 36 | Pokémon Meadow | Pikachu follows you; long grass that rustles — catch the Pokémon that pop out (touch them); Zubat, Ekans |
+| 36 | Pokémon Meadow | Pikachu follows you; long grass that rustles — a Pokémon leaps out over it: catch up and touch it, and once it's caught it joins the line behind you, so by the end there's a parade (a fall doesn't lose them); Zubat, Ekans |
 | 37 | Universal Studios | the globe, Minions, a roller-coaster car and the Hogwarts Express to ride, a sound stage |
 | 38 | New York | Christmas snow, taxis over the bridge, steam from the manholes, a window-cleaner's cradle up a skyscraper |
 | 39 | Jamaica | bamboo rafts on the river, climbing Dunn's River Falls pool by pool, steel-drum springs, hummingbirds |
