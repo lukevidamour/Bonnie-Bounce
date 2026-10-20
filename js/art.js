@@ -265,38 +265,115 @@
       swim: { arms: [[[5.8, 2.6], [2, 4]], [[26.2, 2.6], [30, 4]]], legs: [[[12.2, 12.4], [10.6, 13.6]], [[19.8, 12.6], [21.4, 14]]] }
     }
   };
-  var bodyParts = function (B, pose, top) {
-    var o = HX, T = function (p) { return [o + p[0], top + p[1]]; };
+  /* Mum and Dad are drawn on the same puppet (THE FAMILY, below): a
+     character `ch` brings its own head, face and colours, and ch.look
+     says how its clothes differ from Bonnie's uniform. Every option left
+     out of a look is his, so his frames come out exactly as they always
+     have. The palette letters keep their roles for all three — b/B the
+     top, k/K the bottoms, y/Y its detail, w/W white, z the shoes, 1–5 the
+     hair, s t u q S the skin — so the outfits, the red power-up and the
+     rainbow star recolour Mum and Dad just as they do him.
+       look.sleeve  short sleeves this long (big; small is 0.7 of it),
+                    bare arms bare px thinner than his sleeves
+       look.jeans   long trousers this much wider than the leg, to the
+                    shoe (no socks), instead of shorts and bare legs
+       look.shorts  how far down the thigh the shorts reach (his: half)
+       look.fray    the shorts' hem cut square and frayed (W threads)
+       look.sock    false: no socks
+       look.sole    the shoe's sole in Z; look.shoeLine its edge
+       look.neck    'crew' (a tee) or 'open' (a shirt's collar), not his V
+       look.rib     false: no ribbed hem; look.crest false: no crest
+       look.print   (x, y in the top, its top-left at 0, 0) → true where
+                    the top's print is, painted in y */
+  // a point t of the way from a to b
+  var along = function (a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; };
+  // a capsule cut square at its far end: a short sleeve, a leg of shorts
+  var cuffed = function (a, b, r) {
+    return function (x, y) {
+      var dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy, t = L ? ((x - a[0]) * dx + (y - a[1]) * dy) / L : 0;
+      if (t > 1) return false;
+      t = Math.max(0, t);
+      var px = a[0] + t * dx - x, py = a[1] + t * dy - y;
+      return px * px + py * py <= r * r;
+    };
+  };
+  // a shoe, its sole a darker (or lighter) band along the bottom
+  var shoePart = function (foot, rx, ry, lk) {
+    var sy = foot[1] + 0.4;
+    return { c: 'z', f: ell(foot[0] + 0.8, sy, rx, ry), line: lk.shoeLine || 'z',
+      tex: lk.sole ? function (x, y) { return y + 0.5 > sy + ry - 1 ? 'Z' : 'z'; } : null };
+  };
+  // the top's tex: the kit's stripe, the print, the ribbed hem
+  var topTex = function (o, top, hem, lk) {
+    return function (x, y) {
+      // a football kit's stripe down the middle: red ('y' in the kit's colours) edged in white
+      if (KIT === 'stripe') { var dx = Math.abs(x + 0.5 - (o + 16)); if (dx < 2) return 'y'; if (dx < 3) return 'w'; }
+      // a print (Dad's squiggles), but not on a football kit
+      if (lk.print && !KIT && lk.print(x - o, y - top)) return 'y';
+      if (lk.rib === false) return 'b';
+      return y >= top + hem ? ((x & 1) ? 'b' : 'B') : 'b';
+    };
+  };
+  // the neckline: his shirt's V and collar, a tee's crew neck, or an open collar
+  var neckParts = function (o, top, v, lk, collar) {
+    if (lk.neck === 'crew') return [{ c: 's', f: function (x, y) { var dx = (x - o - 16.6) / 3.4, dy = (y - top + 0.4) / 2.3; return y >= top && dx * dx + dy * dy <= 1; }, line: 'B' }];
+    if (lk.neck === 'open') {
+      var d = v * 1.1;
+      return [
+        { c: 's', f: function (x, y) { return y >= top && y < top + d && Math.abs(x - o - 16.4) < (top + d - y) * 0.55 + 0.4; }, line: 'B' },
+        // the collar's two points, turned out over the shoulders
+        { c: 'b', f: function (x, y) { var dx = Math.abs(x - o - 16.4); return y >= top - 0.4 && y < top + 2.6 && dx > 1.4 + (y - top) * 0.55 && dx < 4.2 - (y - top) * 0.7; }, line: 'B' }
+      ];
+    }
+    return [{ c: 'w', f: function (x, y) { return y >= top && y < top + v && Math.abs(x - o - 16) < (top + v - y) * 0.8; }, line: 'B',
+      tex: collar ? function (x, y) { return y < top + 2 ? 'W' : 'w'; } : undefined }];
+  };
+  var bodyParts = function (B, pose, top, ch) {
+    var o = HX, T = function (p) { return [o + p[0], top + p[1]]; }, lk = ch.look;
     var t = B.torso, parts = [];
     // legs and shoes first (behind the shorts), then the shorts
     pose.legs.forEach(function (L, i) {
       var hip = T(B.hips[i]), knee = T(L[0]), foot = T(L[1]);
       var mid = [hip[0] + (knee[0] - hip[0]) * 0.5, hip[1] + (knee[1] - hip[1]) * 0.5];
+      if (lk.jeans) {
+        // long trousers: the shoe, then the leg of them down over its top
+        parts.push(shoePart(foot, B.shoe, 1.55, lk));
+        parts.push({ c: 'k', f: limb([hip, knee, [foot[0], foot[1] - 0.9]], B.leg + lk.jeans), line: 'K' });
+        return;
+      }
       parts.push({ c: 's', f: limb([mid, knee, foot], B.leg), line: 'S' });
-      if (B.sock) parts.push({ c: 'w', f: cap(foot[0], foot[1] - B.sock - 0.4, foot[0], foot[1] - 0.3, B.leg + 0.3), line: 'W' });
-      parts.push({ c: 'z', f: ell(foot[0] + 0.8, foot[1] + 0.4, B.shoe, 1.55), line: 'z' });
-      parts.push({ c: 'k', f: cap(hip[0], hip[1], mid[0], mid[1], B.leg + 1.4), line: 'K' });
+      if (B.sock && lk.sock !== false) parts.push({ c: 'w', f: cap(foot[0], foot[1] - B.sock - 0.4, foot[0], foot[1] - 0.3, B.leg + 0.3), line: 'W' });
+      parts.push(lk.sole || lk.shoeLine ? shoePart(foot, B.shoe, 1.55, lk) : { c: 'z', f: ell(foot[0] + 0.8, foot[1] + 0.4, B.shoe, 1.55), line: 'z' });
+      if (lk.shorts) {
+        // longer shorts, cut square at the hem (frayed, for denim)
+        var end = along(hip, knee, lk.shorts), r = B.leg + 1.4, hl = B === BIG ? 1.2 : 0.6;
+        parts.push({ c: 'k', f: cuffed(hip, end, r), line: 'K', tex: lk.fray ? function (x, y) {
+          var dx = end[0] - hip[0], dy = end[1] - hip[1], L = Math.sqrt(dx * dx + dy * dy) || 1;
+          return ((x + 0.5 - hip[0]) * dx + (y + 0.5 - hip[1]) * dy) / L > L - hl ? ((x & 1) ? 'W' : 'k') : 'k';
+        } : null });
+      } else parts.push({ c: 'k', f: cap(hip[0], hip[1], mid[0], mid[1], B.leg + 1.4), line: 'K' });
     });
     parts.push({ c: 'k', f: rrect(o + B.short[0], top + B.short[1], o + B.short[2], top + B.short[3], 1.2), line: 'K',
       tex: function (x, y) { return x === o + 16 && y > top + B.short[1] + 2 ? 'K' : 'k'; } });
     // the jumper, its ribbed hem, the shirt's V and collar, the crest
-    parts.push({ c: 'b', f: rrect(o + t[0], top + t[1], o + t[2], top + t[3], 3), line: 'B',
-      tex: function (x, y) {
-        // a football kit's stripe down the middle: red ('y' in the kit's colours) edged in white
-        if (KIT === 'stripe') { var dx = Math.abs(x + 0.5 - (o + 16)); if (dx < 2) return 'y'; if (dx < 3) return 'w'; }
-        return y >= top + B.hem ? ((x & 1) ? 'b' : 'B') : 'b';
-      } });
-    parts.push({ c: 'w', f: function (x, y) { return y >= top && y < top + B.v && Math.abs(x - o - 16) < (top + B.v - y) * 0.8; }, line: 'B',
-      tex: function (x, y) { return y < top + 2 ? 'W' : 'w'; } });
+    parts.push({ c: 'b', f: rrect(o + t[0], top + t[1], o + t[2], top + t[3], 3), line: 'B', tex: topTex(o, top, B.hem, lk) });
+    parts = parts.concat(neckParts(o, top, B.v, lk, true));
+    if (lk.crest === false) return parts;
     var cy = top + B.crest, csz = B === BIG ? 1.7 : 1.1;
     parts.push({ c: 'y', f: function (x, y) { return y > cy && y < cy + csz * 2.2 - Math.abs(x - o - 20.5) * 0.7 && Math.abs(x - o - 20.5) < csz; }, line: 'Y' });
     return parts;
   };
-  var armParts = function (B, pose, top) {
-    var o = HX, T = function (p) { return [o + p[0], top + p[1]]; }, parts = [];
+  var armParts = function (B, pose, top, ch) {
+    var o = HX, T = function (p) { return [o + p[0], top + p[1]]; }, parts = [], lk = ch.look;
     pose.arms.forEach(function (A2, i) {
       var sh = T(B.sh[i]), el = T(A2[0]), hd = T(A2[1]), up = A2[2];
-      parts.push({ c: 'b', f: limb([sh, el, hd], B.arm), line: 'B',
+      if (lk.sleeve) {
+        // a bare arm, and a short sleeve over the top of it
+        var len = lk.sleeve * (B === BIG ? 1 : 0.7), ul = Math.hypot(el[0] - sh[0], el[1] - sh[1]) || 1;
+        parts.push({ c: 's', f: limb([sh, el, hd], B.arm - (lk.bare || 0)), line: 'S' });
+        var se = along(sh, el, Math.min(1, len / ul));
+        parts.push({ c: 'b', f: cuffed(sh, se, B.arm + 0.35), line: 'B', tex: lk.print ? function (x, y) { return !KIT && lk.print(x - o + 3, y - top + 3) ? 'y' : 'b'; } : null });
+      } else parts.push({ c: 'b', f: limb([sh, el, hd], B.arm), line: 'B',
         tex: function (x, y) { var dx = x + 0.5 - hd[0], dy = y + 0.5 - hd[1]; return dx * dx + dy * dy < (B.arm + 1.2) * (B.arm + 1.2) ? 'B' : 'b'; } });
       var hand = ell(hd[0], hd[1] + (up ? -0.6 : 0.8), B.hand + (up ? 0.3 : 0), B.hand);
       if (up) {
@@ -309,65 +386,79 @@
     });
     return parts;
   };
-  var CROUCH = function (top) {
-    var o = HX, parts = [];
+  var CROUCH = function (top, ch) {
+    var o = HX, parts = [], lk = ch.look;
     [[13, 7, 9, 9, 11.6, 10.4], [19, 7, 23, 9, 20.4, 10.4]].forEach(function (L) {
-      parts.push({ c: 's', f: limb([[o + L[0], top + L[1]], [o + L[2], top + L[3]], [o + L[4], top + L[5]]], 1.9), line: 'S' });
-      parts.push({ c: 'z', f: ell(o + L[4] + 0.8, top + L[5] + 0.4, 3, 1.5), line: 'z' });
+      var hip = [o + L[0], top + L[1]], knee = [o + L[2], top + L[3]], foot = [o + L[4], top + L[5]];
+      if (lk.jeans) {
+        parts.push(shoePart(foot, 3, 1.5, lk));
+        parts.push({ c: 'k', f: limb([hip, knee, [foot[0], foot[1] - 0.9]], 1.9 + lk.jeans), line: 'K' });
+        return;
+      }
+      parts.push({ c: 's', f: limb([hip, knee, foot], 1.9), line: 'S' });
+      parts.push(lk.sole || lk.shoeLine ? shoePart(foot, 3, 1.5, lk) : { c: 'z', f: ell(o + L[4] + 0.8, top + L[5] + 0.4, 3, 1.5), line: 'z' });
+      if (lk.shorts) parts.push({ c: 'k', f: cuffed(hip, along(hip, knee, lk.shorts), 3.2), line: 'K' });
     });
     parts.push({ c: 'k', f: rrect(o + 9, top + 5.5, o + 23, top + 8.6, 1.4), line: 'K' });
-    parts.push({ c: 'b', f: rrect(o + 8.5, top, o + 23.5, top + 6.5, 3), line: 'B', tex: function (x, y) { return y >= top + 4.5 ? ((x & 1) ? 'b' : 'B') : 'b'; } });
-    parts.push({ c: 'w', f: function (x, y) { return y >= top && y < top + 3.6 && Math.abs(x - o - 16) < (top + 3.6 - y) * 0.8; }, line: 'B' });
+    parts.push({ c: 'b', f: rrect(o + 8.5, top, o + 23.5, top + 6.5, 3), line: 'B', tex: lk.print || lk.rib === false ? function (x, y) {
+      return lk.print && !KIT && lk.print(x - o, y - top) ? 'y' : 'b';
+    } : function (x, y) { return y >= top + 4.5 ? ((x & 1) ? 'b' : 'B') : 'b'; } });
+    parts = parts.concat(neckParts(o, top, 3.6, lk, false));
     [[10.5, 2], [21.5, 2]].forEach(function (sh, i) {
-      var hd = [o + (i ? 24.5 : 7.5), top + 6];
-      parts.push({ c: 'b', f: limb([[o + sh[0], top + sh[1]], hd], 2.4), line: 'B' });
+      var hd = [o + (i ? 24.5 : 7.5), top + 6], s0 = [o + sh[0], top + sh[1]];
+      if (lk.sleeve) {
+        parts.push({ c: 's', f: limb([s0, hd], 2.4 - (lk.bare || 0)), line: 'S' });
+        parts.push({ c: 'b', f: cuffed(s0, along(s0, hd, 0.45), 2.6), line: 'B' });
+      } else parts.push({ c: 'b', f: limb([s0, hd], 2.4), line: 'B' });
       parts.push({ c: 's', f: ell(hd[0], hd[1] + 1, 2, 2), line: 'S' });
     });
     return parts;
   };
   var KIT = null;
-  // poseName: one of POSES, or a pose of your own ({ arms, legs } in body coordinates) — see A.bonnie.pose
-  var frame = function (size, poseName, kind) {
+  /* poseName: one of POSES, or a pose of your own ({ arms, legs } in body
+     coordinates) — see A.bonnie.pose. ch: who (BON, or one of THE FAMILY's). */
+  var frame = function (size, poseName, kind, ch) {
+    ch = ch || BON;
     var B = size === 'b' ? BIG : SMALL, top = HEAD_H, H2 = top + B.h, pose = typeof poseName === 'string' ? POSES[size][poseName] : poseName;
     var parts, neck = { c: 's', f: cap(HX + 17, 21, HX + 16.5, top + 1.5, size === 'b' ? 2.5 : 2.1), line: 'q' };
-    if (poseName === 'crouch') { H2 = top + 13; parts = CROUCH(top).concat([neck], headParts()); }
-    else parts = bodyParts(B, pose, top).concat([neck], headParts(), armParts(B, pose, top));
+    var behind = ch.behind ? ch.behind() : [];
+    if (poseName === 'crouch') { H2 = top + 13; parts = behind.concat(CROUCH(top, ch), [neck], ch.head()); }
+    else parts = behind.concat(bodyParts(B, pose, top, ch), [neck], ch.head(), armParts(B, pose, top, ch));
     var rows = scene(FW, H2, parts);
-    face(rows, kind);
-    var sp = BB.sprHi(rows, BPAL, 'shade');
-    sp.noLight = NOLIGHT;
+    ch.face(rows, kind);
+    var sp = BB.sprHi(rows, ch.pal, 'shade');
+    sp.noLight = ch.noLight;
     return sp;
   };
-  var P = A.bonnie = { s: {}, b: {} };
-  ['idle', 'run1', 'run2', 'run3', 'cheer'].forEach(function (k) { P.s[k] = frame('s', k); P.b[k] = frame('b', k); });
-  P.s.blink = frame('s', 'idle', 'blink'); P.b.blink = frame('b', 'idle', 'blink');
-  P.s.jump = frame('s', 'jump', 'wheee'); P.b.jump = frame('b', 'jump', 'wheee');
-  P.s.dead = frame('s', 'dead', 'hurt'); P.b.dead = frame('b', 'dead', 'hurt');
-  P.s.swim = frame('s', 'swim', 'gasp'); P.b.swim = frame('b', 'swim', 'gasp');
-  P.b.throw = frame('b', 'throw');
-  P.b.crouch = frame('b', 'crouch');
-  P.s.up = P.s.jump; P.b.up = P.b.jump;
+  var BON = { pal: BPAL, noLight: NOLIGHT, head: headParts, face: face, look: {} };
+  // every frame a player has, built for ch
+  var frameSet = function (ch) {
+    var S = { s: {}, b: {} };
+    ['idle', 'run1', 'run2', 'run3', 'cheer'].forEach(function (k) { S.s[k] = frame('s', k, undefined, ch); S.b[k] = frame('b', k, undefined, ch); });
+    S.s.blink = frame('s', 'idle', 'blink', ch); S.b.blink = frame('b', 'idle', 'blink', ch);
+    S.s.jump = frame('s', 'jump', 'wheee', ch); S.b.jump = frame('b', 'jump', 'wheee', ch);
+    S.s.dead = frame('s', 'dead', 'hurt', ch); S.b.dead = frame('b', 'dead', 'hurt', ch);
+    S.s.swim = frame('s', 'swim', 'gasp', ch); S.b.swim = frame('b', 'swim', 'gasp', ch);
+    S.b.throw = frame('b', 'throw', undefined, ch);
+    S.b.crouch = frame('b', 'crouch', undefined, ch);
+    S.s.up = S.s.jump; S.b.up = S.b.jump;
+    return S;
+  };
+  var P = A.bonnie = frameSet(BON);
   /* A set of every frame, built again with a pattern on the jumper: the
      PSG kit's stripe. (Liverpool's all-red kit is colours alone.) */
-  var kitSet = function (kit) {
+  var kitSet = function (kit, ch) {
     KIT = kit;
-    var K2 = { s: {}, b: {} };
-    ['idle', 'run1', 'run2', 'run3', 'cheer'].forEach(function (k) { K2.s[k] = frame('s', k); K2.b[k] = frame('b', k); });
-    K2.s.blink = frame('s', 'idle', 'blink'); K2.b.blink = frame('b', 'idle', 'blink');
-    K2.s.jump = frame('s', 'jump', 'wheee'); K2.b.jump = frame('b', 'jump', 'wheee');
-    K2.s.dead = frame('s', 'dead', 'hurt'); K2.b.dead = frame('b', 'dead', 'hurt');
-    K2.s.swim = frame('s', 'swim', 'gasp'); K2.b.swim = frame('b', 'swim', 'gasp');
-    K2.b.throw = frame('b', 'throw'); K2.b.crouch = frame('b', 'crouch');
-    K2.s.up = K2.s.jump; K2.b.up = K2.b.jump;
+    var K2 = frameSet(ch);
     KIT = null;
     return K2;
   };
-  P.kits = { stripe: kitSet('stripe') };
+  P.kits = { stripe: kitSet('stripe', BON) };
   /* Bonnie in a pose of your own, for things he does now and then (riding
      his bike, surfing): size 's' or 'b'; pose { arms: [[elbow, hand(, up)], ×2],
      legs: [[knee, foot], ×2] } in body coordinates (see POSES); kind is the
      face ('blink', 'wheee', 'hurt', 'gasp' or none). */
-  P.pose = function (size, pose, kind) { return frame(size, pose, kind); };
+  P.pose = function (size, pose, kind) { return frame(size, pose, kind, BON); };
   var V = BB.variant;
   P.red = V('red', { b: '#f24848', B: '#a42032' });
   P.rainbow = [
@@ -377,7 +468,304 @@
     V('rb3', { b: '#a878f0', B: '#5c3ca8', k: '#7ee058', 3: '#c8f8a0', 4: '#ecffd8' })
   ];
   P.ghost = V('ghost', { b: '#9098b0', B: '#585a70', h: '#d0d4e8', H: '#9098b0', n: '#585a70', k: '#585a70', s: '#d0d4e8', S: '#9098b0', c: '#d0d4e8', w: '#ffffff', z: '#585a70' });
-  // the HUD's face: just the head
+  /* Just the head (and the top of the neck), facing right as the frames
+     do: for a rider peeking out of a pouch. 28 x 24 (14 x 12 game px),
+     cut from the frame at x 8, so the middle of the head is 6.75 game
+     px in from the left and the top of the hair at about 0.5, for all
+     three. */
+  var headOf = function (ch) {
+    var rows = scene(FW, HEAD_H, (ch.behind ? ch.behind() : []).concat([{ c: 's', f: cap(HX + 17, 21, HX + 16.5, HEAD_H + 1.5, 2.3), line: 'q' }], ch.head()));
+    ch.face(rows);
+    var sp = BB.sprHi(rows.map(function (r) { return r.slice(8, 36); }), ch.pal, 'shade');
+    sp.noLight = ch.noLight;
+    return sp;
+  };
+  P.head = headOf(BON);
+
+  /* ==========================================================================
+     THE FAMILY — Mum (Lucy) and Dad (Luke), playable, drawn on Bonnie's
+     own puppet: the same frames, poses and sizes, the head in the same
+     place (so the hats and every anchor fit), the same eyes — but their
+     own hair, faces and clothes, from the photos family.js draws their
+     cameos from. Built only when asked for (A.player), so loading the
+     game costs nothing more.
+     ========================================================================== */
+  var merge = function () { var o = {}; for (var i = 0; i < arguments.length; i++) for (var k in arguments[i]) o[k] = arguments[i][k]; return o; };
+  var HAIR = '12345';
+  var hairStep = function (t, k) { var i = HAIR.indexOf(t); return i < 0 ? t : HAIR.charAt(Math.max(0, Math.min(4, i + k))); };
+  // a round shape lit from the top left, in the five hair tones
+  var orb = function (cx, cy, rx, ry) {
+    return function (x, y) {
+      var dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry, n = Math.sqrt(Math.max(0, 1 - dx * dx - dy * dy));
+      var i = -0.48 * dx - 0.58 * dy + 0.66 * n;
+      return i > 0.9 ? '5' : i > 0.6 ? '4' : i > 0.22 ? '3' : i > -0.12 ? '2' : '1';
+    };
+  };
+  // the nearest point on a curve (p0 → p2, bent by p1): how far, how far along, where, which way
+  var bez = function (p0, p1, p2) {
+    var pts = [];
+    for (var i = 0; i <= 16; i++) {
+      var t = i / 16, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t;
+      pts.push([a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1], t]);
+    }
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    pts.forEach(function (p) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); });
+    var near = function (x, y) {
+      var best = null, bd = 1e9;
+      for (var i = 0; i < 16; i++) {
+        var ax = pts[i][0], ay = pts[i][1], dx = pts[i + 1][0] - ax, dy = pts[i + 1][1] - ay, L = dx * dx + dy * dy;
+        var u = L ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L)) : 0;
+        var px = ax + u * dx, py = ay + u * dy, d = (x - px) * (x - px) + (y - py) * (y - py);
+        if (d < bd) { bd = d; best = { d: Math.sqrt(d), t: pts[i][2] + u / 16, px: px, py: py, tx: dx, ty: dy }; }
+      }
+      return best;
+    };
+    near.box = [x0, y0, x1, y1];
+    return near;
+  };
+  /* A strand of straight hair, for Mum: a stroke along a curve, as one of
+     Bonnie's locks is, but lit across its round the way a tube is — the
+     side towards the top left catches the light whichever way the strand
+     falls — with a fine darker streak along it, and its tip a shade deeper. */
+  var strand = function (p0, p1, p2, r0, r1) {
+    var near = bez(p0, p1, p2), b = near.box, m = Math.max(r0, r1);
+    var R = function (n) { return r0 + (r1 - r0) * n.t; };
+    return { c: '3', line: '1',
+      f: function (x, y) {
+        if (x < b[0] - m || x > b[2] + m || y < b[1] - m || y > b[3] + m) return false;
+        var n = near(x, y); return n.d <= R(n);
+      },
+      tex: function (x, y) {
+        var X = x + 0.5, Y = y + 0.5, n = near(X, Y), r = Math.max(0.9, R(n)), L = Math.hypot(n.tx, n.ty) || 1;
+        var ox = (X - n.px) / r, oy = (Y - n.py) / r, lit = -(0.6 * ox + 0.8 * oy), across = (oy * n.tx - ox * n.ty) / L;
+        var t = lit > 0.45 ? '4' : lit > -0.3 ? '3' : '2';
+        if (Math.abs(across + 0.1) < 0.18 && n.t > 0.25) t = hairStep(t, -1);
+        if (n.t > 0.86) t = hairStep(t, -1);
+        return t;
+      } };
+  };
+  /* Curls, for Dad: a cloud of round curls, the outline bumpy where they
+     meet the sky. Inside, each is a small ring — lit on its upper left,
+     shaded round its lower right — over the light falling on the whole mop. */
+  var curls = function (list, lit, mass) {
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    list.forEach(function (c) { x0 = Math.min(x0, c[0] - c[2]); y0 = Math.min(y0, c[1] - c[2]); x1 = Math.max(x1, c[0] + c[2]); y1 = Math.max(y1, c[1] + c[2]); });
+    return { c: '3', line: '1',
+      f: function (x, y) {
+        if (mass && mass(x, y)) return true;
+        if (x < x0 || x > x1 || y < y0 || y > y1) return false;
+        for (var i = 0; i < list.length; i++) { var c = list[i], dx = x - c[0], dy = y - c[1]; if (dx * dx + dy * dy <= c[2] * c[2]) return true; }
+        return false;
+      },
+      tex: function (x, y) {
+        var X = x + 0.5, Y = y + 0.5, t = lit(x, y), best = null, bd = 1e9;
+        list.forEach(function (c) { var d = ((X - c[0]) * (X - c[0]) + (Y - c[1]) * (Y - c[1])) / (c[2] * c[2]); if (d < bd) { bd = d; best = c; } });
+        var dx = X - best[0], dy = Y - best[1], r = Math.sqrt(bd), a = Math.atan2(dy, dx);
+        if (r > 0.72 && a > -0.5 && a < 2.4) return hairStep(t, -1);
+        if (r < 0.55 && dx < 0.4 && dy < 0.4) return hairStep(t, 1);
+        return t;
+      } };
+  };
+  // a grown-up's face: Bonnie's, a little longer in the jaw
+  var adultFace = function (x, y) {
+    var cx = HX + 17.5, cy = 15.4, ry = 8.7, rx = 8.3 * (y > cy + 1 ? 1 - 0.3 * Math.min(1, (y - cy - 1) / (ry - 1)) : 1);
+    var dx = (x - cx) / rx, dy = (y - cy) / ry;
+    return dx * dx + dy * dy <= 1;
+  };
+  var EAR = function () { return { c: 's', f: ell(HX + 8.9, 15.2 + HY, 2.1, 2.8), line: 'q', tex: function (x, y) { return x < HX + 9 && y > 14 + HY && y < 17 + HY ? 'u' : 's'; } }; };
+  // the face's shading: in the shadow of the hair above, and on the far side and under the chin
+  var faceTex = function (hairAt, extra) {
+    return function (x, y) {
+      var e = extra && extra(x, y);
+      if (e) return e;
+      if (hairAt(x + 0.5, y - 0.5) || hairAt(x + 0.5, y - 1.5)) return 't';
+      if (x < HX + 11.5 || y > 22.5 + HY) return 't';
+      return 's';
+    };
+  };
+  var EYE = ['EE', 'Ew', 'IE'], SHUT = ['..', '..', 'EE'], HURT = ['E.E', '.E.', 'E.E'];
+
+  /* ---- Mum -----------------------------------------------------------------
+     Lucy: straight mid-brown hair to her shoulders, parted near the
+     middle, swept back over her ear on the near side and falling past
+     her cheek on the far one; chunky black rectangular glasses; small
+     gold hoops; a warm smile. Her pink tee, with short sleeves and a crew
+     neck; jeans; black trainers on white soles. */
+  var LUCY = (function () {
+    // the parting, a little right of the middle of her head (she's turned that way)
+    var PX = 24.6;
+    /* The hairline: high at the parting, sweeping down to each temple —
+       on the near side over the top of her ear, which shows, with its hoop */
+    var hairline = function (x) {
+      var h = x < PX ? 5 + Math.pow((PX - x) / 8.6, 1.7) * 8.4 : 5 + Math.pow((x - PX) / 6.4, 1.6) * 4.6;
+      return x < HX + 11.2 ? Math.min(h, 13.4) : h;
+    };
+    var dome = ell(21.5, 12.2, 11.7, 11.4), lit = orb(17.5, 3, 14, 11.5);
+    // the crown: lit from the top left, a band of sheen across it, combed
+    // out from the parting in strands, the parting itself a fine dark line
+    var crown = { c: '3', line: '1', f: function (x, y) { return dome(x, y) && y < hairline(x); },
+      tex: function (x, y) {
+        var X = x + 0.5, Y = y + 0.5, t = lit(x, y), a = Math.atan2(Y - 1, X - PX);
+        if (Math.abs(X - PX) < 0.6 && Y < 5) return '1';
+        var d = Math.hypot((X - 21.5) / 1.15, Y - 12.4);
+        if (d > 8.2 && d < 9.6 && X < PX - 1.5 && Y < 9) t = hairStep(t, 1);
+        if (Math.floor(a * 8 + 100) % 3 === 0) t = hairStep(t, -1);
+        return t;
+      } };
+    // locks falling behind her ear to her shoulder, and past her far cheek to her jaw
+    var nearLock = strand([13.6, 9], [9.6, 17.5], [12, 27], 2.8, 2.1), farLock = strand([30.8, 7.2], [34.6, 14.5], [32.4, 23.8], 2.7, 1.5);
+    var S = [crown, farLock];
+    var hairAt = function (x, y) { return S.some(function (p) { return p.f(x, y); }); };
+    // the hair behind her head, falling to her shoulders, in shadow
+    var backF = function (x, y) {
+      if (ell(21.5, 12.2, 11.6, 10.6)(x, y)) return true;
+      return y > 10 && rrect(9.2, 10, 34, 28.6 - Math.abs(x - 21.5) * 0.06, 3.5)(x, y);
+    };
+    return {
+      pal: merge(BPAL, {
+        1: '#3c2216', 2: '#5c3622', 3: '#7e5034', 4: '#a3714a', 5: '#c99a6c',
+        m: '#b8475e',
+        b: '#e8709f', B: '#b0447b',
+        k: '#4d6fae', K: '#2e4680',
+        z: '#2a2633', Z: '#f4f4fa',
+        X: '#211a26', C: '#9c9eb8', o: '#ffd23c', D: '#c98a12'
+      }),
+      noLight: NOLIGHT.concat(['X', 'C', 'o', 'D', 'Z']),
+      look: { sleeve: 4.2, bare: 0.45, jeans: 0.55, sole: true, neck: 'crew', rib: false, crest: false },
+      behind: function () {
+        return [{ c: '2', f: backF, line: '1', tex: function (x, y) {
+          if (y > 26.4) return '1';
+          if (Math.floor(x * 0.8 + y * 0.12) % 3 === 0) return '1';
+          // the light catching it along its near edge
+          return x < 11.6 && y < 24 && y > 12 ? '3' : '2';
+        } }];
+      },
+      head: function () { return [nearLock, EAR(), { c: 's', f: adultFace, line: 'q', tex: faceTex(hairAt) }].concat(S); },
+      face: function (rows, kind) {
+        paint(rows, 19, 18, ['pp']); paint(rows, 29, 18, ['pp']);
+        // her eyes, each with a lash flicked out at its outer corner
+        if (kind === 'hurt') { paint(rows, 20, 13, HURT); paint(rows, 27, 13, HURT); }
+        else if (kind === 'blink') { paint(rows, 20, 15, ['EEE']); paint(rows, 27, 15, ['EEE']); }
+        else { paint(rows, 20, 13, ['EEE', '.Ew', '.IE']); paint(rows, 27, 13, ['EEE', 'Ew.', 'IE.']); }
+        // her glasses: chunky black frames, a glint in each lens, the arm back to her ear
+        paint(rows, 18, 11, [
+          'XXXXXX..XXXXX',
+          'XC...X..XC..X',
+          'X....XXXX...X',
+          'X....X..X...X',
+          'X....X..X...X',
+          'X....X..X...X',
+          'XXXXXX..XXXXX'
+        ]);
+        paint(rows, 16, 12, ['XX']);
+        paint(rows, 19, 9, ['2222']); paint(rows, 26, 9, ['2222']);
+        var mouth = {
+          wheee: [23, 19, ['mmmm', 'mqqm', '.mm.']],
+          hurt: [24, 20, ['.m.', 'mqm', '.m.']],
+          gasp: [24, 20, ['.m.', 'mqm', '.m.']]
+        }[kind] || [23, 19, ['m...m', '.mmm.']];
+        paint(rows, mouth[0], mouth[1], mouth[2]);
+        // a small gold hoop under her ear
+        paint(rows, 13, 18, ['.o.', 'o.D', 'o.D', '.D.']);
+      }
+    };
+  })();
+
+  /* ---- Dad -----------------------------------------------------------------
+     Luke: a big mop of curly ginger-brown hair, a moustache and short
+     stubble along his jaw, fair skin and a warm smile; the cream shirt
+     with bold black squiggles, open at the neck; denim shorts to above
+     the knee, frayed at the hem; white socks; white trainers on gum soles. */
+  var LUKE = (function () {
+    var C = [], i;
+    // the mop: one big soft mass over the top of his head and down behind
+    // his ear, its edge a ring of round curls, and curls all over inside
+    var top = ell(21.2, 8.2, 11, 6.8), back = ell(12.6, 13, 3.9, 6);
+    var mass = function (x, y) { return (top(x, y) && (y < 8.6 || x < HX + 11)) || back(x, y); };
+    for (i = 0; i < 13; i++) {
+      var th = (150 + i * 232 / 12) * Math.PI / 180;
+      C.push([21.2 + 10.2 * Math.cos(th), 8.6 + 5.6 * Math.sin(th), i & 1 ? 2.6 : 3]);
+    }
+    // down behind his ear, and ringlets over his forehead
+    C.push([10.6, 13.4, 2.6], [11.2, 16.8, 2.3], [13.4, 18.4, 1.6]);
+    C.push([18.6, 8.6, 2.1], [22.4, 8.4, 2.1], [26.2, 8.2, 2], [29.8, 8.2, 1.9]);
+    for (var gy = 3.6; gy < 8; gy += 2.6) for (var gx = 12.4 + (Math.round(gy) % 2) * 1.8; gx < 32; gx += 3.6) C.push([gx, gy, 2]);
+    C.push([13.8, 11.2, 2]);
+    var mop = curls(C, function (x, y) {
+      // the light on the whole mop: brightest at its top left
+      var dx = (x + 0.5 - 16) / 15, dy = (y + 0.5 - 2) / 13, i = -0.5 * dx - 0.62 * dy + 0.6 * Math.sqrt(Math.max(0, 1 - dx * dx - dy * dy));
+      return i > 0.62 ? '5' : i > 0.3 ? '4' : i > -0.05 ? '3' : i > -0.36 ? '2' : '1';
+    }, mass);
+    var hairAt = function (x, y) { return mop.f(x, y); };
+    var cx = HX + 17.5, cy = 15.4;
+    // stubble: a fine stipple of two close tones round his jaw and chin, up to his ear
+    var stubble = function (x, y) {
+      var X = x + 0.5, Y = y + 0.5, d = Math.hypot((X - cx) / 8.3, (Y - cy) / 8.7);
+      if ((d > 0.7 && Y > cy + 1.6) || (X < HX + 12 && Y > cy - 1) || (Y > cy + 5.8)) return Y > cy + 6.6 && Math.abs(X - cx) < 4 ? 'F' : (x + y) & 1 ? 'F' : 'f';
+      return null;
+    };
+    // the shirt's print: bold black squiggles on a loose grid
+    var TILE = [
+      '.yy.....y...',
+      '..y....yy...',
+      '............',
+      '....y.....yy',
+      '....yy.....y',
+      '............'
+    ];
+    var print = function (x, y) {
+      var u = ((Math.floor(x) % 12) + 12) % 12, v = ((Math.floor(y) % 6) + 6) % 6;
+      return TILE[v].charAt(u) === 'y';
+    };
+    return {
+      pal: merge(BPAL, {
+        1: '#4a2412', 2: '#74391a', 3: '#9c5a2a', 4: '#c47e40', 5: '#e8b070',
+        m: '#a8404c', f: '#e6a986', F: '#cf8f6c',
+        b: '#f5e8d0', B: '#c9b48e', y: '#25202e', Y: '#25202e',
+        k: '#9dbcdc', K: '#6585b0',
+        z: '#f2f2f6', Z: '#c48a4c'
+      }),
+      noLight: NOLIGHT.concat(['F', 'Z']),
+      look: { sleeve: 4.6, bare: 0.4, shorts: 0.9, fray: true, sole: true, shoeLine: 'W', neck: 'open', rib: false, crest: false, print: print },
+      head: function () { return [EAR(), { c: 's', f: adultFace, line: 'q', tex: faceTex(hairAt, stubble) }, mop]; },
+      face: function (rows, kind) {
+        paint(rows, 19, 17, ['pp']); paint(rows, 28, 17, ['pp']);
+        if (kind === 'hurt') { paint(rows, 20, 13, HURT); paint(rows, 27, 13, HURT); } else {
+          var eye = kind === 'blink' ? SHUT : EYE;
+          paint(rows, 21, 13, eye); paint(rows, 27, 13, eye);
+        }
+        paint(rows, 20, 11, ['333']); paint(rows, 27, 11, ['333']);
+        paint(rows, 25, 17, ['t']);
+        // the moustache, then the smile under it
+        paint(rows, 22, 18, ['.3443.', '233332']);
+        var mouth = {
+          wheee: [23, 20, ['qmmq', '.qq.']],
+          hurt: [24, 20, ['qmq', '.q.']],
+          gasp: [24, 20, ['qmq', '.q.']]
+        }[kind] || [22, 20, ['q....q', '.qqqq.']];
+        paint(rows, mouth[0], mouth[1], mouth[2]);
+      }
+    };
+  })();
+
+  /* A.player(who): who is 'bonnie', 'lucy' or 'luke'. The same shape as
+     A.bonnie (s, b, kits.stripe, pose, head, red, rainbow, ghost), plus
+     look (how their clothes differ from Bonnie's, for family.js's bike).
+     Mum and Dad are built the first time they're asked for, then kept. */
+  var CAST = { lucy: LUCY, luke: LUKE }, PLAYERS = { bonnie: P };
+  P.look = BON.look;
+  A.player = function (who) {
+    if (PLAYERS.hasOwnProperty(who)) return PLAYERS[who];
+    var ch = CAST.hasOwnProperty(who) && CAST[who];
+    if (!ch) return P;
+    var Q = frameSet(ch);
+    Q.kits = { stripe: kitSet('stripe', ch) };
+    Q.pose = function (size, pose, kind) { return frame(size, pose, kind, ch); };
+    Q.head = headOf(ch);
+    Q.red = P.red; Q.rainbow = P.rainbow; Q.ghost = P.ghost;
+    Q.look = ch.look;
+    return (PLAYERS[who] = Q);
+  };
 
   /* ==========================================================================
      ITEMS

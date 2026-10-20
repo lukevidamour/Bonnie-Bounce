@@ -46,11 +46,12 @@
   var PW = 10, SMALL_H = 15, BIG_H = 25;
   var RUN_CYCLE = ['run1', 'run2', 'run3', 'run2'];
   /* the lands: 1 Monsty's island (1–10), 2 the Magpie Isles (11–20),
-     3 the Big Trip (21–30), and 4 Holiday!, the rest of the trip (31–35) */
-  var LAND_LAST = [10, 20, 30, 35];
+     3 the Big Trip (21–30), 4 Holiday!, the rest of the trip (31–35), and
+     5 One Day…, the levels Bonnie designed himself (36–45) */
+  var LAND_LAST = [10, 20, 30, 35, 45];
   var landOf = function (n) { for (var i = 0; i < LAND_LAST.length; i++) if (n <= LAND_LAST[i]) return i + 1; return LAND_LAST.length; };
   var landLast = function (n) { return LAND_LAST[landOf(n) - 1]; };
-  var BOSS_SONG = ['boss', 'boss2', 'boss3'];
+  var BOSS_SONG = ['boss', 'boss2', 'boss3', 'boss3', 'boss4'];
   var COMBO = [100, 200, 400, 800, 1000, 2000, 4000, 8000];
 
   /* ---- the save ---------------------------------------------------------------- */
@@ -64,13 +65,14 @@
   if (save.won && save.unlocked < 11) save.unlocked = 11;
   if (save.won2 && save.unlocked < 21) save.unlocked = 21;
   if (save.won3 && save.unlocked < 31) save.unlocked = 31;
+  if (save.won4 && save.unlocked < 36) save.unlocked = 36;
   // golden medals found: per level a bit for each of its three
   var medalBits = function (n) { return (save.medals && save.medals[n]) || 0; };
   var medalsTotal = function () { var c = 0; for (var k in save.medals) { var m = save.medals[k]; while (m) { c += m & 1; m >>= 1; } } return c; };
   var store = function () { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
   var hasProgress = function () { return save.unlocked > 1 || save.cleared.length > 0 || save.score > 0; };
   var qs = location.search;
-  if (/[?&]debug\b/.test(qs)) { save.unlocked = BB.LEVELS.length; save.won = true; save.won2 = true; save.won3 = true; }
+  if (/[?&]debug\b/.test(qs)) { save.unlocked = BB.LEVELS.length; save.won = true; save.won2 = true; save.won3 = true; save.won4 = true; }
 
   var scene = 'title', sceneT = 0, G = null, tick = 0;
   var go = function (s) { scene = s; sceneT = 0; };
@@ -149,16 +151,18 @@
       ents: [], fx: [], cam: { x: 0, y: 0 }, tick: 0, freeze: 0, shake: 0,
       water: !!def.water, ice: !!def.ice || !!th.ice, check: fromCheck || 0, bossOn: false, bossDone: false,
       ambient: [], gfx: theme(def.theme), deco: L.deco, blooms: [], hitstop: 0, kick: 0,
-      hp: HP_MAX, hpGlow: 0, starHeal: 0, safe: null, secretIn: 0, secretFound: {}
+      hp: HP_MAX, hpMax: HP_MAX, hpGlow: 0, starHeal: 0, safe: null, secretIn: 0, secretFound: {}
     };
     // the sea, where the beach has a gap
+    // the rainbow's paint blocks start switched off (or in the level's own colour)
+    setPaint(def.paint || null);
     G.sea = new Uint8Array(G.w);
     if (th.sea) for (var x = 0; x < G.w; x++) G.sea[x] = tileAt(x, G.h - 1) === TL.EMPTY ? 1 : 0;
     var nth = 0;
     L.ents.forEach(function (sp) {
       var K = KINDS[sp.k];
       // (never a boss: thinning one out would leave a level that can't be won)
-      if (K && K.enemy && !K.boss && !sp.wait && ++nth % THIN === 0) return;
+      if (K && K.enemy && !K.boss && !K.keep && !sp.wait && ++nth % THIN === 0) return;
       var e = spawn(sp); if (e) G.ents.push(e);
     });
     G.light = BB.lighting(th.light, G.w * T, def.seed);
@@ -673,7 +677,8 @@
     }
   };
   // what a spring looks like in each world: a mushroom in the woods, a market awning in the village…
-  var SPRING_ART = { woods: 'shroom', glow: 'shroom', village: 'awning', bakery: 'dough', magic: 'bouncy', night: 'bouncy', ogliss: 'ring', puydufou: 'catapult' };
+  var SPRING_ART = { woods: 'shroom', glow: 'shroom', village: 'awning', bakery: 'dough', magic: 'bouncy', night: 'bouncy', ogliss: 'ring', puydufou: 'catapult',
+    jamaica: 'drum', rainbow: 'cloudspring', chocolate: 'marshmallow', beeland: 'flowerspring' };
   KINDS.spring = {
     w: 14, h: 10, top: true, topOff: 0,
     init: function (e) { e.x += 1; e.y += 0; },
@@ -705,7 +710,7 @@
       BB.draw(ctx, A.ball, x - 1, y - 3);
       // on the Big Trip, Lucy or Luke is waiting at the flag to cheer him on
       // (Mum and Dad take turns: a long level's second flag has the other one)
-      var F = A.family, c = G.n > 20 && F && F[(G.n + e.ix) % 2 ? 'lucy' : 'luke'];
+      var F = A.family, c = G.n > 20 && F && cameo(others()[(G.n + e.ix) % 2 ? 0 : 1]);
       if (c) {
         var near2 = Math.abs(G.p.x - e.x) < 110, f = e.up ? (e.up < 24 || near2 ? c.cheer : c.idle) : near2 ? c.wave[Math.floor(G.tick / 12) % 2] : G.tick % 230 < 8 ? c.blink || c.idle : c.idle;
         shadowUnder(ctx, e.x + 12 + f.w / 2, e.y + 32, f.w - 6);
@@ -747,6 +752,17 @@
         ctx.fillStyle = '#ffffff'; ctx.fillRect(snap(bx - 1.5), snap(by - 1.8), 1, 1);
         ctx.fillStyle = DK; ctx.fillRect(snap(bx - 0.5), snap(by + 3), 1, 0.5);
       });
+      /* One Day…: one of Bonnie's wishes, caught on the arch — a golden
+         paper star. Through the arch, and it swoops down to him. */
+      if (G.n > 35 && A.wish) {
+        var wf = A.wish[reduce ? 0 : Math.floor(G.tick / 8) % 4], wk = e.relT < 0 ? 0 : Math.min(1, e.relT / 30);
+        var wx = x + (G.p.x + G.p.w / 2 - G.cam.x - x) * wk, wy = y - 52 + (G.p.y - G.cam.y - 6 - (y - 52)) * wk;
+        if (e.relT < 34) {
+          if (!reduce) { ctx.globalAlpha = 0.3 + Math.sin(G.tick * 0.1) * 0.12; BB.icons.disc(ctx, wx, wy + 4, 9, '#ffe890'); ctx.globalAlpha = 1; }
+          BB.draw(ctx, wf, snap(wx - wf.w / 2), snap(wy + 4 - wf.h / 2));
+        }
+        if (e.relT === 33) { sfx('medal'); for (var w2 = 0; w2 < 10; w2++) fx('spark', G.p.x + G.p.w / 2, G.p.y, { vx: Math.cos(w2 * 0.63) * 1.4, vy: Math.sin(w2 * 0.63) * 1.4, life: 30, col: w2 % 2 ? '#ffe048' : '#ffffff' }); }
+      } else
       // Monsty's pennant at the top: purple, with an orange star
       if (e.relT < 0 || e.relT < 70) {
         var px = snap(x), py = snap(y - 50 - Math.max(0, e.relT) * 0.6);
@@ -775,6 +791,7 @@
           if (d.k === 'dragon') { d.st = 'roar'; d.t2 = 0; sfx('roar'); }
           if (d.k === 'captain') { d.st = 'rise'; d.t2 = 0; d.active = true; sfx('pop'); }
           if (d.k === 'fox') { d.st = 'run'; d.t2 = 0; d.active = true; sfx('pop'); }
+          if (d.k === 'queenbee') { d.st = 'rise'; d.t2 = 0; d.active = true; sfx('fire'); }
         });
       }
     },
@@ -895,11 +912,36 @@
        shirt has its red stripe edged in white down the middle (a sprite set
        of its own, art.js); Liverpool's is all red. */
     { id: 'psg', name: 'PSG', medals: 10, set: 'stripe', v: BB.variant('psg', { b: '#1e2c66', B: '#0e1a44', y: '#e2252c', Y: '#a01820', k: '#1e2c66', K: '#0e1a44' }) },
-    { id: 'lfc', name: 'LIVERPOOL', medals: 25, v: BB.variant('lfc', { b: '#d4142e', B: '#8a0a1c', y: '#ffffff', Y: '#d8d8e0', k: '#d4142e', K: '#8a0a1c' }) }
+    { id: 'lfc', name: 'LIVERPOOL', medals: 25, v: BB.variant('lfc', { b: '#d4142e', B: '#8a0a1c', y: '#ffffff', Y: '#d8d8e0', k: '#d4142e', K: '#8a0a1c' }) },
+    /* One Day…: won by finishing the level each belongs to — a Pokémon
+       trainer's jacket and cap, a penguin suit, a dinosaur onesie and
+       (beating Queen Bee) a bee costume with wobbly antennae */
+    { id: 'trainer', name: 'TRAINER', level: 36, v: BB.variant('trainer', { b: '#2a68d8', B: '#163e90', y: '#ffffff', Y: '#d0d8e8', k: '#3a3a58', K: '#24243a' }), hat: 'trainer' },
+    { id: 'penguin', name: 'PENGUIN', level: 40, v: BB.variant('penguinsuit', { b: '#2a2a3c', B: '#16161f', y: '#ff9a2a', Y: '#c86a10', k: '#2a2a3c', K: '#16161f', w: '#ffffff', W: '#d8dce8' }), hat: 'penguin' },
+    { id: 'dino', name: 'DINOSAUR', level: 44, v: BB.variant('dino', { b: '#5ab84a', B: '#2e7a30', y: '#ffd23e', Y: '#c89a18', k: '#5ab84a', K: '#2e7a30' }), hat: 'dino' },
+    { id: 'beesuit', name: 'BEE', level: 45, v: BB.variant('beesuit', { b: '#ffd23e', B: '#1c1428', y: '#ffffff', Y: '#d8d8e0', k: '#1c1428', K: '#000000' }), hat: 'antennae' }
   ];
   var outfitOpen = function (o) { return o.level ? save.cleared.indexOf(o.level) > -1 : o.medals ? medalsTotal() >= o.medals : bearsHome() >= o.need; };
   // the sprites an outfit is drawn from: his usual ones, or a kit's own set
-  var outfitSet = function (o, big) { var k = o && o.set && A.bonnie.kits && A.bonnie.kits[o.set]; return k ? (big ? k.b : k.s) : big ? A.bonnie.b : A.bonnie.s; };
+  /* Who's playing: Bonnie, or (he asked for it, 20 Oct) Mum or Dad —
+     chosen on the sticker book's WHO'S PLAYING page. Their sprites are
+     built the first time they're asked for (art.js, A.player); outfits
+     and power-ups recolour all three the same way. */
+  var WHO = ['bonnie', 'lucy', 'luke'];
+  var who = function () { return WHO.indexOf(save.who) > -1 ? save.who : 'bonnie'; };
+  var hero = function () { return (A.player && A.player(who())) || A.bonnie; };
+  // the sprites an outfit is drawn from: the player's usual ones, or a kit's own set
+  var outfitSet = function (o, big) { var P = hero(), k = o && o.set && P.kits && P.kits[o.set]; return k ? (big ? k.b : k.s) : big ? P.b : P.s; };
+  /* The family cheering at the flags and waiting at the car: whichever two
+     aren't playing (playing as Mum, it's Dad and Bonnie). A cameo is
+     { idle, blink, wave: [2], cheer } — Mum and Dad's from family.js,
+     Bonnie's made from his own frames. */
+  var cameo = function (w) {
+    if (w !== 'bonnie') return A.family && A.family[w];
+    var S = A.bonnie.s;
+    return { idle: S.idle, blink: S.blink, wave: [S.cheer, S.idle], cheer: S.cheer };
+  };
+  var others = function () { return ['lucy', 'luke', 'bonnie'].filter(function (w) { return w !== who(); }).slice(0, 2); };
   /* Hats, drawn over his hair: his head sits in the same place in every
      pose (art.js), so one position fits all — the middle of his head is
      10.75 game pixels in from the sprite's left, the top of his hair at
@@ -938,6 +980,35 @@
       [-1, 1].forEach(function (d) { for (var k = 0; k < 3; k += 0.5) { ctx.fillStyle = HAT_INK; ctx.fillRect(snap(cx + d * (8 - k * 0.6) - 0.5), snap(ty + 1.2 - k), 1.5, 1); } });
       ctx.fillStyle = '#ffd040'; ctx.fillRect(snap(cx - 7), snap(ty + 3), 14, 0.5);
       BB.icons.disc(ctx, cx, ty + 0.4, 0.9, '#ffffff');
+    } else if (kind === 'trainer') {
+      // a Pokémon trainer's cap: red, a white front panel with a green badge, the peak forward
+      hatOval(ctx, cx, ty + 3.6, 6.9, 5, HAT_INK, true);
+      hatOval(ctx, cx, ty + 3.6, 6.3, 4.4, '#e8343c', true);
+      hatOval(ctx, cx + fd * 1.6, ty + 2.4, 3.2, 2.8, '#ffffff', true);
+      BB.icons.disc(ctx, cx + fd * 1.8, ty + 1.6, 1, '#3aa84a');
+      for (i = 0; i < 7; i += 0.5) { var bw2 = 1.6 - i * 0.12; ctx.fillStyle = HAT_INK; ctx.fillRect(snap(cx + fd * (3 + i) - (fd < 0 ? 0.5 : 0)), snap(ty + 3.3), 0.5, bw2 + 1); ctx.fillStyle = '#c8202a'; ctx.fillRect(snap(cx + fd * (3 + i) - (fd < 0 ? 0.5 : 0)), snap(ty + 3.7), 0.5, bw2); }
+    } else if (kind === 'penguin') {
+      // a penguin hood: black over the top of the head, two eyes and an orange beak on its brow
+      hatOval(ctx, cx, ty + 4.2, 7.2, 5.4, HAT_INK, true);
+      hatOval(ctx, cx, ty + 4.2, 6.6, 4.8, '#2a2a3c', true);
+      [-1, 1].forEach(function (d) { BB.icons.disc(ctx, cx + d * 2.4 + fd * 0.8, ty + 0.6, 1.2, '#ffffff'); BB.icons.disc(ctx, cx + d * 2.4 + fd * 1.1, ty + 0.7, 0.6, HAT_INK); });
+      for (i = 0; i < 3; i += 0.5) { ctx.fillStyle = '#ff9a2a'; ctx.fillRect(snap(cx + fd * (1 + i) - (fd < 0 ? 0.5 : 0)), snap(ty + 2.2 + i * 0.25), 0.5, 1.6 - i * 0.4); }
+    } else if (kind === 'dino') {
+      // a dinosaur hood: green, with yellow spikes down the back
+      hatOval(ctx, cx, ty + 4.2, 7.2, 5.4, HAT_INK, true);
+      hatOval(ctx, cx, ty + 4.2, 6.6, 4.8, '#5ab84a', true);
+      [-4.5, -1.5, 1.5].forEach(function (dx, j) {
+        var sx2 = cx - fd * (dx + 1.5), sy2 = ty - 0.6 + Math.abs(dx) * 0.35;
+        for (var k = 0; k < 3; k += 0.5) { var w3 = (3 - k) * 0.8 + 0.5; ctx.fillStyle = HAT_INK; ctx.fillRect(snap(sx2 - w3 / 2 - 0.5), snap(sy2 - k), w3 + 1, 0.5); ctx.fillStyle = '#ffd23e'; ctx.fillRect(snap(sx2 - w3 / 2), snap(sy2 - k + 0.25), w3, 0.5); }
+      });
+    } else if (kind === 'antennae') {
+      // a bee's antennae on a black headband, bobbing
+      for (i = -1.05; i <= 1.051; i += 0.075) { ctx.fillStyle = HAT_INK; ctx.fillRect(snap(cx + Math.sin(i) * 6.1 - 0.5), snap(ty + 5.4 - Math.cos(i) * 5.9 - 0.5), 1, 1); }
+      [-1, 1].forEach(function (d) {
+        var bob2 = reduce ? 0 : Math.sin(tick * 0.15 + d) * 0.8, tx2 = cx + d * 4.4 + bob2, ty2 = ty - 5.5;
+        for (var k = 0; k < 1; k += 0.1) { ctx.fillStyle = HAT_INK; ctx.fillRect(snap(cx + d * 2.6 + (tx2 - cx - d * 2.6) * k), snap(ty + 0.8 + (ty2 - ty - 0.8) * k), 0.5, 0.5); }
+        BB.icons.disc(ctx, tx2, ty2, 1.4, HAT_INK); BB.icons.disc(ctx, tx2, ty2, 0.9, '#ffd23e');
+      });
     } else if (kind === 'crown') {
       // a little gold crown, set on his curls
       ctx.fillStyle = HAT_INK; ctx.fillRect(snap(cx - 5.5), snap(ty - 0.5), 11, 3.5);
@@ -1221,10 +1292,549 @@
       if (p.x > e.x0 + (e.sp.letgo || 28) * T) { e.done = 1; sfx('check'); fx('text', p.x - 18, p.y - 18, { s: "YOU'RE DOING IT!", vy: -0.35, life: 90, col: '#ff94cc' }); }
     },
     draw: function (ctx, e) {
-      var L2 = A.family && A.family.luke;
+      // (with Dad on the bike, it's Bonnie who runs alongside, cheering him on)
+      var L2 = who() === 'luke' ? { idle: A.bonnie.s.idle, cheer: A.bonnie.s.cheer, run: [A.bonnie.s.run1, A.bonnie.s.run3] } : A.family && A.family.luke;
       if (!L2) return;
       var f = e.done ? (e.done < 100 && L2.puff ? L2.puff : L2.cheer) : e.moving && L2.run ? L2.run[Math.floor(e.t / 7) % 2] : L2.idle;
       BB.draw(ctx, f, snap(e.x - G.cam.x), snap(e.y + e.h - f.h - G.cam.y));
+    }
+  };
+
+  /* ---- One Day… (levels 36–45): the land Bonnie designed ------------------------
+     His own cast (he drew them, 20 Oct): a squirrel that throws nuts, a
+     walking bar of chocolate, a cross palm tree, a butterfly, a Christmas
+     tree, a little block of flats with eyes and a polar bear. Their art is
+     in creatures5a.js and creatures5b.js; until a sprite exists a cousin
+     stands in, so nothing ever fails to draw. */
+  // a walker of the fifth land: o = { w, h, speed, ledges, rate, hop, flat (frame when squashed), alt }
+  var walker5 = function (name, o) {
+    return {
+      w: o.w, h: o.h, enemy: true, stomp: o.stomp === undefined ? true : o.stomp,
+      update: function (e) {
+        if (e.stun) { e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy)) e.vy = 0; if (--e.stun === 0) e.vx = 0; return; }
+        walk(e, o.speed, o.ledges);
+        if (o.hop && e.t % o.hop === o.hop - 1 && e.vy === 0 && onGround(e)) e.vy = -2.6;
+      },
+      draw: function (ctx, e) {
+        var a = art(name, o.alt || 'grumbug'), walkF = a && !Array.isArray(a) && a.walk ? a.walk : a;
+        var s = e.stun && a.stun ? a.stun : e.dying === 'flat' && o.flat !== undefined && Array.isArray(a) && a[o.flat] ? a[o.flat] : frameOf(walkF, Math.floor(e.t / (o.rate || 9)));
+        drawE(ctx, e, s, e.face > 0, null, e.stun && e.stun < 50 && !reduce ? (e.t % 4 < 2 ? 1 : -1) : 0, 0);
+      }
+    };
+  };
+  KINDS.choc = walker5('choc', { w: 9, h: 15, speed: 0.4, ledges: true, flat: 2, rate: 10 });
+  KINDS.palmtree = walker5('palmtree', { w: 12, h: 20, speed: 0.34, ledges: true, rate: 12 });
+  KINDS.xmastree = walker5('xmastree', { w: 12, h: 19, speed: 0.3, ledges: true, rate: 12 });
+  KINDS.building = walker5('building', { w: 11, h: 19, speed: 0.28, ledges: true, rate: 13 });
+  // the polar bear: big and cuddly-cross; the first stomp sits it down dizzy, the second sends it home
+  KINDS.polarbear = walker5('polarbear', { w: 20, h: 13, speed: 0.5, ledges: true, stomp: 'robot', rate: 10, alt: 'hog' });
+  KINDS.minion = walker5('minion', { w: 10, h: 13, speed: 0.5, ledges: true, hop: 130, rate: 8 });
+  KINDS.emu = walker5('emu', { w: 11, h: 17, speed: 1.0, ledges: true, rate: 6, alt: 'corsair' });
+  KINDS.ekans = walker5('ekans', { w: 12, h: 7, speed: 0.45, ledges: true, rate: 12, alt: 'snail' });
+  // the squirrel: scampers about, and now and then stops to lob a nut at Bonnie
+  KINDS.squirrel = {
+    w: 10, h: 11, enemy: true, stomp: true,
+    update: function (e) {
+      if (e.throwT) { e.throwT--; e.face = towards(e); e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy)) e.vy = 0; return; }
+      walk(e, 0.42, true);
+      if (e.t % 170 === 120 && near(e, 140)) {
+        var d = G.p.x - e.x;
+        addEnt('nut', e.x + 2, e.y, { vx: Math.max(-1.5, Math.min(1.5, d / 70)) * SLOW, vy: -3.1 });
+        e.throwT = 18; sfx('pop');
+      }
+    },
+    draw: function (ctx, e) { var a = art('squirrel', 'monkey'); drawE(ctx, e, e.throwT && a[2] ? a[2] : frameOf(a, Math.floor(e.t / 7) % 2), e.face > 0); }
+  };
+  KINDS.nut = {
+    w: 6, h: 6, enemy: true, stomp: false, tough: true, shot: true,
+    update: function (e) {
+      e.vy = Math.min(FALL, e.vy + 0.15);
+      e.x += e.vx; e.y += e.vy;
+      if (boxSolid(e.x, e.y, e.w, e.h) || e.t > 240) { e.alive = false; fx('puff', e.x - 1, e.y - 1); }
+    },
+    draw: function (ctx, e) { drawE(ctx, e, E.nut || E.coconut || E.snowball, e.vx > 0); }
+  };
+  // the triceratops: plods, and when Bonnie's level with it, puts its head down and charges
+  KINDS.trike = {
+    w: 18, h: 13, enemy: true, stomp: true,
+    update: function (e) {
+      var p = G.p;
+      if (e.st === 'charge') {
+        if (moveX(e, e.vx) || ++e.t2 > 90) { e.st = 0; e.vx = e.vx > 0 ? 0.3 : -0.3; e.cool = 1; }
+        e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy)) e.vy = 0;
+        return;
+      }
+      walk(e, 0.3, true);
+      if (!e.cool && near(e, 90) && Math.abs(p.y + p.h - e.y - e.h) < 12 && e.vy === 0) { e.st = 'charge'; e.t2 = 0; e.vx = towards(e) * 1.7 * SLOW; e.face = towards(e); sfx('roar'); }
+      if (e.cool && ++e.cool > 180) e.cool = 0;
+    },
+    draw: function (ctx, e) { drawE(ctx, e, frameOf(art('trike', 'hog'), Math.floor(e.t / (e.st === 'charge' ? 4 : 10))), e.face > 0); }
+  };
+  // fliers: a lazy figure of eight (butterflies, worker bees), to and fro (zubat, kookaburra)
+  var flutter5 = function (name, o) {
+    return {
+      w: o.w, h: o.h, enemy: true, stomp: true, fly: true,
+      init: function (e) { e.x0 = e.x; e.y0 = e.y; e.ph = (e.x * 0.13) % 6; },
+      update: function (e) {
+        var t = e.t * SLOW + e.ph * 40;
+        e.x = e.x0 + Math.sin(t * o.fx) * o.ax;
+        e.y = e.y0 + Math.sin(t * o.fy) * o.ay;
+        e.face = Math.cos(t * o.fx) > 0 ? 1 : -1;
+      },
+      draw: function (ctx, e) { drawE(ctx, e, frameOf(art(name, o.alt || 'bee'), Math.floor(e.t / (o.rate || 6))), e.face > 0); }
+    };
+  };
+  KINDS.butterfly = flutter5('butterfly', { w: 12, h: 9, fx: 0.011, fy: 0.034, ax: 28, ay: 12, rate: 8 });
+  KINDS.honeybee = flutter5('honeybee', { w: 10, h: 8, fx: 0.014, fy: 0.05, ax: 18, ay: 13, rate: 3 });
+  KINDS.hummingbird = flutter5('hummingbird', { w: 10, h: 7, fx: 0.02, fy: 0.07, ax: 24, ay: 8, rate: 3, alt: 'gull' });
+  var sweep5 = function (name, o) {
+    return {
+      w: o.w, h: o.h, enemy: true, stomp: true, fly: true,
+      init: function (e) { e.x0 = e.x; e.y0 = e.y; e.vx = -o.v * SLOW; },
+      update: function (e) {
+        e.x += e.vx;
+        if (e.x < e.x0 - 80 || e.x > e.x0 + 24) e.vx = -e.vx;
+        e.y = e.y0 + Math.sin(e.t * 0.05) * o.ay;
+        e.face = e.vx > 0 ? 1 : -1;
+      },
+      draw: function (ctx, e) { drawE(ctx, e, frameOf(art(name, 'gull'), Math.floor(e.t / (o.rate || 8))), e.face > 0); }
+    };
+  };
+  KINDS.zubat = sweep5('zubat', { w: 12, h: 8, v: 0.7, ay: 12, rate: 5 });
+  KINDS.kookaburra = sweep5('kookaburra', { w: 12, h: 8, v: 0.6, ay: 9, rate: 9 });
+  /* A crocodile in the billabong: just eyes and a knobbly back at the
+     surface (harmless — a stepping stone, even); when Bonnie comes close
+     it snaps up out of the water, then sinks back for a while. */
+  KINDS.croc = {
+    w: 20, h: 7,
+    init: function (e) { e.y = e.sp.row * T - 3; e.y0 = e.y; e.st = 'lurk'; e.cool = 0; },
+    update: function (e) {
+      var p = G.p, cx = e.x + e.w / 2, dx = Math.abs(p.x + p.w / 2 - cx);
+      if (e.cool) e.cool--;
+      if (e.st === 'lurk' && !e.cool && dx < 30 && p.st === 'play') { e.st = 'snap'; e.t2 = 0; e.enemy = true; sfx('roar'); }
+      if (e.st === 'snap') {
+        e.t2++;
+        e.y = e.y0 - Math.min(6, e.t2) + (e.t2 > 34 ? e.t2 - 34 : 0);
+        if (e.t2 > 40) { e.st = 'lurk'; e.y = e.y0; e.enemy = false; e.cool = 110; }
+      }
+    },
+    draw: function (ctx, e) { var C2 = E.croc; if (!C2) return; drawE(ctx, e, C2[e.st === 'snap' ? 1 : 0], e.face > 0, null, 0, 6); }
+  };
+  KINDS.croc.enemy = false; KINDS.croc.tough = true; KINDS.croc.stomp = false;
+  /* An orca: every so often it leaps out of the sea in a great arc over
+     the gap (levels.js: { span: tiles } across, { phase } to stagger two). */
+  KINDS.orca = {
+    w: 22, h: 11, tough: true, stomp: false, fly: true,
+    init: function (e) { e.x0 = e.x; e.y0 = e.sp.row * T + 6; e.y = e.y0 + 40; e.span = (e.sp.span || 8) * T; e.ph = e.sp.phase || 0; e.enemy = false; },
+    update: function (e) {
+      var c = (e.t + e.ph) % 260, k = c / 70;
+      if (c < 70) {
+        if (c === 0) { sfx('splash'); for (var i = 0; i < 6; i++) fx('chip', e.x0 + 6, e.y0 - 2, { vx: (i - 2.5) * 0.4, vy: -1.6 - (i % 3) * 0.4, life: 26, col: '#e8fbff' }); }
+        e.enemy = true;
+        e.x = e.x0 + e.span * k; e.y = e.y0 - Math.sin(k * Math.PI) * 46; e.face = 1; e.ang = Math.cos(k * Math.PI);
+        if (c === 69) { sfx('splash'); for (var j = 0; j < 6; j++) fx('chip', e.x0 + e.span + 6, e.y0 - 2, { vx: (j - 2.5) * 0.4, vy: -1.6 - (j % 3) * 0.4, life: 26, col: '#e8fbff' }); }
+      } else { e.enemy = false; e.y = e.y0 + 40; }
+    },
+    draw: function (ctx, e) {
+      if (!e.enemy || !E.orca) return;
+      var s = frameOf(E.orca, 0), x = e.x + e.w / 2 - G.cam.x, y = e.y + e.h / 2 - G.cam.y;
+      ctx.save(); ctx.translate(snap(x), snap(y)); ctx.rotate(-(e.ang || 0) * 0.6); ctx.scale(-1, 1);
+      BB.draw(ctx, s, -s.w / 2, -s.h / 2); ctx.restore();
+    }
+  };
+
+  /* ---- 36 · Pokémon: the long grass, the wild Pokémon, Pikachu -------------- */
+  /* A clump of long grass (levels.js: L.e('grass', x, row, { mon: 'eevee' })):
+     drawn in front of Bonnie; it rustles as he goes through, and the first
+     time, out pops the Pokémon hiding in it. */
+  KINDS.grass = {
+    w: 16, h: 10, front: true,
+    init: function (e) { e.x -= 0; e.rus = 0; },
+    update: function (e) {
+      var p = G.p;
+      if (e.rus) e.rus--;
+      if (p.st === 'play' && overlap(p, e) && Math.abs(p.vx) > 0.2) {
+        if (!e.rus) sfx('step');
+        e.rus = 12;
+        if (e.sp.mon && !e.out) {
+          e.out = true;
+          var w = addEnt('wild', e.x + 3, e.y - 2, { sp: { mon: e.sp.mon } });
+          w.vy = -3.4; w.mode = 'out'; w.face = towards(w) * -1;
+          sfx('sprout');
+          for (var i = 0; i < 5; i++) fx('chip', e.x + 8, e.y + 2, { vx: (i - 2) * 0.5, vy: -1.6 - (i % 2), life: 22, col: '#6ad048' });
+        }
+      }
+    },
+    draw: function (ctx, e) {
+      var g = A.tallgrass;
+      if (!g) return;
+      BB.draw(ctx, e.rus && !reduce ? g[1 + (Math.floor(e.rus / 3) % 2)] : g[0], snap(e.x + e.w / 2 - g[0].w / 2 - G.cam.x), snap(e.y + e.h - g[0].h + 1 - G.cam.y));
+    }
+  };
+  /* A wild Pokémon: it hops about, and runs off when Bonnie comes near —
+     catch up and touch it, and a Poké Ball pops round it, wobbles
+     three times and clicks: caught, and in the Pokédex for good. */
+  KINDS.wild = {
+    w: 10, h: 10,
+    init: function (e) { e.mode = e.sp.out === false ? 'hide' : 'out'; e.flee = 0; },
+    update: function (e) {
+      var p = G.p, mon = e.sp.mon;
+      if (e.mode === 'caught') {
+        e.t2++;
+        if (e.t2 === 96) {
+          e.alive = false; sfx('medal'); points(2000, e.x, e.y);
+          save.dex = save.dex || {}; save.dex[mon] = 1; store();
+          for (var k = 0; k < 10; k++) fx('spark', e.x + 5, e.y + 4, { vx: Math.cos(k * 0.63) * 1.4, vy: Math.sin(k * 0.63) * 1.4, life: 30, col: k % 2 ? '#ffe048' : '#ffffff' });
+          fx('text', e.x - 10, e.y - 12, { s: 'GOTCHA!', vy: -0.4, life: 60, col: '#ffe048' });
+        } else if (e.t2 % 30 === 10 && e.t2 < 96) sfx('tick');
+        return;
+      }
+      e.vy = Math.min(FALL, e.vy + GRAV);
+      if (moveY(e, e.vy)) e.vy = 0;
+      var dx = p.x + p.w / 2 - (e.x + e.w / 2), close = Math.abs(dx) < 44 && Math.abs(p.y - e.y) < 30;
+      if (close && !e.flee) { e.flee = 70; }
+      if (e.flee) {
+        e.flee--;
+        var d = dx > 0 ? -1 : 1, ahead = d > 0 ? e.x + e.w : e.x - 1;
+        // never off a ledge or into a wall: it turns and dodges past instead
+        if (boxSolid(ahead, e.y, 1, e.h) || (!boxSolid(ahead, e.y + e.h, 1, 2) && !semiAt(ahead, 1, e.y + e.h))) d = -d;
+        if (!moveX(e, d * 1.05 * SLOW)) e.face = d;
+        if (e.vy === 0 && e.t % 18 === 0) e.vy = -2;
+      } else if (e.vy === 0 && e.t % 50 === 0) { e.vy = -1.8; e.face = -e.face; }
+      if (p.st === 'play' && overlap(p, e)) {
+        e.mode = 'caught'; e.t2 = 0; e.vx = 0; sfx('throw');
+        if (!save.dex || !save.dex[mon]) fx('text', e.x - 6, e.y - 14, { s: mon.toUpperCase() + '!', vy: -0.35, life: 70, col: '#ffffff' });
+      }
+    },
+    draw: function (ctx, e) {
+      if (e.mode === 'caught') {
+        var b = A.pokeball, t2 = e.t2, f = !b ? null : t2 < 8 ? b[3] : t2 < 90 && (t2 % 30) > 18 ? b[(t2 % 30) > 24 ? 2 : 1] : b[0];
+        if (t2 < 8 && E[e.sp.mon]) { ctx.globalAlpha = 1 - t2 / 8; drawE(ctx, e, frameOf(E[e.sp.mon], 0), e.face > 0); ctx.globalAlpha = 1; }
+        if (f) BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h - G.cam.y));
+        return;
+      }
+      var a = art(e.sp.mon, 'gummy');
+      drawE(ctx, e, frameOf(a, e.vy < 0 ? 1 : Math.floor(e.t / 14)), e.face > 0);
+    }
+  };
+  /* A follower: walks Bonnie's own path a moment behind him, like Bear —
+     Pikachu (from the start of level 36), and the baby dinosaurs that
+     hatch in level 44 (one behind the other). */
+  var FOLLOW_LAG = { buddy: 26, baby: 38 };
+  var follower = function (e) {
+    var p = G.p, tr = G.trail, lag = (FOLLOW_LAG[e.k] || 26) + (e.n || 0) * 10, tg = tr.length > lag ? tr[tr.length - 1 - lag] : tr[0];
+    e.moving = false;
+    if (!tg) { e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy, true)) e.vy = 0; return; }
+    var bx = e.x + e.w / 2, nx = tg.x;
+    if (Math.abs(nx - bx) > 0.2) { e.face = nx > bx ? 1 : -1; e.moving = true; }
+    e.x = nx - e.w / 2; e.y = tg.y - e.h;
+  };
+  KINDS.buddy = {
+    w: 9, h: 9,
+    init: function (e) { e.face = 1; },
+    update: function (e) { follower(e); if (G.p.st === 'cheer' || G.p.st === 'arch') e.cheer = 1; },
+    draw: function (ctx, e) {
+      var P2 = E[e.sp.mon || 'pikachu'];
+      if (!P2) return;
+      var f = e.cheer && P2.cheer ? P2.cheer : !e.moving ? P2.idle : G.p.ground ? frameOf(P2.run, Math.floor(e.t / 5)) : P2.jump || P2.idle;
+      shadowUnder(ctx, e.x + e.w / 2, e.y + e.h, 8);
+      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 0.5 - G.cam.y), e.face > 0);
+    }
+  };
+
+  /* ---- 44 · Dinosaurs: eggs, babies, the pterodactyl, the T. rex ------------ */
+  // a speckled egg: it wobbles as Bonnie comes near, cracks, and out pops a baby that follows him
+  KINDS.egg5 = {
+    w: 9, h: 10,
+    init: function (e) { e.st = 'whole'; },
+    update: function (e) {
+      if (e.st === 'whole' && near(e, 26) && G.p.st === 'play') { e.st = 'crack'; e.t2 = 0; sfx('tick'); }
+      if (e.st === 'crack' && ++e.t2 > 40) {
+        e.st = 'hatched'; sfx('sprout'); fx('text', e.x - 4, e.y - 10, { s: 'HELLO!', vy: -0.4, life: 50, col: '#ffe048' });
+        var n = G.ents.filter(function (q) { return q.k === 'baby'; }).length;
+        var b = addEnt('baby', e.x, e.y, { n: n }); b.vy = -2.5;
+        for (var i = 0; i < 5; i++) fx('chip', e.x + 4, e.y + 3, { vx: (i - 2) * 0.5, vy: -1.6, life: 24, col: '#f4ecd0' });
+      }
+    },
+    draw: function (ctx, e) {
+      var g = A.egg;
+      if (!g) return;
+      var s = e.st === 'hatched' ? g[2] : e.st === 'crack' ? g[1] : g[0], wob = e.st === 'crack' && !reduce ? (e.t2 % 6 < 3 ? -1 : 1) : 0;
+      BB.draw(ctx, s, snap(e.x + e.w / 2 - s.w / 2 - G.cam.x + wob), snap(e.y + e.h - s.h - G.cam.y));
+    }
+  };
+  KINDS.baby = {
+    w: 9, h: 9,
+    update: function (e) { if (e.vy < 0 || !G.trail.length) { e.vy = Math.min(FALL, e.vy + GRAV); moveY(e, e.vy, true); if (onGround(e)) e.vy = 0; } follower(e); },
+    draw: function (ctx, e) {
+      var B2 = E.babydino;
+      if (!B2) return;
+      var f = frameOf(B2, e.moving ? Math.floor(e.t / 6) : 0);
+      shadowUnder(ctx, e.x + e.w / 2, e.y + e.h, 8);
+      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 0.5 - G.cam.y), e.face > 0);
+    }
+  };
+  /* A pterodactyl, hovering: jump up and grab its feet, and it carries
+     Bonnie away over the jungle ({ dist: tiles }), then lets him down
+     gently — never over a gap. Jump again to let go sooner. */
+  KINDS.ptero = {
+    w: 16, h: 10, fly: true,
+    init: function (e) { e.x0 = e.x; e.y0 = e.y; e.st = 'wait'; e.dist = (e.sp.dist || 30) * T; },
+    update: function (e) {
+      var p = G.p;
+      if (e.st === 'wait') {
+        e.y = e.y0 + Math.sin(e.t * 0.06) * 3;
+        if (p.st === 'play' && !p.carry && !p.rocket && overlap(p, { x: e.x - 6, y: e.y + e.h - 4, w: e.w + 12, h: 14 }) && p.vy <= 1.5) {
+          e.st = 'carry'; e.go = 0; p.carry = e; p.lift = 0; p.floaty = 0; sfx('lift'); sfx('roar');
+        }
+      } else if (e.st === 'carry') {
+        e.go += 1.5; e.x += 1.5; e.y = e.y0 + Math.sin(e.t * 0.06) * 3 - Math.min(16, e.go * 0.2);
+        if (p.carry !== e) e.st = 'away';
+        else if (e.go > e.dist && floorBelow(e.x + e.w / 2, e.y + e.h + 20, 72) !== null) { e.st = 'away'; dropCarry(p); }
+        else if (e.x > G.w * T - 40) { e.st = 'away'; dropCarry(p); }
+      } else { e.x += 1.6; e.y -= 0.9; if (e.y < -60) e.alive = false; }
+    },
+    draw: function (ctx, e) {
+      var Pt = E.ptero;
+      if (!Pt) return;
+      var f = frameOf(Pt.fly || Pt, Math.floor(e.t / 9));
+      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 4 - G.cam.y), e.st !== 'wait');
+    }
+  };
+  var dropCarry = function (p) { p.carry = null; p.floaty = 60; p.vy = 0; sfx('pop'); };
+  var carryStep = function (p) {
+    var e = p.carry, Pt = E.ptero, feet = Pt && Pt.fly && Pt.fly[0].feet;
+    p.ground = false; p.on = null; p.coy = 0; p.face = 1; p.vx = 1.5; p.vy = 0;
+    var tx = e.x + e.w / 2 - p.w / 2, ty = e.y + e.h + 2;
+    p.x = tx; p.y = ty;
+    if (boxSolid(p.x, p.y, p.w, p.h)) { p.carry = null; e.st = 'away'; unstick(); return; }
+    collectCoins(p);
+    if ((BB.hit('a') || BB.hit('up')) && e.go > 20) dropCarry(p);
+  };
+  /* The T. rex chase: he waits off to the left until Bonnie passes the
+     line ({ wake: tile }); then he comes thundering after him — quicker
+     than walking, slower than running, stopping now and then to roar —
+     until Bonnie's past { stop: tile }, where the way's too narrow for
+     him: he roars once more and stomps off home. A stomp on his head is
+     just a bounce. Thrilling, never mean: there's a flag just before. */
+  KINDS.trex = {
+    w: 30, h: 26, enemy: true, stomp: 'bounce', tough: true, keep: true, fly: false,
+    init: function (e) { e.st = 'wait'; e.x0 = e.x; e.enemy = false; },
+    update: function (e) {
+      var p = G.p;
+      e.vy = Math.min(FALL, e.vy + GRAV);
+      if (moveY(e, e.vy)) e.vy = 0;
+      if (e.st === 'wait') {
+        if (p.x > (e.sp.wake || 0) * T) { e.st = 'run'; e.t2 = 0; e.enemy = true; e.x = Math.min(e.x, G.cam.x - 24); G.shake = 14; sfx('roar'); sfx('boom'); e.face = 1; }
+        return;
+      }
+      e.t2++;
+      if (e.st === 'run') {
+        e.face = 1;
+        /* he keeps up: quick when he's fallen behind (so he's always there,
+           at the edge of the screen), a little slower than walking when
+           he's close — only standing still lets him catch you */
+        var gap = p.x - (e.x + e.w), spd = gap > 90 ? 2.2 : gap > 50 ? 1.6 : 1.3;
+        if (moveX(e, spd * SLOW)) { if (e.vy === 0) e.vy = -3.6; }
+        if (e.t2 % 230 === 200) { e.st = 'roar'; e.t3 = 0; sfx('roar'); G.shake = 10; }
+        if (p.x > (e.sp.stop || G.w) * T) { e.st = 'roar'; e.t3 = 0; e.done = true; sfx('roar'); G.shake = 10; }
+        if (G.tick % 18 === 0) { G.shake = Math.max(G.shake, 3); sfx('stomp'); }
+      } else if (e.st === 'roar') {
+        if (++e.t3 > 44) { e.st = e.done ? 'home' : 'run'; e.enemy = !e.done; }
+      } else if (e.st === 'home') {
+        e.face = -1; moveX(e, -1.2);
+        if (e.x < G.cam.x - 120) e.alive = false;
+      }
+    },
+    draw: function (ctx, e) {
+      if (e.st === 'wait') return;
+      var R2 = E.trex;
+      if (!R2) return;
+      var f = e.st === 'roar' ? R2.roar : frameOf(R2.run, Math.floor(e.t / 7));
+      shadowUnder(ctx, e.x + e.w / 2, e.y + e.h, e.w + 6);
+      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x + (e.face > 0 ? 6 : -6)), snap(e.y + e.h - f.h + 1 - G.cam.y), e.face > 0);
+    }
+  };
+
+  /* ---- 41 · Australia: ride a kangaroo ---------------------------------------- */
+  /* A kangaroo, sitting: touch it and Bonnie's in its pouch. Riding, his
+     jumps are huge; a bump while riding only sends the kangaroo hopping
+     off (no heart lost), and he's on his own feet again. */
+  KINDS.roo = {
+    w: 14, h: 18,
+    update: function (e) {
+      var p = G.p;
+      e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy)) e.vy = 0;
+      if (e.st === 'off') { moveX(e, 1.8 * e.face); if (e.vy === 0 && onGround(e)) e.vy = -3.2; if (!near(e, BB.W)) e.alive = false; return; }
+      e.face = towards(e);
+      if (p.st === 'play' && !p.mount && !p.rocket && !p.carry && overlap(p, e) && e.t > 30) {
+        p.mount = 'roo'; e.alive = false; sfx('boing'); sfx('power');
+        fx('text', e.x - 6, e.y - 12, { s: "G'DAY!", vy: -0.4, life: 60, col: '#ffe048' });
+      }
+    },
+    draw: function (ctx, e) {
+      var Kr = E.kangaroo;
+      if (!Kr) return;
+      var f = e.st === 'off' ? frameOf(Kr.hop, Math.floor(e.t / 8)) : Kr.sit;
+      shadowUnder(ctx, e.x + e.w / 2, e.y + e.h, 14);
+      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 0.5 - G.cam.y), e.face > 0);
+    }
+  };
+  var dismount = function (p) {
+    p.mount = null;
+    var r = addEnt('roo', p.x - 2, p.y + p.h - KINDS.roo.h, {});
+    r.st = 'off'; r.face = -p.face || -1; r.vy = -3;
+    p.inv = INV; sfx('shrink');
+  };
+
+  /* ---- 42 · On a Rainbow: the paint pots ---------------------------------------- */
+  /* Three colours of block (levels.js: L.paint(x, row, 'r'), or 'r', 'y',
+     'b' in L.row): only the colour of the last paint pot Bonnie touched is
+     solid; the others are just dotted outlines he can pass through. */
+  var PAINT = { r: TL.PAINTR, y: TL.PAINTY, b: TL.PAINTB };
+  var setPaint = function (c) {
+    G.paint = c;
+    Object.keys(PAINT).forEach(function (k) { SOLID[PAINT[k]] = k === c ? 1 : 0; });
+  };
+  KINDS.paintpot = {
+    w: 8, h: 9,
+    update: function (e) {
+      var p = G.p, c = e.sp.c || 'r';
+      if (p.st === 'play' && overlap(p, e) && G.paint !== c) {
+        setPaint(c); sfx('power'); unstick();
+        var col = { r: '#f24848', y: '#ffd23e', b: '#3a7af4' }[c];
+        for (var i = 0; i < 10; i++) fx('spark', e.x + 4, e.y + 2, { vx: Math.cos(i * 0.63) * 1.5, vy: Math.sin(i * 0.63) * 1.5 - 0.5, life: 26, col: col });
+      }
+    },
+    draw: function (ctx, e) {
+      var pp = A.paintpot && A.paintpot[e.sp.c || 'r'];
+      if (!pp) return;
+      var on = G.paint === (e.sp.c || 'r'), bob = on || reduce ? 0 : Math.round(Math.sin(G.tick * 0.08 + e.x));
+      BB.draw(ctx, pp, snap(e.x + e.w / 2 - pp.w / 2 - G.cam.x), snap(e.y + e.h - pp.h - G.cam.y + bob));
+    }
+  };
+
+  /* ---- 45 · Bee Land: honey, and Queen Bee -------------------------------------- */
+  // a puddle of honey on the floor: sticky — slow going, and a smaller jump
+  KINDS.honey = {
+    w: 16, h: 4,
+    init: function (e) { e.w = (e.sp.w || 2) * T; e.y = e.sp.row * T - 4; },
+    update: function (e) { var p = G.p; if (p.st === 'play' && p.ground && p.x + p.w > e.x + 2 && p.x < e.x + e.w - 2 && Math.abs(p.y + p.h - e.y - e.h) < 3) p.sticky = 3; if (e.life && --e.life <= 0) e.alive = false; },
+    draw: function (ctx, e) {
+      var hp = A.honeypuddle;
+      for (var x = 0; x < e.w; x += 16) {
+        if (hp) BB.draw(ctx, hp, snap(e.x + x - G.cam.x), snap(e.y + e.h - hp.h + 1 - G.cam.y));
+        else { ctx.fillStyle = '#f0a818'; ctx.fillRect(snap(e.x + x - G.cam.x), snap(e.y + 1 - G.cam.y), Math.min(16, e.w - x), 3); }
+      }
+    }
+  };
+  KINDS.honeyblob = {
+    w: 5, h: 5, enemy: true, stomp: false, tough: true, shot: true,
+    update: function (e) {
+      e.vy = Math.min(3 * SLOW, e.vy + 0.08); e.y += e.vy;
+      if (boxSolid(e.x, e.y, e.w, e.h) || e.t > 300) {
+        e.alive = false; sfx('splash');
+        var gy = Math.floor((e.y + e.h) / T) * T;
+        var pd = addEnt('honey', e.x - 6, gy - 4, { sp: { w: 2, row: gy / T } }); pd.life = 420;
+      }
+    },
+    draw: function (ctx, e) { if (A.honeyblob) drawE(ctx, e, A.honeyblob, false); }
+  };
+  // the worker bees Queen Bee sends: a line of them flying straight across
+  KINDS.beeline = {
+    w: 10, h: 8, enemy: true, stomp: true, fly: true,
+    update: function (e) { e.x += e.vx; e.y = e.y0 + Math.sin(e.t * 0.2) * 2; e.face = e.vx > 0 ? 1 : -1; if (e.t > 400) e.alive = false; },
+    draw: function (ctx, e) { drawE(ctx, e, frameOf(art('honeybee', 'bee'), Math.floor(e.t / 3)), e.face > 0); }
+  };
+  /* Queen Bee. On her honeycomb throne until the gate shuts behind Bonnie;
+     then she flies loops round the throne room, dripping honey (it makes
+     sticky puddles) and sending lines of worker bees across. Every so often
+     she swoops low after Bonnie — too low: her wings get stuck in her own
+     honey, and down she sits. That's the moment to stomp her. Three stomps,
+     and she's sorry, and gives back Bonnie's list. */
+  KINDS.queenbee = {
+    w: 24, h: 22, enemy: true, stomp: 'boss', tough: true, boss: true, stompWhen: function (e) { return e.st === 'stuck'; },
+    init: function (e) { e.hp = 6; e.st = 'sleep'; e.face = -1; e.hx = e.x; e.hy = e.y; e.t2 = 0; },
+    update: function (e) {
+      var p = G.p, ax0 = (e.sp.ax0 || 0) * T || e.hx - 110, ax1 = (e.sp.ax1 || 0) * T || e.hx + 40, mid = (ax0 + ax1) / 2, half = (ax1 - ax0) / 2 - 12;
+      if (e.hurtT) e.hurtT--;
+      if (e.st === 'sleep' || e.st === 'sorry') { if (e.st === 'sorry') { e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy)) e.vy = 0; } return; }
+      e.t2++;
+      if (e.st === 'fly') {
+        var t = e.t2 * 0.02 * SLOW, nx = mid + Math.sin(t) * half, ny = e.hy - 30 + Math.sin(t * 2) * 12;
+        e.face = nx > e.x ? 1 : -1; e.x += (nx - e.x) * 0.08; e.y += (ny - e.y) * 0.08;
+        var fast = e.hp <= 2;
+        if (e.t2 % (fast ? 56 : 72) === 30) { addEnt('honeyblob', e.x + e.w / 2 - 2, e.y + e.h, { vy: 0.3 }); sfx('pop'); }
+        if (e.t2 % 170 === 100) {
+          var from = p.x + p.w / 2 > mid ? ax0 - 8 : ax1 + 8, dir = from < mid ? 1 : -1, by = Math.min(G.gr * T - 14, p.y + 2);
+          for (var i = 0; i < (fast ? 3 : 2); i++) { var b = addEnt('beeline', from - dir * i * 22, by - (i % 2) * 6, { vx: dir * 1.05 * SLOW }); b.y0 = b.y; }
+          sfx('fire');
+        }
+        if (e.t2 > 360) {
+          e.st = 'dive'; e.t2 = 0; e.lx = Math.max(ax0, Math.min(ax1 - e.w, p.x - 6));
+          var fl = floorBelow(e.lx + e.w / 2, e.y + e.h, 220); e.ly = (fl === null ? G.gr * T : fl) - e.h;
+          sfx('roar');
+        }
+      } else if (e.st === 'dive') {
+        var dx = e.lx - e.x, dy = e.ly - e.y, d = Math.hypot(dx, dy) || 1, sp = 1.7 * SLOW;
+        if (d <= sp) {
+          e.x = e.lx; e.y = e.ly; e.st = 'stuck'; e.t2 = 0; G.shake = 8; sfx('splash');
+          var pd = addEnt('honey', e.x - 4, e.y + e.h - 4, { sp: { w: 4, row: (e.y + e.h) / T } }); pd.life = 160;
+          fx('text', e.x - 2, e.y - 10, { s: 'STUCK!', vy: -0.4, life: 50, col: '#ffd23e' });
+        } else { e.x += dx / d * sp; e.y += dy / d * sp; e.face = dx > 0 ? 1 : -1; }
+      } else if (e.st === 'stuck') {
+        e.face = towards(e);
+        if (e.t2 > 170) { e.st = 'rise'; e.t2 = 0; }
+      } else if (e.st === 'rise') {
+        e.y -= 1.2 * SLOW;
+        if (e.y <= e.hy - 30) { e.st = 'fly'; e.t2 = 0; }
+      }
+    },
+    draw: function (ctx, e) {
+      var Q = E.queenbee, s;
+      if (Q) s = e.hurtT && e.hurtT % 8 < 4 ? Q.hurt : e.st === 'sorry' ? Q.sorry : e.st === 'stuck' || e.st === 'sleep' ? Q.stuck && e.st === 'stuck' ? Q.stuck : Q.fly[0] : e.st === 'dive' ? Q.dive || Q.fly[0] : Q.fly[Math.floor(e.t / 4) % 2];
+      else s = E.captain ? E.captain.land : E.dragon.walk[0];
+      drawE(ctx, e, s, e.face > 0);
+      if (e.st === 'sleep' && !reduce && e.t % 80 < 50) BB.text(ctx, 'Z', snap(e.x + e.w - G.cam.x), snap(e.y - 8 - (e.t % 80) / 10 - G.cam.y), { color: '#ffffff', outline: '#2a1640' });
+      if (e.st === 'stuck' && !reduce) for (var i = 0; i < 3; i++) { var a = e.t * 0.12 + i * 2.1; BB.draw(ctx, A.starSmall, snap(e.x + e.w / 2 + Math.cos(a) * 11 - 3 - G.cam.x), snap(e.y - 5 + Math.sin(a) * 3 - G.cam.y)); }
+    }
+  };
+  // Bonnie's list, given back: it floats down from the throne, and when he catches it the land is saved
+  KINDS.listprize = {
+    w: 12, h: 14,
+    update: function (e) {
+      if (e.vy < 0.5) e.vy += 0.03;
+      if (!e.saved) { e.y += e.vy; if (boxSolid(e.x, e.y + e.h, e.w, 1)) e.vy = 0; e.x += Math.sin(e.t * 0.05) * 0.3; }
+      var p = G.p;
+      if (!e.saved && p.st === 'play' && overlap(p, e)) { e.saved = true; rescue(); }
+    },
+    draw: function (ctx, e) {
+      var s = A.wishlist;
+      if (!s) return;
+      if (!reduce) { ctx.globalAlpha = 0.35 + Math.sin(e.t * 0.1) * 0.15; BB.icons.disc(ctx, e.x + e.w / 2 - G.cam.x, e.y + e.h / 2 - G.cam.y, 11, '#ffe890'); ctx.globalAlpha = 1; }
+      BB.draw(ctx, s, snap(e.x + e.w / 2 - s.w / 2 - G.cam.x), snap(e.y + e.h - s.h - G.cam.y + (e.saved || reduce ? 0 : Math.round(Math.sin(e.t * 0.08)))));
+    }
+  };
+
+  /* ---- 39 · Jamaica: the waterfall ---------------------------------------------- */
+  // water tumbling over a rock edge (levels.js: { w, h } in tiles), drawn over the rock face — and over Bonnie, if he walks through it
+  KINDS.cascade = {
+    w: 8, h: 8, front: true,
+    init: function (e) { e.w = (e.sp.w || 4) * T; e.h = (e.sp.h || 6) * T; e.y = e.sp.row * T - e.h; },
+    update: function () {},
+    draw: function (ctx, e) {
+      var x0 = e.x - G.cam.x, y0 = e.y - G.cam.y, t = reduce ? 0 : G.tick;
+      if (x0 > BB.W || x0 + e.w < 0) return;
+      ctx.globalAlpha = 0.45; ctx.fillStyle = '#9ae4f4'; ctx.fillRect(snap(x0), snap(y0), e.w, e.h); ctx.globalAlpha = 1;
+      for (var x = 0; x < e.w; x += 2) {
+        var ph = (x * 7) % 13, len = 5 + (x * 3) % 6;
+        for (var y = ((t * 1.6 + ph * 3) % 14) - 14; y < e.h; y += 14) {
+          ctx.fillStyle = (x % 4) ? '#ffffff' : '#d8f8ff';
+          ctx.fillRect(snap(x0 + x), snap(y0 + Math.max(0, y)), 0.5, Math.max(0, Math.min(len, e.h - y)));
+        }
+      }
+      // foam at its foot
+      for (var k = 0; k < e.w; k += 3) BB.icons.disc(ctx, x0 + k + 1, y0 + e.h - 1 + Math.sin(t * 0.2 + k) * 0.6, 1.6, '#ffffff');
     }
   };
 
@@ -1309,7 +1919,7 @@
         var ph = ((G.tick * (reduce ? 0.2 : 0.9) + i * (h / 9)) % h) / h, py = y + h - ph * h, r = 2 + ph * 3.2;
         var px = x + e.w / 2 + Math.sin(ph * 7 + i * 1.7) * (1.5 + ph * 2);
         ctx.globalAlpha = 0.55 * (1 - ph * 0.8);
-        BB.icons.disc(ctx, px, py, r, '#ffffff');
+        BB.icons.disc(ctx, px, py, r, G.def.theme === 'chocolate' ? (i % 2 ? '#f0d8b8' : '#ffffff') : '#ffffff');
       }
       ctx.globalAlpha = 1;
     }
@@ -1509,7 +2119,7 @@
     draw: function (ctx, e) { drawE(ctx, e, E.fireball[(e.t >> 2) % 2], false, null, 0, 1); }
   };
   var bossHit = function (e, how) {
-    if (e.hurtT || e.st === 'dead' || e.st === 'sleep' || e.st === 'wait' || e.st === 'beaten') return false;
+    if (e.hurtT || e.st === 'dead' || e.st === 'sleep' || e.st === 'wait' || e.st === 'beaten' || e.st === 'sorry') return false;
     e.hp -= how === 'stomp' ? 2 : 1;
     e.hurtT = 70;
     sfx('roar');
@@ -1520,6 +2130,16 @@
       e.st = 'beaten'; e.enemy = false; e.vx = 0; G.bossDone = true;
       sfx('boom'); points(5000, e.x, e.y); BB.music('');
       addEnt('brocco', e.x + e.w / 2 - 6, e.y - 6, { vy: -3 });
+      return true;
+    }
+    if (e.k === 'queenbee') {
+      // after a stomp she's straight back up; the third, and she sits down, sorry
+      if (e.hp > 0) { e.st = 'rise'; e.t2 = 0; return true; }
+      e.st = 'sorry'; e.enemy = false; e.vy = 0; G.bossDone = true;
+      sfx('boom'); points(5000, e.x, e.y); BB.music('');
+      G.ents.forEach(function (q) { if (q.k === 'beeline' || q.k === 'honeyblob') q.alive = false; });
+      fx('text', e.x - 4, e.y - 12, { s: 'SORRY!', vy: -0.3, life: 90, col: '#ffe048' });
+      addEnt('listprize', e.x + e.w / 2 - 6, e.y - 30, { vy: -1.5 });
       return true;
     }
     if (e.k === 'captain') {
@@ -1568,12 +2188,19 @@
   } });
   KINDS.lolly.h = 15; KINDS.lolly.w = 11;
   KINDS.lolly.draw = function (ctx, e) { drawE(ctx, e, A.lolly, false); };
+  // Bonnie's bullet (his drawing): it hovers where it came out, bobbing, grinning
+  KINDS.rocket = itemKind({ vx: 0, step: function () {} });
+  KINDS.rocket.w = 10; KINDS.rocket.h = 7;
+  KINDS.rocket.draw = function (ctx, e) {
+    var s = A.rocket ? A.rocket[Math.floor(tick / 10) % 2] : A.superball[0];
+    drawE(ctx, e, s, true, null, 0, e.rise > 7 && !reduce ? Math.round(Math.sin(tick * 0.12)) : 0);
+  };
 
   var release = function (c, tx, ty) {
     var x = tx * T, y = ty * T, p = G.p;
     if (c === CT.COIN) { coinPop(x, y); return; }
     sfx('sprout');
-    var k = c === CT.POWER ? (p.power ? 'sball' : 'cupcake') : c === CT.STAR ? 'lolly' : 'heart';
+    var k = c === CT.POWER ? (p.power ? 'sball' : 'cupcake') : c === CT.STAR ? 'lolly' : c === CT.ROCKET ? 'rocket' : 'heart';
     var e = addEnt(k, x + (T - KINDS[k].w) / 2, y, {});
     e.dir = p.x + p.w / 2 < x + 4 ? 1 : -1;
     e.y0 = y; e.y = y;
@@ -1640,16 +2267,32 @@
      HP_MAX goes up again (2 a heart: they're kept in half-hearts). With
      one heart he's always full, so a heart from a present is points. */
   var HP_MAX = 2;
+  /* Bonnie's heart (20 Oct, his own idea: "a heart that gives you 1
+     extra heart"): a heart from a present adds a second heart for the
+     rest of the level — or fills it again if it's been lost. With two,
+     the three-heart rules above come back on their own: a bump costs one
+     and he carries on, a fall bubbles him back to safe ground. Back at a
+     flag after the last one goes, it's one heart again. */
+  var EXTRA_MAX = 4;
+  var extraHeart = function (x, y) {
+    if (G.hpMax >= EXTRA_MAX && G.hp >= G.hpMax) return false;
+    G.hpMax = EXTRA_MAX; G.hp = EXTRA_MAX; G.hpGlow = 50;
+    sfx('heal'); sfx('oneup');
+    fx('heart', x, y, { vx: 0, vy: -0.6, life: 46 });
+    fx('text', x - 4, y - 10, { s: 'YAY!', vy: -0.6, life: 50, col: '#ff94cc' });
+    return true;
+  };
   var heal = function (half, x, y) {
-    if (G.hp >= HP_MAX) return false;
-    G.hp = Math.min(HP_MAX, G.hp + half); G.hpGlow = 40;
+    if (G.hp >= G.hpMax) return false;
+    G.hp = Math.min(G.hpMax, G.hp + half); G.hpGlow = 40;
     sfx('heal');
     fx('heart', x, y, { vx: 0, vy: -0.6, life: 46 });
     return true;
   };
   var hurt = function () {
     var p = G.p;
-    if (p.inv || p.star || p.st !== 'play' || p.bubble) return;
+    if (p.inv || p.star || p.rocket || p.st !== 'play' || p.bubble) return;
+    if (p.mount) { dismount(p); return; }
     if (p.power > 0) {
       p.power = p.power === 2 ? 1 : 0; save.power = p.power;
       if (p.power === 0) { p.st = 'shrink'; p.t = 0; G.freeze = 40; }
@@ -1668,8 +2311,10 @@
   var fallOut = function () {
     var p = G.p;
     if (p.st !== 'play') return;
-    if (G.hp <= 2 || !G.safe) { G.hp = 0; die(); return; }
-    G.hp -= 2; G.hpGlow = 40;
+    if (p.mount && G.safe) p.mount = null;
+    else if (G.hp <= 2 || !G.safe) { G.hp = 0; die(); return; }
+    else { G.hp -= 2; G.hpGlow = 40; }
+    p.carry = null;
     p.x = G.safe.x; p.y = G.safe.y; p.vx = p.vy = p.rx = p.ry = 0; p.inv = INV; p.bubble = 40; p.on = null;
     // a surfboard he fell off is back at the shore for another go
     G.ents.forEach(function (e) { if (e.surf) { e.x = e.sx0; e.state = 'wait'; } });
@@ -1794,6 +2439,9 @@
     if (p.sq) p.sq = p.sq > 0 ? Math.max(0, p.sq - 1) : Math.min(0, p.sq + 1);
     p.dist = (p.dist || 0) + Math.abs(p.vx);
     if (p.bubble) { p.bubble--; p.vx = 0; p.vy = 0; return; }
+    if (p.rocket) { rocketStep(p); return; }
+    if (p.carry) { carryStep(p); return; }
+    if (p.sticky) p.sticky--;
     var dir = (BB.key('right') ? 1 : 0) - (BB.key('left') ? 1 : 0);
     var run = BB.key('b') || BB.touchRun;
     // crouching: big Bonnie only, on the ground
@@ -1827,6 +2475,8 @@
       /* on his bike: quicker than running without holding anything, slower
          to get going and to stop — he rolls on, the way a bike does */
       if (G.def.bike) { max = 2.6 * (run ? 1.1 : 1) * (p.star ? 1.12 : 1); acc = 0.06; dec = 0.035; skid = 0.09; }
+      // wading through honey: slow going
+      if (p.sticky) max *= 0.55;
       if (dir) {
         p.face = dir;
         if (p.ground) {
@@ -1844,9 +2494,9 @@
       if (p.buf && p.coy) {
         // jumping off a surfboard riding the waves, he keeps its speed (or he'd be left behind)
         p.ride = p.on && p.on.surf && p.on.state === 'go' ? p.on.speed : 0;
-        p.vy = -(JUMP + Math.abs(p.vx) * JUMP_RUN);
+        p.vy = -(JUMP + Math.abs(p.vx) * JUMP_RUN) * (p.mount === 'roo' ? 1.32 : 1) * (p.sticky ? 0.84 : 1);
         p.buf = 0; p.coy = 0; p.ground = false; p.on = null; p.sq = -7;
-        sfx(p.power ? 'bigjump' : 'jump');
+        sfx(p.mount ? 'boing' : p.power ? 'bigjump' : 'jump');
       }
       var g = p.vy < 0 && (held || p.holdT > 0) ? GRAV_HOLD : GRAV;
       if (p.holdT) p.holdT--;
@@ -1921,6 +2571,36 @@
     if (lavaTouch(p)) fallOut();
     if (p.y > G.h * T + 8) fallOut();
   };
+  /* Riding Bonnie's bullet (his own idea, like a karting game's): it
+     zooms the way he was facing, faster than he can run, knocking
+     baddies flying, for ROCKET_T frames. It flies level, rising by itself
+     over anything in its way (or when jump is held); it never ends over a
+     gap — it flies on until there's ground below — and then he drifts
+     down gently as it puffs away. */
+  var ROCKET_T = 170, ROCKET_V = 4.2;
+  var rocketStep = function (p) {
+    var f = p.face || 1;
+    p.rocket--; p.rocketX = (p.rocketX || 0) + 1; p.ground = false; p.on = null; p.coy = 0; p.crouch = false;
+    p.vx = f * ROCKET_V;
+    // rising over what's ahead: a wall, or the ground climbing
+    var ahead = boxSolid(p.x + f * 10, p.y, p.w, p.h) || boxSolid(p.x + f * 22, p.y + 2, p.w, p.h - 2);
+    var want = ahead ? -2.2 : (BB.key('a') || BB.key('up')) ? -1.4 : 0;
+    p.vy += (want - p.vy) * 0.25;
+    if (p.y < G.cam.y + 14 && p.vy < 0) p.vy = 0;
+    if (moveX(p, p.vx)) p.vx = 0;
+    playerMoveY(p, p.vy);
+    if (!reduce && p.rocketX % 2 === 0) fx('spark', p.x + p.w / 2 - f * 14, p.y + p.h + 3, { vx: -f * 1.2, vy: (p.rocketX % 4 - 1.5) * 0.3, life: 18, col: p.rocketX % 4 ? '#ffd23c' : '#ff7a2a' });
+    if (p.rocketX % 20 === 1) sfx('lift');
+    collectCoins(p);
+    // not over a gap: look for ground a few tiles below before letting go
+    if (!p.rocket) {
+      var gy = floorBelow(p.x + p.w / 2, p.y + p.h, 64);
+      if (gy === null && p.rocketX < ROCKET_T + 300 && p.x < G.w * T - 40) { p.rocket = 1; return; }
+      p.floaty = 70; p.vx = f * 1.2; p.vy = -1;
+      sfx('pop');
+      for (var i = 0; i < 6; i++) fx('puff', p.x + p.w / 2 - 3 + (i - 2.5) * 3, p.y + p.h + 2, { life: 20 });
+    }
+  };
   var collectCoins = function (p) {
     var tx0 = Math.floor(p.x / T), tx1 = Math.floor((p.x + p.w - 1) / T), ty0 = Math.floor(p.y / T), ty1 = Math.floor((p.y + p.h - 1) / T);
     for (var ty = ty0; ty <= ty1; ty++) for (var tx = tx0; tx <= tx1; tx++) {
@@ -1951,22 +2631,23 @@
         e.alive = false;
         if (e.k === 'cupcake') power(Math.max(1, p.power === 2 ? 2 : 1));
         else if (e.k === 'sball') power(2);
-        else if (e.k === 'heart') { if (!heal(2, e.x, e.y - 4)) oneUp(e.x, e.y); else fx('text', e.x - 4, e.y - 10, { s: 'YAY!', vy: -0.6, life: 50, col: '#ff94cc' }); }
+        else if (e.k === 'heart') { if (!extraHeart(e.x, e.y - 4)) oneUp(e.x, e.y); }
         else if (e.k === 'lolly') { p.star = STAR_T; BB.music('star'); sfx('power'); points(1000, e.x, e.y); }
+        else if (e.k === 'rocket') { p.rocket = ROCKET_T; p.rocketX = 0; p.lift = 0; p.floaty = 0; p.on = null; p.vy = 0; sfx('power'); sfx('lift'); points(1000, e.x, e.y); }
         continue;
       }
       if (!e.enemy || !overlap(box, e)) continue;
       if (K.solidish) {
         // a rock can be stood on; only its sides and underside hurt
         if (p.vy >= 0 && p.y + p.h - p.vy <= e.y + 3) continue;
-        if (!p.star) hurt();
+        if (!p.star && !p.rocket) hurt();
         continue;
       }
       // the rainbow knocks baddies flying — but never a boss out of the
       // level (then nothing would open the cage or the sack): to a boss
       // it's one hit, like a thrown ball
-      if (p.star && !K.shot && K.stomp === 'boss') { bossHit(e, 'ball'); continue; }
-      if (p.star && !K.shot) {
+      if ((p.star || p.rocket) && !K.shot && K.stomp === 'boss') { bossHit(e, 'ball'); continue; }
+      if ((p.star || p.rocket) && !K.shot) {
         flip(e, p.vx >= 0 ? 1 : -1); p.combo++;
         points(COMBO[Math.min(p.combo - 1, 7)], e.x, e.y);
         continue;
@@ -1993,6 +2674,7 @@
         if (fromAbove) bounce(p);
         continue;
       }
+      if (K.stomp === 'bounce') { if (fromAbove) { bounce(p); sfx('boing'); } else if (!p.star) hurt(); continue; }
       if (fromAbove && K.stomp) {
         p.combo++;
         var sc = COMBO[Math.min(p.combo - 1, 7)];
@@ -2071,7 +2753,7 @@
       p.anim += 0.15;
       var house = null;
       G.ents.forEach(function (q) { if (q.k === 'house') house = q; });
-      if (house && p.x + p.w / 2 >= house.x + 20) { p.st = 'in'; p.t = 0; house.flag = 1; if (G.n > 20) sfx('toot'); }
+      if (house && p.x + p.w / 2 >= house.x + 20) { p.st = 'in'; p.t = 0; house.flag = 1; if (G.n > 35) sfx('lift'); else if (G.n > 20) sfx('toot'); }
     } else if (p.st === 'in') {
       G.ents.forEach(function (q) { if (q.k === 'house' && q.flag < 14) q.flag += 0.3; });
       // fireworks over the house
@@ -2091,7 +2773,7 @@
         /* the last level of the holiday: the car's on the ferry at
            Saint-Malo, and that's the end of the story — home time */
         if (G.n === LAND_LAST[3]) {
-          save.won4 = true; endLand = 4; store();
+          save.won4 = true; endLand = 4; save.unlocked = Math.max(save.unlocked, 36); store();
           wipeTo(function () { go('ending'); BB.music('ending'); });
           return;
         }
@@ -2120,6 +2802,7 @@
     if (n === 10) { save.won = true; save.unlocked = Math.max(save.unlocked, 11); }
     if (n === 20) { save.won2 = true; save.unlocked = Math.max(save.unlocked, 21); }
     if (n === 30) { save.won3 = true; save.unlocked = Math.max(save.unlocked, 31); }
+    if (n === 45) save.won5 = true;
     endLand = landOf(n);
     store();
   };
@@ -2235,7 +2918,7 @@
     if (p.st === 'dead') return;
     if (!last || Math.abs(last.x - x) > 0.05 || Math.abs(last.y - y) > 0.05) tr.push({ x: x, y: y });
     else tr.push(last);
-    if (tr.length > 60) tr.shift();
+    if (tr.length > 120) tr.shift();
   };
   var updateEnts = function () {
     var cx = G.cam.x, cy = G.cam.y, W = BB.W;
@@ -2248,7 +2931,7 @@
       // is that close, so it can't walk into a lesson while it's being read
       if (e.sp.wait && !e.woke) { if (Math.abs(G.p.x - e.x) > e.sp.wait) continue; e.woke = true; }
       // (bosses, and the Captain's eggs, keep going off screen: the fight goes on wherever the camera is)
-      if (!inView && e.enemy && !e.dying && !e.K.boss && !e.K.shot) {
+      if (!inView && e.enemy && !e.dying && !e.K.boss && !e.K.keep && !e.K.shot) {
         // things that wander far off screen are gone (a shell, a swooping bat)
         if (e.vx && Math.abs(e.x - (cx + W / 2)) > W * 1.5) e.alive = false;
         continue;
@@ -2346,6 +3029,14 @@
   /* Drawn over everyone: water (Bonnie's in it, not in front of it) and
      secret walls (they hide what's inside them — until he steps in, when
      that wall goes see-through). */
+  // water's colour: the sea, a chocolate river, a honey pool [body, ripple, under the ripple]
+  var WATER_COL = {
+    sea: ['rgba(70,160,235,0.42)', 'rgba(220,248,255,0.85)', 'rgba(160,220,255,0.35)'],
+    chocolate: ['rgba(110,56,24,0.78)', 'rgba(200,140,90,0.9)', 'rgba(160,96,52,0.5)'],
+    beeland: ['rgba(240,160,24,0.6)', 'rgba(255,236,150,0.9)', 'rgba(255,200,80,0.45)'],
+    jamaica: ['rgba(40,200,210,0.45)', 'rgba(230,255,255,0.9)', 'rgba(150,240,240,0.4)'],
+    antarctica: ['rgba(40,90,170,0.5)', 'rgba(230,246,255,0.9)', 'rgba(150,200,240,0.35)']
+  };
   var drawOverlay = function (ctx) {
     var c = G.cam, W = BB.W, g = G.gfx;
     var x0 = Math.max(0, Math.floor(c.x / T) - 1), x1 = Math.min(G.w - 1, Math.floor((c.x + W) / T) + 1);
@@ -2355,11 +3046,12 @@
       if (t !== TL.SECRET && t !== TL.SECRETH && t !== TL.WATER) continue;
       var x = tx * T - snap(c.x), y = ty * T - snap(c.y);
       if (t === TL.WATER) {
-        ctx.fillStyle = 'rgba(70,160,235,0.42)'; ctx.fillRect(x, y, T, T);
+        var WC = WATER_COL[G.def.theme] || WATER_COL.sea;
+        ctx.fillStyle = WC[0]; ctx.fillRect(x, y, T, T);
         if (tileAt(tx, ty - 1) !== TL.WATER) {
           // the surface, rippling
-          for (var k = 0; k < T; k += 1) { var wy = Math.sin((tx * T + k) * 0.35 + G.tick * (reduce ? 0 : 0.12)) * 0.6; ctx.fillStyle = 'rgba(220,248,255,0.85)'; ctx.fillRect(x + k, snap(y + wy), 1, 0.5); }
-          ctx.fillStyle = 'rgba(160,220,255,0.35)'; ctx.fillRect(x, y + 1, T, 1.5);
+          for (var k = 0; k < T; k += 1) { var wy = Math.sin((tx * T + k) * 0.35 + G.tick * (reduce ? 0 : 0.12)) * 0.6; ctx.fillStyle = WC[1]; ctx.fillRect(x + k, snap(y + wy), 1, 0.5); }
+          ctx.fillStyle = WC[2]; ctx.fillRect(x, y + 1, T, 1.5);
         }
         continue;
       }
@@ -2368,6 +3060,14 @@
       if (t === TL.SECRET) groundTile(ctx, g, tx, ty, x, y, i); else BB.draw(ctx, g.hard, x, y);
       ctx.globalAlpha = 1; G.overlayA = 1;
     }
+  };
+  var PAINT_OF = {};
+  PAINT_OF[TL.PAINTR] = 'r'; PAINT_OF[TL.PAINTY] = 'y'; PAINT_OF[TL.PAINTB] = 'b';
+  var drawPaint = function (ctx, t, x, y) {
+    var c = PAINT_OF[t], on = G.paint === c, pb = A.paintblock && A.paintblock[c];
+    if (pb) { BB.draw(ctx, pb[on ? 0 : 1], x, y); return; }
+    var col = { r: '#f24848', y: '#ffd23e', b: '#3a7af4' }[c];
+    ctx.fillStyle = col; if (on) ctx.fillRect(x, y, T, T); else for (var k = 0; k < T; k += 2) { ctx.fillRect(x + k, y, 1, 0.5); ctx.fillRect(x + k, y + T - 0.5, 1, 0.5); ctx.fillRect(x, y + k, 0.5, 1); ctx.fillRect(x + T - 0.5, y + k, 0.5, 1); }
   };
   var drawTiles = function (ctx) {
     var c = G.cam, W = BB.W, g = G.gfx;
@@ -2396,6 +3096,7 @@
           case TL.SPIKE: BB.draw(ctx, A.spikes, x, y); break;
           case TL.LAVA: drawLava(ctx, tx, ty, x, y); break;
           case TL.CONVL: case TL.CONVR: drawBelt(ctx, x, y, t === TL.CONVR ? 1 : -1); break;
+          case TL.PAINTR: case TL.PAINTY: case TL.PAINTB: drawPaint(ctx, t, x, y); break;
           case TL.HIDDEN: if (BB.debug) { ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.strokeRect(x + 0.5, y + 0.5, 7, 7); } break;
         }
       }
@@ -2580,8 +3281,8 @@
     // they wave as he comes into view, and cheer when he's home; then they're in the car too
     if (inside && e.flag > 6) return;
     var close = Math.abs(p.x - e.x) < 130, t = G.tick;
-    [['lucy', 0], ['luke', 15]].forEach(function (who, i) {
-      var c = F[who[0]];
+    [[others()[0], 0], [others()[1], 15]].forEach(function (who, i) {
+      var c = cameo(who[0]);
       if (!c) return;
       var f = inside ? c.cheer : close ? c.wave[Math.floor(t / 12 + i) % 2] : (t + i * 50) % 220 < 8 ? c.blink || c.idle : c.idle;
       // standing beside the front of the car (Bonnie gets in at the back door)
@@ -2590,7 +3291,48 @@
       BB.draw(ctx, f, snap(fx2 - G.cam.x), snap(base - f.h - (inside && !reduce ? Math.abs(Math.sin(t * 0.15 + i)) * 2 : 0)), true);
     });
   };
+  /* One Day… (36–45): the giant paper aeroplane Bonnie folded from a
+     sheet of his drawing paper, waiting at the end of each level to fly
+     him on to the next wish. Monsty and Brocco are aboard already; the two
+     family members who aren't playing wave him in, and climb on too. Once
+     everyone's on, it lifts off. */
+  var paperPlane = function (ctx, x0, base, bob, lift, t) {
+    var INKC = '#2a2440';
+    // its two wings (the far one darker), the body's fold, a crayon star on the side
+    var tri = function (pts, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(snap(x0 + pts[0][0]), snap(base + bob + pts[0][1])); for (var i = 1; i < pts.length; i++) ctx.lineTo(snap(x0 + pts[i][0]), snap(base + bob + pts[i][1])); ctx.closePath(); ctx.fill(); };
+    var out = function (pts) { ctx.strokeStyle = INKC; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(snap(x0 + pts[0][0]) + 0.25, snap(base + bob + pts[0][1]) + 0.25); for (var i = 1; i < pts.length; i++) ctx.lineTo(snap(x0 + pts[i][0]) + 0.25, snap(base + bob + pts[i][1]) + 0.25); ctx.closePath(); ctx.stroke(); };
+    var far = [[4, -20], [72, -9], [22, -14]], body = [[2, -9], [72, -9], [8, -1]], near = [[0, -26], [72, -9], [14, -10]];
+    out(far); tri(far, '#d8d4e4');
+    // the passengers: Monsty and Brocco, peeking over the fold
+    var F = A.family || {};
+    if (A.monsty) BB.draw(ctx, A.monsty, snap(x0 + 24), snap(base + bob - 13 - A.monsty.h + 6));
+    if (F.brocco) { var bs = F.brocco.happy || F.brocco.idle; BB.draw(ctx, bs, snap(x0 + 36), snap(base + bob - 12 - bs.h + 6)); }
+    out(body); tri(body, '#ece8f4');
+    out(near); tri(near, '#ffffff');
+    // crayon lines on the paper, and the star
+    ctx.fillStyle = 'rgba(120,150,230,0.5)';
+    for (var k = 0; k < 4; k++) ctx.fillRect(snap(x0 + 14 + k * 10), snap(base + bob - 20 + k * 2.6), 7, 0.5);
+    BB.draw(ctx, A.starSmall, snap(x0 + 40), snap(base + bob - 17));
+    if (lift && !reduce) for (var j = 0; j < 3; j++) { ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(snap(x0 - 6 - j * 5 - (t % 10)), snap(base + bob - 12 + j * 3), 4, 0.5); }
+  };
+  var drawPlane = function (ctx, e) {
+    var x0 = e.x - 14 - G.cam.x, lift = Math.max(0, Math.min(36, (e.flag - 6) * 4)), base = e.y + 40 - G.cam.y - lift, t = G.tick;
+    if (x0 > BB.W + 8 || x0 + 90 < 0) return;
+    if (!lift) shadowUnder(ctx, e.x + 18, e.y + 40, 54);
+    paperPlane(ctx, x0, base, reduce || !lift ? 0 : Math.sin(t * 0.1), lift, t);
+    if (e.flag > 6) return;
+    var close = Math.abs(G.p.x - e.x) < 130, inside = e.flag > 0;
+    [[others()[0], 0], [others()[1], 16]].forEach(function (who, i) {
+      var c = cameo(who[0]);
+      if (!c) return;
+      var f = inside ? c.cheer : close ? c.wave[Math.floor(t / 12 + i) % 2] : (t + i * 50) % 220 < 8 ? c.blink || c.idle : c.idle;
+      var fx2 = e.x + 50 + who[1];
+      shadowUnder(ctx, fx2 + f.w / 2, e.y + 40, f.w - 6);
+      BB.draw(ctx, f, snap(fx2 - G.cam.x), snap(e.y + 40 - G.cam.y - f.h - (inside && !reduce ? Math.abs(Math.sin(t * 0.15 + i)) * 2 : 0)), true);
+    });
+  };
   var drawHouse = function (ctx, e) {
+    if (G.n > 35) { drawPlane(ctx, e); return; }
     if (G.n > 20 && A.family && A.family.yeti) { drawCar(ctx, e); return; }
     if (G.n > 10) { drawTent(ctx, e); return; }
     var x = snap(e.x - G.cam.x), y = snap(e.y - G.cam.y);
@@ -2641,9 +3383,13 @@
     else if (p.waveT > 20) f = set.cheer;
     else f = !reduce && G.tick % 200 < 7 ? set.blink : set.idle;
     // riding his bike, or crouched on a surfboard
-    var Fm = A.family || {}, bk = G.def.bike && Fm.bike && Fm.bike[big ? 'b' : 's'], sf = p.on && p.on.surf && Fm.surf && Fm.surf[big ? 'b' : 's'];
+    var Fm = A.family || {}, bset = Fm.bikeFor ? Fm.bikeFor(who()) : Fm.bike, sset = Fm.surfFor ? Fm.surfFor(who()) : Fm.surf;
+    var bk = G.def.bike && bset && bset[big ? 'b' : 's'], sf = p.on && p.on.surf && sset && sset[big ? 'b' : 's'];
     if (bk && p.st !== 'dead') f = !p.ground ? bk.air : p.st === 'cheer' || (p.st === 'arch' && p.ground) ? bk.cheer : bk.ride[Math.floor(p.dist / 7) % bk.ride.length];
     else if (sf && p.st === 'play') f = sf.ride;
+    if (p.rocket && p.st === 'play') f = set.cheer;
+    // hanging from a pterodactyl's feet: arms up
+    if (p.carry && p.st === 'play') f = set.jump;
     var flip = p.face < 0 && p.st !== 'dead';
     var v = p.star ? A.bonnie.rainbow[(G.tick >> (p.star < STAR_WARN ? 3 : 2)) % 4] : (p.power === 2 && big ? A.bonnie.red : outfit().v);
     if (G.flash && (G.flash >> 2) % 2) v = A.bonnie.rainbow[2];
@@ -2662,7 +3408,20 @@
       sx = snap(on.x - G.cam.x) + snap(p.x + (p.rx || 0) + p.w / 2 - fw / 2 - on.x);
       sy = snap(snap(on.y - G.cam.y) - fh);
     }
-    if (p.st !== 'dead') shadowUnder(ctx, p.x + p.w / 2, p.y + p.h, 13);
+    if (p.st !== 'dead' && !p.carry) shadowUnder(ctx, p.x + p.w / 2, p.y + p.h, 13);
+    /* riding a kangaroo: it does the hopping, the rider sits up on its back
+       (arms up, when it's in the air) — a head in its pouch looked lost
+       next to Bonnie's big cartoon head */
+    if (p.mount === 'roo' && p.st !== 'dead' && E.kangaroo) {
+      var Kr = E.kangaroo, kf = !p.ground ? Kr.hop[1] : Math.abs(p.vx) > 0.15 ? Kr.hop[Math.floor(p.dist / 9) % 2] : Kr.sit;
+      var kx = snap(p.x + p.w / 2 - kf.w / 2 - G.cam.x), ky = snap(p.y + p.h - kf.h - G.cam.y), kflip = p.face > 0;
+      if (p.inv && !reduce && (p.inv >> 2) % 2) return;
+      BB.draw(ctx, kf, kx, ky, kflip);
+      var rf = !p.ground ? set.cheer : set.idle, back = kflip ? -3 : 3;
+      BB.draw(ctx, rf, snap(kx + kf.w / 2 - rf.w / 2 + back), snap(ky + 9 - rf.h), flip, v);
+      drawHat(ctx, outfit().hat, snap(kx + kf.w / 2 - rf.w / 2 + back), snap(ky + 9 - rf.h), rf.w, rf.h, rf, flip);
+      return;
+    }
     if (p.bubble) {
       var bcx = p.x + p.w / 2 - G.cam.x, bcy = p.y + p.h / 2 - G.cam.y - (reduce ? 0 : Math.sin(p.bubble * 0.2)), br = Math.max(p.w, p.h) * 0.75;
       ctx.globalAlpha = 0.25; ctx.fillStyle = '#c8f4ff'; ctx.beginPath(); ctx.arc(bcx, bcy, br, 0, Math.PI * 2); ctx.fill();
@@ -2670,6 +3429,14 @@
       ctx.fillStyle = '#ffffff'; ctx.fillRect(snap(bcx - br * 0.55), snap(bcy - br * 0.6), 1.5, 1); ctx.globalAlpha = 1;
     }
     if (outfit().cape && p.st !== 'dead') drawCape(ctx, sx + fw / 2 + (flip ? 1 : -1), sy + fh * 0.36, fh, flip ? -1 : 1, p.vx, G.tick);
+    // surfing Bonnie's bullet: it's under his feet, its nose the way he's going
+    if (p.rocket && p.st === 'play') {
+      var rk = A.rocketRide ? A.rocketRide[Math.floor(G.tick / 4) % 2] : null;
+      if (rk) {
+        var seat = rk.seat || [rk.w, 4], seatX = p.face > 0 ? rk.w - seat[0] / BB.R : seat[0] / BB.R, wob = reduce ? 0 : Math.round(Math.sin(G.tick * 0.3));
+        BB.draw(ctx, rk, snap(p.x + p.w / 2 - seatX - G.cam.x), snap(p.y + p.h - seat[1] / BB.R - G.cam.y + wob), p.face > 0);
+      }
+    }
     ctx.drawImage(BB.canvasOf(f, flip, v), sx, sy, fw, fh);
     // the light he is standing in catches his edge
     if (G.light) BB.catchLight(ctx, f, sx, sy, flip, v, G.light.at(p.x + p.w / 2, p.y + p.h * 0.4), fw, fh);
@@ -2767,6 +3534,7 @@
     G.deco.forEach(function (d) {
       var s = A.deco[d.name];
       if (Array.isArray(s)) s = s[reduce ? 0 : Math.floor((G.tick + d.x) / 20) % s.length];
+      if (!s) return;
       var x = snap(d.x - c.x), y = snap(d.row * T - s.h - c.y);
       if (x > W || x + s.w < 0) return;
       BB.draw(ctx, s, x, y);
@@ -2780,10 +3548,11 @@
     drawTiles(ctx);
     drawGrowth(ctx);
     drawBlooms(ctx);
-    G.ents.forEach(function (e) { if (e.alive && e.active && !e.K.item && !e.K.behind && !e.enemy && e.K.draw) e.K.draw(ctx, e); });
+    G.ents.forEach(function (e) { if (e.alive && e.active && !e.K.item && !e.K.behind && !e.K.front && !e.enemy && e.K.draw) e.K.draw(ctx, e); });
     G.ents.forEach(function (e) { if (e.alive && e.active && e.K.item && !(e.rise < e.h + 1)) e.K.draw(ctx, e); });
     G.ents.forEach(function (e) { if (e.alive && e.active && e.enemy && !e.K.behind) e.K.draw(ctx, e); });
     drawPlayer(ctx);
+    G.ents.forEach(function (e) { if (e.alive && e.active && e.K.front) e.K.draw(ctx, e); });
     drawOverlay(ctx);
     drawFx(ctx);
     ambient(ctx);
@@ -2805,7 +3574,8 @@
   var LEVEL_COL = ['#46a83e', '#5cb43a', '#e89a28', '#22a8bc', '#8450d0', '#8a6ac0', '#4a96dc', '#e86aa4', '#e07a28', '#d03848',
     '#e8704a', '#e86aa4', '#3a9ae0', '#3a9a48', '#2a9aa0', '#1e7a94', '#d8a028', '#7458c8', '#b07830', '#c8503a',
     '#3a8ad8', '#e0a020', '#e86a4a', '#c88a40', '#d8a818', '#6a7aa8', '#3a9a70', '#9a6a48', '#e868a8', '#6a48c8',
-    '#2aa8e0', '#2a7ad0', '#4aa844', '#b84a3a', '#4a6a96'];
+    '#2aa8e0', '#2a7ad0', '#4aa844', '#b84a3a', '#4a6a96',
+    '#e8343c', '#3a6ae0', '#d8a028', '#2aa860', '#5a9ad8', '#d8642a', '#a85ae8', '#8a5230', '#5a9a3a', '#e0a010'];
   BB.hud = { pause: null };
   // a heart for the HUD: full, half or empty (fill 2, 1, 0)
   var heartIcon = function (ctx, x, y, fill, glow) {
@@ -2835,7 +3605,7 @@
     var W = BB.W, o = { color: '#ffffff', outline: HUDINK };
     /* the hearts; the last one left beats gently (but not a lone heart:
        it would beat all the time and stop meaning anything) */
-    var hearts = HP_MAX / 2, hx = 3 + hearts * 9 + 1;
+    var hearts = (G.hpMax || HP_MAX) / 2, hx = 3 + hearts * 9 + 1;
     for (var hi = 0; hi < hearts; hi++) {
       var f = Math.max(0, Math.min(2, G.hp - hi * 2)), beat = hearts > 1 && G.hp <= 2 && f && !reduce ? (Math.floor(tick / 16) % 2 ? -0.5 : 0) : 0;
       heartIcon(ctx, 3 + hi * 9, 3 + beat, f, G.hpGlow > 0 && G.hpGlow % 10 < 5);
@@ -2956,7 +3726,7 @@
     var won = save.won;
     save = fresh();
     save.won = won;
-    if (/[?&]debug\b/.test(qs)) { save.unlocked = BB.LEVELS.length; save.won = true; save.won2 = true; save.won3 = true; }
+    if (/[?&]debug\b/.test(qs)) { save.unlocked = BB.LEVELS.length; save.won = true; save.won2 = true; save.won3 = true; save.won4 = true; }
     store();
     wipeTo(function () { go('story'); });  // …which goes straight on into Level 1
   };
@@ -3186,6 +3956,75 @@
     }
   };
 
+  /* ---- the fifth story: Bonnie's One Day list ---------------------------------
+     Home again, a starry night. Bonnie holds up the list he's written with
+     Mum and Dad — ONE DAY I WILL… — glowing gold. Bzzz: two of Queen Bee's
+     bees zoom in, think it's the sweetest thing in the world, and carry it
+     off; as they go, his wishes flutter out of it, all over the sky. So he
+     folds a giant paper aeroplane, and off he flies with Monsty, Bear and
+     Brocco to get them back. */
+  var updateStory5 = function () {
+    sceneT++;
+    if (sceneT === 90 || sceneT === 104) sfx('fire');
+    if (sceneT === 280) sfx('lift');
+    if (wipe) return;
+    if ((sceneT > 20 && (BB.hit('a') || BB.hit('start') || BB.tap)) || sceneT > 380) {
+      save.seenStory5 = true; save.at = 36; save.unlocked = Math.max(save.unlocked, 36); store(); sfx('start'); cardCheck = false; bearWith = 0;
+      wipeTo(function () { go('card'); });
+    }
+  };
+  var story5Bg = null;
+  var drawStory5 = function (ctx) {
+    var W = BB.W, t = reduce ? 300 : sceneT, gy = 128, mid = Math.round(W / 2), F = A.family || {};
+    if (!story5Bg) story5Bg = BB.backdrop('moon', A.themes.moon);
+    BB.drawBackdrop(ctx, story5Bg, 0, 0, H);
+    var g = theme('hills');
+    for (var x = 0; x < W; x += 8) { BB.draw(ctx, g.top[(x >> 3) & 1], x, gy); BB.draw(ctx, g.fill[(x >> 3) & 1], x, gy + 8); }
+    var S = A.bonnie.s, bxp = mid - 30, flying = t >= 270, fk = flying ? Math.min(1, (t - 270) / 100) : 0;
+    // the list: held up, glowing — until the bees come for it
+    var lx = bxp + 16, ly = gy - S.cheer.h - 10, grab = 104, gone = t > grab;
+    if (gone) { var gk = Math.min(1, (t - grab) / 90); lx += (W + 30 - lx) * gk * gk; ly += (-30 - ly) * gk; }
+    var wl = A.wishlist;
+    if (wl && (!gone || lx < W + 20)) {
+      if (!reduce) { ctx.globalAlpha = 0.3 + Math.sin(t * 0.1) * 0.12; BB.icons.disc(ctx, lx + wl.w / 2, ly + wl.h / 2, 13, '#ffe890'); ctx.globalAlpha = 1; }
+      BB.draw(ctx, wl, snap(lx), snap(ly));
+    }
+    // the bees: in from the right, and away with it
+    var bee = art('honeybee', 'bee');
+    if (t > 70 && t < 220) [0, 1].forEach(function (i) {
+      var bxk = t < grab ? Math.min(1, (t - 70) / 34) : 1, ax = W + 10 - (W + 10 - (bxp + 12 + i * 12)) * bxk, ay = gy - 64 + i * 6;
+      if (gone) { ax = lx - 4 + i * 14; ay = ly - 8 + i * 4; }
+      BB.draw(ctx, frameOf(bee, Math.floor(t / 3)), snap(ax), snap(ay + Math.sin(t * 0.3 + i) * 1.5), !gone);
+    });
+    // his wishes, fluttering out over the sky as the list goes
+    if (gone && A.wish) for (var w = 0; w < 10; w++) {
+      var wt = t - grab - 10 - w * 8;
+      if (wt < 0) continue;
+      var sx = lx - (gone ? 0 : 0), wx = W * (0.08 + (w * 0.37) % 0.86), wy = 20 + (w * 23) % 60, wk2 = Math.min(1, wt / 70);
+      var px = (W - 20) + (wx - (W - 20)) * wk2, py = 40 + (wy - 40) * wk2 + Math.sin(t * 0.06 + w) * 2;
+      if (flying) { px -= (t - 270) * 0.6; }
+      BB.draw(ctx, A.wish[Math.floor(t / 8 + w) % 4], snap(px - 4), snap(py - 4));
+    }
+    // Bonnie, Monsty and Bear: then into the paper aeroplane, and away
+    if (!flying) {
+      var bf = t < 70 ? S.cheer : t < grab + 20 ? S.idle : S.jump;
+      BB.draw(ctx, bf, bxp, gy - bf.h - (t > grab && t < grab + 40 && !reduce ? Math.abs(Math.sin(t * 0.2)) * 4 : 0));
+      BB.draw(ctx, A.monsty, bxp - 18, gy - A.monsty.h);
+      var bs = E.bear.sit[Math.floor(t / 24) % 2]; BB.draw(ctx, bs, bxp + 26, gy - bs.h, true);
+      if (t > 200) paperPlane(ctx, mid + 14, gy, 0, 0, t);
+    } else {
+      var px0 = mid + 14 - 30 * fk + (W + 100) * fk * fk, base = gy - 50 * fk;
+      paperPlane(ctx, px0, base, reduce ? 0 : Math.sin(t * 0.1), 1, t);
+      BB.draw(ctx, S.cheer, snap(px0 + 50), snap(base - 12 - S.cheer.h + 6));
+      BB.draw(ctx, E.bear.sit[0], snap(px0 + 8), snap(base - 10 - E.bear.sit[0].h + 4), true);
+    }
+    var say = function (a, b) { if (a) BB.text(ctx, a, W / 2, 22, { color: '#ffffff', outline: dark, align: 'center' }); if (b) BB.text(ctx, b, W / 2, 34, { color: '#ffe048', outline: dark, align: 'center', scale: 2 }); };
+    if (t > 12 && t < 92) say('ONE DAY I WILL...', 'MY BIG LIST!');
+    else if (t >= 104 && t < 190) say('BZZZ! THE BEES!', 'OH NO!');
+    else if (t >= 190 && t < 270) say('MY WISHES!', '');
+    else if (t >= 280) say("LET'S GET THEM BACK!", '');
+  };
+
   var updateStory2 = function () {
     sceneT++;
     if (wipe) return;
@@ -3237,14 +4076,14 @@
   var mapX = 0, mapY = 0, mapCam = 0, mapWalk = null, mapFace = 1, mapGoal = 0;
   var nodePos = function (i) { return BB.Map.node(i); };
   // each island has its own calm tune; it changes as the boat lands
-  var mapSong = function () { return ['map', 'map2', 'map3', 'map4'][landOf(save.at) - 1]; };
+  var mapSong = function () { return ['map', 'map2', 'map3', 'map4', 'map5'][landOf(save.at) - 1]; };
   var mapEnter = function (walkFrom) {
     // (the second island is only on the map once the first land is won)
-    var at = Math.max(1, Math.min(Math.min(save.won3 ? 35 : save.won2 ? 30 : save.won ? 20 : 10, save.unlocked), save.at || 1));
+    var at = Math.max(1, Math.min(Math.min(save.won4 ? 45 : save.won3 ? 35 : save.won2 ? 30 : save.won ? 20 : 10, save.unlocked), save.at || 1));
     save.at = at;
     var p = nodePos(at - 1); mapX = p.x; mapY = p.y; mapGoal = 0; mapWalk = null;
     if (walkFrom && walkFrom !== at) { var q = nodePos(walkFrom - 1); mapX = q.x; mapY = q.y; mapWalk = { from: walkFrom, to: at, t: 0 }; mapFace = at > walkFrom ? 1 : -1; }
-    mapCam = Math.max(0, Math.min(BB.Map.widthFor(save.won, save.won2, save.won3) - BB.W, mapX - BB.W / 2));
+    mapCam = Math.max(0, Math.min(BB.Map.widthFor(save.won, save.won2, save.won3, save.won4) - BB.W, mapX - BB.W / 2));
     BB.music(mapSong());
   };
   // how many stars a level holds (stars, star blocks, and the bricks that pay out eight)
@@ -3270,6 +4109,7 @@
     if (save.at === 11 && !save.seenStory2) { wipeTo(function () { go('story2'); BB.music('map2'); }); return; }
     if (save.at === 21 && !save.seenStory3) { wipeTo(function () { go('story3'); BB.music('map3'); }); return; }
     if (save.at === 31 && !save.seenStory4) { wipeTo(function () { go('story4'); BB.music('map4'); }); return; }
+    if (save.at === 36 && !save.seenStory5) { wipeTo(function () { go('story5'); BB.music('map5'); }); return; }
     var np = nodePos(save.at - 1);
     wipeTo(function () { go('card'); }, np.x - mapCam, np.y);
   };
@@ -3306,13 +4146,13 @@
       else if ((BB.hit('a') || BB.hit('start')) && sceneT > 10) playLevel();
       else if (BB.hit('select')) wipeTo(function () { go('title'); BB.music(TITLE_SONG); });
     }
-    var target = Math.max(0, Math.min(BB.Map.widthFor(save.won, save.won2, save.won3) - BB.W, mapX - BB.W / 2));
+    var target = Math.max(0, Math.min(BB.Map.widthFor(save.won, save.won2, save.won3, save.won4) - BB.W, mapX - BB.W / 2));
     mapCam += (target - mapCam) * 0.1;
   };
   var drawMap = function (ctx) {
     var W = BB.W, def = BB.LEVELS[save.at - 1], n = save.at;
     BB.Map.draw(ctx, {
-      t: sceneT, reduce: reduce, camX: mapCam, at: n, unlocked: save.unlocked, cleared: save.cleared, won: save.won, won2: save.won2, won3: save.won3,
+      t: sceneT, reduce: reduce, camX: mapCam, at: n, unlocked: save.unlocked, cleared: save.cleared, won: save.won, won2: save.won2, won3: save.won3, won4: save.won4,
       bonnie: { x: mapX, y: mapY }, walking: !!mapWalk, facing: mapFace, power: save.power, v: outfit().v, hat: outfit().hat, set: outfitSet(save.power === 2 ? null : outfit(), false)
     });
     // the world's name on a ribbon in its colour, and a paper tag under it
@@ -3449,6 +4289,13 @@
     falcon: function () { return frameOf(art('falcon', 'gull'), 0); }, corsair: function () { return frameOf(art('corsair', 'grumbug'), 0); }
   };
   var STICKER_ORDER = Object.keys(STICKERS);
+  // the fifth land's creatures (Bonnie's own among them) have a page of their own
+  var STICKERS5 = {};
+  ['squirrel', 'choc', 'palmtree', 'butterfly', 'xmastree', 'building', 'polarbear', 'minion', 'ekans', 'zubat', 'hummingbird',
+    'emu', 'kookaburra', 'croc', 'orca', 'trike', 'trex', 'honeybee', 'queenbee'].forEach(function (k) {
+    STICKERS5[k] = STICKERS[k] = function () { var a = E[k]; return !a ? E.grumbug[0] : Array.isArray(a) ? a[0] : a.walk ? frameOf(a.walk, 0) : a.fly ? frameOf(a.fly, 0) : a.run ? frameOf(a.run, 0) : a.idle || a[Object.keys(a)[0]]; };
+  });
+  var STICKER_ORDER5 = Object.keys(STICKERS5);
   var stickerCache = {};
   // a sprite with a white edge round it (or, not found yet, its shape in pencil)
   var sticker = function (s, found) {
@@ -3479,14 +4326,26 @@
     ctx.imageSmoothingEnabled = false;
   };
   // Bear has a page for each island he hides on, once there's a second one
-  var bookPages = function () { return ['bear1'].concat(save.won ? ['bear2'] : [], save.won2 ? ['bear3'] : [], save.won3 ? ['bear4'] : [], ['creatures', 'outfits'], OUTFITS.length > 9 ? ['outfits2'] : []); };
-  var PAGE_NAME = { bear1: 'FRIENDS', bear2: 'FRIENDS', bear3: 'FRIENDS', bear4: 'FRIENDS', creatures: 'CREATURES', outfits: 'OUTFITS', outfits2: 'OUTFITS' };
-  var PAGE_COL = { bear1: '#e86aa4', bear2: '#e8704a', bear3: '#d8a028', bear4: '#3aa8c8', creatures: '#46a83e', outfits: '#4a96dc', outfits2: '#4a96dc' };
+  var bookPages = function () {
+    return ['bear1'].concat(save.won ? ['bear2'] : [], save.won2 ? ['bear3'] : [], save.won3 ? ['bear4'] : [], save.won4 ? ['bear5'] : [],
+      ['players', 'creatures'], save.won4 ? ['creatures5', 'pokedex'] : [], ['outfits'], OUTFITS.length > 9 ? ['outfits2'] : []);
+  };
+  var PAGE_NAME = { bear1: 'FRIENDS', bear2: 'FRIENDS', bear3: 'FRIENDS', bear4: 'FRIENDS', bear5: 'FRIENDS', players: "WHO'S PLAYING?", creatures: 'CREATURES', creatures5: 'CREATURES', pokedex: 'POKEDEX', outfits: 'OUTFITS', outfits2: 'OUTFITS' };
+  var PAGE_COL = { bear1: '#e86aa4', bear2: '#e8704a', bear3: '#d8a028', bear4: '#3aa8c8', bear5: '#8a5ad8', players: '#e8504a', creatures: '#46a83e', creatures5: '#46a83e', pokedex: '#e8343c', outfits: '#4a96dc', outfits2: '#4a96dc' };
+  // Bear's pages: the levels each covers
+  var BEAR_FROM = [0, 10, 20, 30, 35];
+  // the Pokémon to catch in level 36 (the sprites are in creatures5a.js)
+  var POKEDEX = ['bulbasaur', 'charmander', 'squirtle', 'jigglypuff', 'eevee', 'psyduck'];
+  var NAME_OF = { bonnie: 'BONNIE', lucy: 'MUM', luke: 'DAD' };
+  var playerCells = function () {
+    var W = BB.W, cw = Math.min(80, (W - 24) / 3), x0 = W / 2 - cw * 1.5;
+    return WHO.map(function (w, i) { return { w: w, i: i, x: x0 + i * cw, y: 26, cw: cw, h: 96 }; });
+  };
   var bookPage = 0, outfitAt = 0;
   // on a narrow screen the tab is just the book, so it clears the level's ribbon
   var bookBtn = function () { return { x: 3, y: 3, w: BB.W > 200 ? 36 : 15, h: 14 }; };
   // it opens on Bear's page for the island Bonnie's on
-  var openBook = function () { sfx('select'); bookPage = Math.min(landOf(save.at), save.won3 ? 4 : save.won2 ? 3 : save.won ? 2 : 1) - 1; outfitAt = 0; OUTFITS.forEach(function (o, i) { if (o.id === save.outfit) outfitAt = i; }); wipeTo(function () { go('book'); }); };
+  var openBook = function () { sfx('select'); bookPage = Math.min(landOf(save.at), save.won4 ? 5 : save.won3 ? 4 : save.won2 ? 3 : save.won ? 2 : 1) - 1; outfitAt = 0; OUTFITS.forEach(function (o, i) { if (o.id === save.outfit) outfitAt = i; }); wipeTo(function () { go('book'); }); };
   // three across, three rows (nine to a page): fits every screen with the names clear
   var outfitCells = function (pg) {
     var W = BB.W, cw = Math.min(70, (W - 24) / 3), x0 = W / 2 - cw * 1.5, first = pg === 'outfits2' ? 9 : 0, out = [];
@@ -3507,7 +4366,13 @@
     if (BB.tap && tapIn(0, 40, 20, 70)) { turn(-1); return; }
     if (BB.tap && tapIn(W - 20, 40, 20, 70)) { turn(1); return; }
     var opg = pages[bookPage];
-    if (opg === 'outfits' || opg === 'outfits2') {
+    if (opg === 'players') {
+      var pick = function (w) { if (save.who !== w) { save.who = w; store(); sfx('power'); } };
+      playerCells().forEach(function (c) { if (tapIn(c.x, c.y, c.cw, c.h)) pick(c.w); });
+      var wi = WHO.indexOf(who());
+      if (BB.hit('left')) { if (wi > 0) pick(WHO[wi - 1]); else turn(-1); }
+      if (BB.hit('right')) { if (wi < WHO.length - 1) pick(WHO[wi + 1]); else turn(1); }
+    } else if (opg === 'outfits' || opg === 'outfits2') {
       var cells = outfitCells(opg), lo = cells[0].i, hi = cells[cells.length - 1].i;
       if (outfitAt < lo || outfitAt > hi) outfitAt = lo;
       cells.forEach(function (c) { if (tapIn(c.x, c.y, c.w, c.h)) { outfitAt = c.i; wearOutfit(c.i); } });
@@ -3529,7 +4394,7 @@
     var nb = bearsHome();
     if (/^bear/.test(pg)) {
       // Bear, from every land in this part of the adventure he came home from
-      var lo = (+pg.charAt(4) - 1) * 10, cnt = Math.min(10, BB.LEVELS.length - lo), cw = (W - 24) / 5, here = 0;
+      var li = +pg.charAt(4) - 1, lo = BEAR_FROM[li], cnt = Math.min(LAND_LAST[li], BB.LEVELS.length) - lo, cw = (W - 24) / 5, here = 0;
       for (var i = 0; i < cnt; i++) {
         var cx = 12 + cw * (i % 5) + cw / 2, by = cnt <= 5 ? 80 : i < 5 ? 58 : 104, found = !!save.bears[lo + i + 1];
         if (found) here++;
@@ -3538,14 +4403,37 @@
         if (!found) BB.text(ctx, '?', cx, by - 13, { color: '#c8a878', align: 'center' });
       }
       BB.text(ctx, 'BEAR CAME HOME: ' + here + '/' + cnt, W / 2, 18, { color: INK, align: 'center' });
-    } else if (pg === 'creatures') {
-      var met = 0, cols = W > 200 ? 9 : 6, cw2 = (W - 24) / cols, rowsN = Math.ceil(STICKER_ORDER.length / cols), rh = Math.min(30, 94 / rowsN);
-      STICKER_ORDER.forEach(function (key, i) {
+    } else if (pg === 'players') {
+      // Bonnie, Mum and Dad, big, on a strip of grass: tap one to play as them
+      var gt = theme('hills');
+      playerCells().forEach(function (c) {
+        var P = A.player ? A.player(c.w) : A.bonnie, on = who() === c.w, f = on ? P.b.cheer : P.b.idle, cx = c.x + c.cw / 2, feet = c.y + 68;
+        for (var gx = -12; gx < 12; gx += 8) BB.draw(ctx, gt.top[((gx + 16) >> 3) & 1], snap(cx + gx), feet);
+        var hop = on && !reduce ? -Math.round(Math.abs(Math.sin(sceneT * 0.1)) * 2) : 0;
+        BB.draw(ctx, f, snap(cx - f.w / 2), feet - f.h + hop, false, on ? null : null);
+        BB.text(ctx, NAME_OF[c.w], cx, feet + 12, { color: on ? PICK : INK, align: 'center' });
+        if (on) UI.cursor(ctx, c.x + 3, c.y + 4, tick);
+      });
+      BB.text(ctx, 'TAP WHO YOU WANT TO BE', W / 2, 16, { color: INK, align: 'center' });
+    } else if (pg === 'pokedex') {
+      // the Pokémon caught in level 36: a shadow until caught
+      var dex = save.dex || {}, caught = 0, dw = (W - 24) / 3;
+      POKEDEX.forEach(function (k, i) {
+        var got = !!dex[k], spr = E[k] ? frameOf(E[k], 0) : null, cx = 12 + dw * (i % 3) + dw / 2, by = i < 3 ? 60 : 104;
+        if (got) caught++;
+        if (spr) drawSticker(ctx, spr, got, cx, by, 30);
+        BB.text(ctx, got ? k.toUpperCase() : '?', cx, by + 3, { color: got ? INK : UI.SOFT, align: 'center' });
+      });
+      BB.text(ctx, 'CAUGHT ' + caught + ' OF ' + POKEDEX.length, W / 2, 18, { color: INK, align: 'center' });
+    } else if (pg === 'creatures' || pg === 'creatures5') {
+      var order = pg === 'creatures' ? STICKER_ORDER.filter(function (k) { return !STICKERS5[k]; }) : STICKER_ORDER5;
+      var met = 0, cols = W > 200 ? 9 : 6, cw2 = (W - 24) / cols, rowsN = Math.ceil(order.length / cols), rh = Math.min(30, 94 / rowsN);
+      order.forEach(function (key, i) {
         var f = !!save.met[key]; if (f) met++;
         var cx = 12 + cw2 * (i % cols) + cw2 / 2, by = 46 + Math.floor(i / cols) * rh;
         drawSticker(ctx, STICKERS[key](), f, cx, by, Math.min(cw2 - 2, rh - 4));
       });
-      BB.text(ctx, 'MET ' + met + ' OF ' + STICKER_ORDER.length, W / 2, 18, { color: INK, align: 'center' });
+      BB.text(ctx, 'MET ' + met + ' OF ' + order.length, W / 2, 18, { color: INK, align: 'center' });
     } else {
       outfitCells(pg).forEach(function (c) {
         var i = c.i, o = OUTFITS[i], open = outfitOpen(o), worn = save.outfit === o.id, cx = c.x + c.w / 2, f = outfitSet(o, false).idle;
@@ -3628,7 +4516,9 @@
     [['t', 'STEAM LIFTS YOU UP']], [['t', 'RIDE THE WINDMILL']], [['t', 'BOUNCE ON THE AWNINGS']], [['t', 'MIND THE CROISSANTS!']],
     [['t', 'WATCH OUT FOR CHEESE!']], [['t', 'HOP OVER THE ROOFS']], [['t', 'RIDE THE TRAINS']], [['t', 'CLIMB TO THE TOP!']],
     [['t', 'HAVE A MAGIC DAY!']], [['t', 'STOMP RASCAL!']],
-    [['t', 'SLIDE AND SPLASH!']], [['t', 'SURF THE WAVES!']], [['t', 'YOU CAN RIDE IT!']], [['t', 'KNIGHTS AND CATAPULTS!']], [['t', 'CATCH THE FERRY HOME!']]
+    [['t', 'SLIDE AND SPLASH!']], [['t', 'SURF THE WAVES!']], [['t', 'YOU CAN RIDE IT!']], [['t', 'KNIGHTS AND CATAPULTS!']], [['t', 'CATCH THE FERRY HOME!']],
+    [['t', 'GOTTA CATCH THEM ALL!']], [['t', 'RIDE THE ROLLERCOASTER!']], [['t', 'HOP ON A TAXI!']], [['t', 'CLIMB THE WATERFALL!']], [['t', 'THE ICE IS SLIPPY!']],
+    [['t', 'RIDE A KANGAROO!']], [['t', 'TOUCH THE PAINT POTS!']], [['t', 'YUM, CHOCOLATE!']], [['t', 'RUN FROM THE T. REX!']], [['t', 'STOMP QUEEN BEE!']]
   ];
 
   /* ---- pause ---- */
@@ -3697,7 +4587,7 @@
     var W = BB.W;
     ctx.fillStyle = '#0c0814'; ctx.fillRect(0, 0, W, H);
     BB.text(ctx, 'GAME OVER', W / 2, 44, { color: '#f24848', align: 'center', scale: 2 });
-    BB.draw(ctx, A.bonnie.s.dead, Math.round(W / 2 - 11), 66);
+    BB.draw(ctx, hero().s.dead, Math.round(W / 2 - 11), 66);
     if (sceneT > 90 && blink()) BB.text(ctx, 'PRESS A TO TRY AGAIN', W / 2, 104, { color: '#ffffff', align: 'center' });
     BB.text(ctx, 'YOUR LEVELS ARE SAVED', W / 2, 120, { color: '#9098b0', align: 'center' });
   };
@@ -3721,7 +4611,14 @@
     ['AND BROCCO', '#7ee058'], ['WITH MUM AND DAD', '#ff94cc'], ['', ''], ['WHO LEARNT TO RIDE', '#9098b0'], ['HIS BIKE THIS SUMMER?', '#9098b0'], ['BONNIE DID!', bright], ['', ''], ['', ''],
     ['MADE WITH LOVE', '#ffffff'], ['FOR BONNIE', '#ff94cc'], ['', ''], ['', ''], ['THE END', bright]
   ];
-  var creditsFor = function (land) { return land === 4 ? CREDITS4 : land === 3 ? CREDITS3 : land === 2 ? CREDITS2 : CREDITS; };
+  var CREDITS5 = [
+    ['WHAT A WORLD!', bright], ['THE WISHES ARE HOME!', '#ffe048'], ['', ''], ['QUEEN BEE', '#ffd23e'], ['SAYS SORRY', '#9098b0'], ['', ''],
+    ['BONNIE BOUNCE', bright], ['', ''], ['STARRING', '#9098b0'], ['BONNIE', '#ffffff'], ['', ''], ['AND MONSTY', '#ab86f3'], ['AND BEAR THE CAT', '#c9c7da'], ['', ''],
+    ['AND BROCCO', '#7ee058'], ['WITH MUM AND DAD', '#ff94cc'], ['', ''], ['', ''],
+    ['LEVELS DESIGNED BY', '#9098b0'], ['BONNIE!', bright], ['', ''], ['ONE DAY, BONNIE', '#ff94cc'], ['WILL DO THEM ALL', '#ff94cc'], ['', ''], ['', ''],
+    ['MADE WITH LOVE', '#ffffff'], ['FOR BONNIE', '#ff94cc'], ['AND BY BONNIE', '#ff94cc'], ['', ''], ['', ''], ['THE END', bright]
+  ];
+  var creditsFor = function (land) { return land === 5 ? CREDITS5 : land === 4 ? CREDITS4 : land === 3 ? CREDITS3 : land === 2 ? CREDITS2 : CREDITS; };
   var CREDITS2 = [
     ['HOORAY!', bright], ['THE PRESENTS ARE BACK!', '#ffffff'], ['', ''], ['HAPPY BIRTHDAY, MONSTY!', '#ff94cc'], ['', ''], ['', ''],
     ['BONNIE BOUNCE', bright], ['', ''], ['STARRING', '#9098b0'], ['BONNIE', '#ffffff'], ['', ''], ['AND MONSTY', '#ab86f3'], ['AND BEAR THE CAT', '#c9c7da'], ['', ''],
@@ -3749,17 +4646,19 @@
       if (endLand === 1 && !save.seenStory2) wipeTo(function () { go('story2'); BB.music('map2'); });
       else if (endLand === 2 && !save.seenStory3) wipeTo(function () { go('story3'); BB.music('map3'); });
       else if (endLand === 3 && !save.seenStory4) wipeTo(function () { go('story4'); BB.music('map4'); });
-      else if (endLand < 4) wipeTo(function () { go('map'); mapEnter(); });
+      else if (endLand === 4 && !save.seenStory5) wipeTo(function () { go('story5'); BB.music('map5'); });
+      else if (endLand <= 5) wipeTo(function () { go('map'); mapEnter(); });
       else wipeTo(function () { go('title'); BB.music(TITLE_SONG); });
     }
   };
   var drawEnding = function (ctx) {
     var W = BB.W, t = reduce ? REUNION + 60 : sceneT;
     // a night sky for the fireworks: the woods' moon, or for the Big Trip the castle at night
-    if (!endBg || endBgLand !== endLand) { endBg = endLand === 4 ? BB.backdrop('stmalo', A.themes.stmalo) : endLand === 3 ? BB.backdrop('night', A.themes.night) : BB.backdrop('woods', A.themes.woods); endBgLand = endLand; }
+    var endTheme = endLand === 5 ? (A.themes.rainbow ? 'rainbow' : 'magic') : endLand === 4 ? 'stmalo' : endLand === 3 ? 'night' : 'woods';
+    if (!endBg || endBgLand !== endLand) { endBg = BB.backdrop(endTheme, A.themes[endTheme]); endBgLand = endLand; }
     BB.drawBackdrop(ctx, endBg, reduce ? 0 : sceneT * 0.15, 0, H);
     endFx.forEach(function (f) { if (f.t < 36 || f.t % 2) { ctx.fillStyle = f.c; ctx.fillRect(Math.round(f.x), Math.round(f.y), 2, 2); } });
-    var g = theme(endLand === 4 ? 'stmalo' : endLand === 3 ? 'night' : 'hills');
+    var g = theme(endLand === 5 ? endTheme : endLand === 4 ? 'stmalo' : endLand === 3 ? 'night' : 'hills');
     for (var x = 0; x < W; x += 8) { BB.draw(ctx, g.top[(x >> 3) & 1], x, 128); BB.draw(ctx, g.fill[(x >> 3) & 1], x, 136); }
     var mid = Math.round(W / 2), S = A.bonnie.s, meet = 80, F = A.family || {};
     /* The Big Trip's ending: everyone together under the fireworks for a
@@ -3767,6 +4666,12 @@
        the Captain and Rascal, and Brocco bounding in to meet Bonnie. */
     if (endLand >= 3) {
       var car = F.yeti && (F.yeti.full ? F.yeti.full[0] : F.yeti.side && F.yeti.side[0]);
+      // (One Day's end: the paper aeroplane instead, with Queen Bee fluttering over it, and the wishes all around)
+      if (endLand === 5) {
+        paperPlane(ctx, mid - 36, 126, 0, 0, t);
+        var Qb = E.queenbee; if (Qb) BB.draw(ctx, Qb.fly[Math.floor(t / 4) % 2], Math.round(mid + 30 * Math.min(1, (W - 6) / 226)), 62 + (reduce ? 0 : Math.sin(t * 0.06) * 3), true);
+        if (A.wish) for (var wi = 0; wi < 10; wi++) BB.draw(ctx, A.wish[Math.floor(t / 8 + wi) % 4], snap(8 + ((wi * 37) % 100) / 100 * (W - 24)), snap(14 + (wi * 23) % 40 + (reduce ? 0 : Math.sin(t * 0.05 + wi) * 2)));
+      } else
       if (car) BB.draw(ctx, car, mid - car.w / 2, 124 - car.h);
       // closer together on a narrow screen, so everyone's in the photo
       var sp2 = Math.min(1, (W - 6) / 226);
@@ -3780,7 +4685,7 @@
         var c = F[w[0]];
         if (c) { var f = t > meet ? c.cheer : c.wave[Math.floor(t / 12 + i) % 2]; BB.draw(ctx, f, Math.round(mid + w[1] * sp2), 128 - f.h - (t > meet && !reduce ? Math.abs(Math.sin(t * 0.09 + i)) * 2 : 0), i === 1); }
       });
-      if (t > meet && t < meet + 40) BB.text(ctx, endLand === 4 ? 'AU REVOIR!' : 'SAY CHEESE!', mid, 70, { color: '#ffe048', outline: dark, align: 'center', scale: 2 });
+      if (t > meet && t < meet + 40) BB.text(ctx, endLand === 5 ? 'ALL MY WISHES!' : endLand === 4 ? 'AU REVOIR!' : 'SAY CHEESE!', mid, 70, { color: '#ffe048', outline: dark, align: 'center', scale: 2 });
       // the camera's flash: the photo's taken
       if (t >= meet + 40 && t < meet + 56 && !reduce) { ctx.fillStyle = 'rgba(255,255,255,' + (1 - (t - meet - 40) / 16) + ')'; ctx.fillRect(0, 0, W, H); }
       if (t === meet + 40) sfx('check');
@@ -3873,6 +4778,7 @@
       case 'story2': updateStory2(); break;
       case 'story3': updateStory3(); break;
       case 'story4': updateStory4(); break;
+      case 'story5': updateStory5(); break;
       case 'book': updateBook(); break;
       case 'grownups': updateGrownups(); break;
     }
@@ -3893,6 +4799,7 @@
       case 'story2': drawStory2(ctx); break;
       case 'story3': drawStory3(ctx); break;
       case 'story4': drawStory4(ctx); break;
+      case 'story5': drawStory5(ctx); break;
       case 'book': drawBook(ctx); break;
       case 'grownups': drawGrownups(ctx); break;
     }

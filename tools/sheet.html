@@ -11,15 +11,21 @@
 </style>
 </head>
 <body>
-<!-- A dev tool: every sprite in js/art.js, magnified, so the art can be
-     checked and tuned without playing to it. Open via the preview server:
-     /tools/sheet.html  (?z=6 sets the zoom) -->
+<!-- A dev tool: every sprite, magnified, so the art can be checked and
+     tuned without playing to it. Open via the preview server:
+     /tools/sheet.html  (?z=6 sets the zoom; ?only=queen shows just the
+     groups and sprites whose names contain "queen"; ?save=name, when the
+     page is served by tools/reel/serve.js, also saves the sheet to
+     tools/reel/out/name.png). A file can add a group of its own:
+     (BB.ART.sheet = BB.ART.sheet || []).push(['name', [[label, sprite], …]]) -->
 <canvas id="screen" width="160" height="144"></canvas>
 <div id="pad" style="display:none"><div data-dpad></div></div>
 <canvas id="sheet"></canvas>
 <script src="../js/core.js"></script>
 <script src="../js/art.js"></script>
 <script src="../js/creatures.js"></script>
+<script src="../js/creatures5a.js"></script>
+<script src="../js/creatures5b.js"></script>
 <script src="../js/family.js"></script>
 <script>
   var A = BB.ART, Z = +(/[?&]z=(\d+)/.exec(location.search) || [0, 5])[1];
@@ -42,6 +48,14 @@
   var de = [];
   Object.keys(A.deco).forEach(function (k) { var v = A.deco[k]; (Array.isArray(v) ? v : [v]).forEach(function (s, i) { de.push([i ? '' : k, s]); }); });
   add('deco', de);
+  if (A.looks) add('platform looks', Object.keys(A.looks).map(function (k) { return [k, A.looks[k]]; }));
+  (A.sheet || []).forEach(function (g) { add(g[0], g[1]); });
+  // ?only=word: just what's named with it
+  var only = (/[?&]only=([^&]+)/.exec(location.search) || [])[1];
+  if (only) {
+    only = decodeURIComponent(only).toLowerCase();
+    groups = groups.map(function (g) { return g[0].toLowerCase().indexOf(only) > -1 ? g : [g[0], g[1].filter(function (it) { return (it[0] || '').toLowerCase().indexOf(only) > -1; })]; }).filter(function (g) { return g[1].length; });
+  }
 
   var cv = document.getElementById('sheet'), g = cv.getContext('2d');
   var W = +(/[?&]w=(\d+)/.exec(location.search) || [0, 300])[1], x = 0, y = 0, rowH = 0, plan = [];
@@ -65,6 +79,8 @@
     BB.draw(g, it[1], p[2] * Z, p[3] * Z, false, it[2], Z);
     if (it[0]) BB.text(g, it[0], p[2] * Z, (p[3] + it[1].h + 1) * Z, { scale: 1, color: '#1c1428' });
   });
+  var save = (/[?&]save=([\w-]+)/.exec(location.search) || [])[1];
+  if (save) cv.toBlob(function (b) { fetch('/reel/frame?i=' + save, { method: 'POST', body: b }).then(function () { document.title = 'saved ' + save; }); });
 </script>
 </body>
 </html>

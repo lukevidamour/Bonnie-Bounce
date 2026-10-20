@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bonnie Bounce — backdrops</title>
+<style>
+  body { margin: 0; background: #111; color: #fff; font: 12px system-ui; padding: 10px; }
+  #screen, #pad { display: none; }
+  canvas.bd { image-rendering: pixelated; display: block; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<!-- A dev tool: a world's backdrop on its own, at three places along it,
+     with a strip of its ground, bricks and platforms, so the scenery can be
+     tuned without playing to it.
+     /tools/backdrops.html?theme=pokemon   (?theme=a,b,c for several; &z=3 zoom;
+     &save=name, when served by tools/reel/serve.js, saves the picture to
+     tools/reel/out/name.png) -->
+<canvas id="screen" width="160" height="144"></canvas>
+<div id="pad"><div data-dpad></div></div>
+<div id="out"></div>
+<script src="../js/core.js"></script>
+<script src="../js/art.js"></script>
+<script src="../js/creatures.js"></script>
+<script src="../js/creatures5a.js"></script>
+<script src="../js/creatures5b.js"></script>
+<script src="../js/family.js"></script>
+<script src="../js/backdrop.js"></script>
+<script src="../js/backdrop5.js"></script>
+<script src="../js/light.js"></script>
+<script>
+  var A = BB.ART, q = location.search, H = BB.H, W = 256;
+  var names = decodeURIComponent((/theme=([^&]+)/.exec(q) || [0, 'hills'])[1]).split(','), z = +(/z=(\d+)/.exec(q) || [0, 2])[1];
+  var cams = [0, 340, 700];
+  var big = document.createElement('canvas');
+  big.width = W * cams.length * BB.R; big.height = (H + 12) * names.length * BB.R;
+  var g = big.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = '#111'; g.fillRect(0, 0, big.width, big.height);
+  BB.W = W;
+  names.forEach(function (name, row) {
+    var th = A.themes[name];
+    if (!th) { console.error('no theme ' + name); return; }
+    var bg = BB.backdrop(name, th);
+    cams.forEach(function (cx, col) {
+      var c = BB.surface(W, H), x = c.getContext('2d');
+      x.imageSmoothingEnabled = false;
+      BB.drawBackdrop(x, bg, cx, 0, H);
+      g.drawImage(c, col * W * BB.R, (row * (H + 12) + 12) * BB.R);
+    });
+    g.setTransform(BB.R, 0, 0, BB.R, 0, 0);
+    BB.text(g, name, 2, row * (H + 12) + 3, { color: '#ffffff' });
+    g.setTransform(1, 0, 0, 1, 0, 0);
+  });
+  big.className = 'bd'; big.style.width = (big.width / BB.R * z) + 'px';
+  document.getElementById('out').appendChild(big);
+  var save = (/[?&]save=([\w-]+)/.exec(q) || [])[1];
+  if (save) big.toBlob(function (b) { fetch('/reel/frame?i=' + save, { method: 'POST', body: b }).then(function () { document.title = 'saved ' + save; }); });
+</script>
+</body>
+</html>

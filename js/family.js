@@ -22,6 +22,10 @@
                                                    (air 27 x 32)
      surf:  { s, b: { ride, wobble } }            Bonnie surfing: s 22 x 19,
                                                    b 22 x 27
+     bikeFor(who), surfFor(who)                   the same, for whoever is
+                                                   playing: 'bonnie' (bike,
+                                                   surf), 'lucy' or 'luke'
+                                                   (built when first asked)
    }
    ========================================================================== */
 (function () {
@@ -870,7 +874,7 @@
     var LINE = { R: 'R', d: 'R', r: 'R', e: 'R', i: 'R', G: 'G', T: 'G', U: 'G', L: 'L', V: 'L', l: 'L', v: 'L', x: 'L',
       A: 'A', a: 'A', g: 'A', N: 'N', J: 'N', j: 'N', M: 'N', P: 'P', O: 'P', Q: 'P' };
     // and Bonnie's, as art.js draws them
-    var HIS = { b: 'B', B: 'B', k: 'K', K: 'K', s: 'S', S: 'S', t: 'S', u: 'S', w: 'W', W: 'W', z: 'z', y: 'Y', Y: 'Y', 1: '1', 2: '1', 3: '1', 4: '1', 5: '1' };
+    var HIS = { b: 'B', B: 'B', k: 'K', K: 'K', s: 'S', S: 'S', t: 'S', u: 'S', w: 'W', W: 'W', z: 'z', Z: 'z', y: 'Y', Y: 'Y', 1: '1', 2: '1', 3: '1', 4: '1', 5: '1' };
 
     /* The kit's scene(), but a part marked `bare` is never outlined: the
        spokes and the chain are a pixel wide, and outlined they'd be nothing
@@ -992,16 +996,27 @@
        shoe, and the leg of his shorts down the top of the thigh. The ball
        of his foot is on the pedal; the knee bends forward. Only the near
        leg gets its shorts: the far thigh is hidden under the near one, and
-       two would draw a seam between them. */
-    var legOn = function (S, hip, p, shorts) {
+       two would draw a seam between them. lk is the rider's look (art.js,
+       A.player): Mum's jeans run from the hip to the shoe, both legs; Dad's
+       shorts reach further down the thigh, cut square; their soles show. */
+    var legOn = function (S, hip, p, shorts, lk) {
+      lk = lk || {};
       var foot = [p[0] - 1, p[1] - S.pedal[1] - 1.6], knee = kneeOf(hip, foot, S.thigh, S.shin), mid = along(hip, knee, 0.5), out = [];
+      var sy = foot[1] + 0.4, shoe = lk.sole || lk.shoeLine ? P('z', ell(foot[0] + 0.8, sy, S.shoe, 1.55), lk.sole ? function (x, y) { return y + 0.5 > sy + 0.55 ? 'Z' : 'z'; } : null, lk.shoeLine || 'z')
+        : P('z', ell(foot[0] + 0.8, foot[1] + 0.4, S.shoe, 1.55), null, 'z');
+      if (lk.jeans) return [shoe, P('k', limb([hip, knee, [foot[0], foot[1] - 0.9]], S.leg + lk.jeans), null, 'K')];
       out.push(P('s', limb([mid, knee, foot], S.leg), null, 'S'));
-      if (S.sock) {
+      if (S.sock && lk.sock !== false) {
         var sl = Math.hypot(knee[0] - foot[0], knee[1] - foot[1]) || 1, top = along(foot, knee, Math.min(1, (S.sock + 0.4) / sl));
         out.push(P('w', cap(top[0], top[1], foot[0], foot[1] - 0.3, S.leg + 0.3), null, 'W'));
       }
-      out.push(P('z', ell(foot[0] + 0.8, foot[1] + 0.4, S.shoe, 1.55), null, 'z'));
-      if (shorts) out.push(P('k', cap(hip[0], hip[1], mid[0], mid[1], S.leg + 1.4), null, 'K'));
+      out.push(shoe);
+      if (shorts && lk.shorts) {
+        var end = along(hip, knee, lk.shorts), hl = S.sock ? 1.2 : 0.6, dx = end[0] - hip[0], dy = end[1] - hip[1], L = Math.hypot(dx, dy) || 1;
+        out.push(P('k', sleeve(hip[0], hip[1], end[0], end[1], S.leg + 1.4), lk.fray ? function (x, y) {
+          return ((x + 0.5 - hip[0]) * dx + (y + 0.5 - hip[1]) * dy) / L > L - hl ? ((x & 1) ? 'W' : 'k') : 'k';
+        } : null, 'K'));
+      } else if (shorts) out.push(P('k', cap(hip[0], hip[1], mid[0], mid[1], S.leg + 1.4), null, 'K'));
       return out;
     };
     // his arm i to a hand at h (in the sprite's pixels; pose() takes body
@@ -1020,8 +1035,8 @@
        clockwise as the wheels do); o.rot: the wheels'; o.tilt: the bike
        pitched nose up about the saddle (in the air); o.kind: his face;
        o.wave: his left arm (as we look at him) up and waving, as in his
-       own cheer. */
-    var frame = function (size, o) {
+       own cheer. RD: the rider (A.bonnie, or A.player('lucy'/'luke')). */
+    var frame = function (size, o, RD) {
       var S = SPEC[size], piv = [S.saddle[0], S.saddle[1]], tl = o.tilt || 0;
       // the sprite ends on the lowest row of the wheels, where they meet the
       // ground (tipped back in the air, the rear wheel drops and it grows),
@@ -1039,7 +1054,7 @@
       var pedal = function (a) { return [bb[0] + Math.cos(a) * S.crank, bb[1] + Math.sin(a) * S.crank]; };
       var near = pedal(o.pedal), far = pedal(o.pedal + Math.PI), t = S.tube, parts = [];
       // the far side: its crank and pedal, his far leg
-      parts = parts.concat(crank(bb, far, S), legOn(S, S.hips[0], far));
+      parts = parts.concat(crank(bb, far, S), legOn(S, S.hips[0], far, false, RD.look));
       // the wheels, behind the frame, and the little cog on the back one
       parts = parts.concat(wheel(ra, S, o.rot), wheel(fa, S, o.rot));
       parts.push(P('l', ell(ra[0], ra[1], S.cog, S.cog), function (x, y) { return (x + y) & 1 ? 'V' : 'l'; }, 'L'));
@@ -1083,7 +1098,7 @@
         return (band + stake) & 1 ? 'J' : X < (bx1 - bx0) * 0.5 && !(band & 1) ? 'M' : 'j';
       }, 'N'));
       // the near side: its crank and pedal, then his near leg
-      parts = parts.concat(crank(bb, near, S), legOn(S, S.hips[1], near, true));
+      parts = parts.concat(crank(bb, near, S), legOn(S, S.hips[1], near, true, RD.look));
       var rows = scene2(W, H, parts);
 
       // Bonnie: his arms to the grip (one waving, when he cheers), his legs
@@ -1091,20 +1106,29 @@
       var arms = [reach(S, 0, [grip[0] - 0.6, grip[1] + 0.3]), reach(S, 1, grip)];
       if (o.wave) arms[0] = S.cheer;
       var tuck = S.legsAt.map(function (h) { return [h, [h[0] - 1, h[1] - 0.3]]; });
-      var him = BON.pose(size, { arms: arms, legs: tuck }, o.kind);
+      var him = RD.pose(size, { arms: arms, legs: tuck }, o.kind);
       var sp = BB.sprHi(compose(rows, him.rows), merge(him.pal, pal), 'shade');
       sp.noLight = [].concat(him.noLight || []).join('') + OWN;
       return sp;
     };
-    var Q = Math.PI / 2, set = function (size) {
+    var Q = Math.PI / 2, set = function (size, RD) {
       var n = SPEC[size].spokes, step = 2 * Math.PI / n / 4;
       return {
-        ride: [0, 1, 2, 3].map(function (k) { return frame(size, { pedal: Q / 2 + k * Q, rot: k * step }); }),
-        air: frame(size, { pedal: -0.2, rot: step / 2, tilt: -0.12, kind: 'wheee' }),
-        cheer: frame(size, { pedal: 0, rot: 0, wave: true })
+        ride: [0, 1, 2, 3].map(function (k) { return frame(size, { pedal: Q / 2 + k * Q, rot: k * step }, RD); }),
+        air: frame(size, { pedal: -0.2, rot: step / 2, tilt: -0.12, kind: 'wheee' }, RD),
+        cheer: frame(size, { pedal: 0, rot: 0, wave: true }, RD)
       };
     };
-    F.bike = { s: set('s'), b: set('b') };
+    F.bike = { s: set('s', BON), b: set('b', BON) };
+    /* Mum or Dad on the bike (who: 'lucy' or 'luke'; 'bonnie' is F.bike):
+       the same set, built the first time it's asked for, then kept. */
+    var bikes = { bonnie: F.bike };
+    F.bikeFor = function (who) {
+      if (bikes.hasOwnProperty(who)) return bikes[who];
+      var RD = A.player ? A.player(who) : BON;
+      if (RD === BON) return F.bike;
+      return (bikes[who] = { s: set('s', RD), b: set('b', RD) });
+    };
 
     /* ==========================================================================
        SURFING at Hossegor: just Bonnie — the game draws the board under
@@ -1116,8 +1140,8 @@
 
        A.family.surf = { s, b: { ride, wobble } }      small 22 x 19, big 22 x 27
        ========================================================================== */
-    var surf = function (size, arms, legs, kind) {
-      var sp = BON.pose(size, { arms: arms, legs: legs }, kind), rows = sp.rows.slice();
+    var surf = function (size, arms, legs, kind, RD) {
+      var sp = (RD || BON).pose(size, { arms: arms, legs: legs }, kind), rows = sp.rows.slice();
       while (rows.length > 1 && /^\.*$/.test(rows[rows.length - 1])) rows.pop();
       var out = BB.sprHi(rows, sp.pal, 'shade');
       out.noLight = sp.noLight;
@@ -1127,15 +1151,44 @@
       s: [[[10.6, 11], [9, 12]], [[21.6, 10.8], [23, 12]]],
       b: [[[8.8, 22.2], [7, 27.8]], [[23.4, 22], [25.2, 27.8]]]
     };
-    F.surf = {
-      s: {
-        ride: surf('s', [[[5.4, 2.2], [1, 3.6]], [[26.6, 2.8], [31, 4.6]]], LEGS.s),
-        wobble: surf('s', [[[4.6, -1.6], [1.6, -6], 1], [[26.4, 4.8], [28.6, 8.6]]], LEGS.s, 'gasp')
-      },
-      b: {
-        ride: surf('b', [[[4.8, 4.6], [0.2, 7.2]], [[27.2, 5.6], [32, 8.4]]], LEGS.b),
-        wobble: surf('b', [[[4.4, -1.2], [1, -7], 1], [[27, 9], [29.8, 14]]], LEGS.b, 'gasp')
-      }
+    var surfSet = function (RD) {
+      return {
+        s: {
+          ride: surf('s', [[[5.4, 2.2], [1, 3.6]], [[26.6, 2.8], [31, 4.6]]], LEGS.s, undefined, RD),
+          wobble: surf('s', [[[4.6, -1.6], [1.6, -6], 1], [[26.4, 4.8], [28.6, 8.6]]], LEGS.s, 'gasp', RD)
+        },
+        b: {
+          ride: surf('b', [[[4.8, 4.6], [0.2, 7.2]], [[27.2, 5.6], [32, 8.4]]], LEGS.b, undefined, RD),
+          wobble: surf('b', [[[4.4, -1.2], [1, -7], 1], [[27, 9], [29.8, 14]]], LEGS.b, 'gasp', RD)
+        }
+      };
+    };
+    F.surf = surfSet(BON);
+    // Mum or Dad surfing, like F.bikeFor
+    var surfs = { bonnie: F.surf };
+    F.surfFor = function (who) {
+      if (surfs.hasOwnProperty(who)) return surfs[who];
+      var RD = A.player ? A.player(who) : BON;
+      if (RD === BON) return F.surf;
+      return (surfs[who] = surfSet(RD));
     };
   })();
+
+  /* For the sprite sheet (tools/sheet.html?only=players): Mum and Dad as
+     players beside Bonnie and their cameos. The list is a getter, so it's
+     only built when the sheet asks — the game never reads A.sheet, and
+     Mum and Dad aren't built until someone plays as them. */
+  var group = ['players'];
+  Object.defineProperty(group, 1, { get: function () {
+    var list = [['bonnie', A.bonnie.b.idle], ['', A.bonnie.s.idle], ['', A.bonnie.head]];
+    [['lucy', F.lucy], ['luke', F.luke]].forEach(function (w) {
+      var Q = A.player(w[0]), B = F.bikeFor(w[0]), S = F.surfFor(w[0]);
+      list.push([w[0] + ' cameo', w[1].idle]);
+      ['idle', 'run1', 'run2', 'run3', 'jump', 'cheer', 'dead', 'swim', 'throw', 'crouch'].forEach(function (k, i) { list.push([i ? k : 'big', Q.b[k]]); });
+      ['idle', 'run1', 'run2', 'run3', 'jump', 'blink', 'dead', 'swim'].forEach(function (k, i) { list.push([i ? k : 'small', Q.s[k]]); });
+      list.push([w[0] + ' head', Q.head], [w[0] + ' bike', B.b.ride[0]], ['', B.s.air], [w[0] + ' surf', S.b.ride], ['', S.s.wobble]);
+    });
+    return list;
+  } });
+  (A.sheet = A.sheet || []).push(group);
 })();

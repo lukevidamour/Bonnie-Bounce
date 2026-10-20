@@ -20,10 +20,12 @@
   var TL = BB.TILES = {
     EMPTY: 0, GROUND: 1, BRICK: 2, Q: 3, USED: 4, HARD: 5, PIPE: 6, PIPER: 7, PIPETOP: 8, PIPETOPR: 9,
     SEMI: 10, COIN: 11, SPIKE: 12, LAVA: 13, CONVL: 14, CONVR: 15, HIDDEN: 16, CRATE: 17, WALL: 18,
-    SECRET: 20, SECRETH: 21, WATER: 22
+    SECRET: 20, SECRETH: 21, WATER: 22,
+    // the rainbow's paint blocks: solid only in the colour of the last paint pot touched
+    PAINTR: 23, PAINTY: 24, PAINTB: 25
   };
   // what is in a "?" block, a brick or a hidden block
-  var C = BB.CONTENTS = { COIN: 1, POWER: 2, STAR: 3, LIFE: 4, MULTI: 5 };
+  var C = BB.CONTENTS = { COIN: 1, POWER: 2, STAR: 3, LIFE: 4, MULTI: 5, ROCKET: 6 };
 
   var GR = 16, R1 = 11, R2 = 6;
 
@@ -60,8 +62,9 @@
   /* A row of things, one character per tile:
        B brick   ? star block   P power-up block   S rainbow-lolly block
        L heart block   M brick of many stars   k hidden star   h hidden heart
+       R bullet block (Bonnie's bullet: it zooms you along)
        U used block   X hard block   C star   = one-way platform   # ground
-       ^ spikes   c crate   space: nothing */
+       ^ spikes   c crate   r y b paint blocks (red, yellow, blue)   space: nothing */
   B.row = function (x, y, s) {
     for (var i = 0; i < s.length; i++) {
       var ch = s[i], tx = x + i;
@@ -71,6 +74,7 @@
         case 'P': this.set(tx, y, TL.Q, C.POWER); break;
         case 'S': this.set(tx, y, TL.Q, C.STAR); break;
         case 'L': this.set(tx, y, TL.Q, C.LIFE); break;
+        case 'R': this.set(tx, y, TL.Q, C.ROCKET); break;
         case 'M': this.set(tx, y, TL.BRICK, C.MULTI); break;
         case 'k': this.set(tx, y, TL.HIDDEN, C.COIN); break;
         case 'h': this.set(tx, y, TL.HIDDEN, C.LIFE); break;
@@ -81,6 +85,9 @@
         case '#': this.set(tx, y, TL.GROUND); break;
         case '^': this.set(tx, y, TL.SPIKE); break;
         case 'c': this.set(tx, y, TL.CRATE); break;
+        case 'r': this.set(tx, y, TL.PAINTR); break;
+        case 'y': this.set(tx, y, TL.PAINTY); break;
+        case 'b': this.set(tx, y, TL.PAINTB); break;
       }
     }
   };

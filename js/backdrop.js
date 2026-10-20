@@ -3650,6 +3650,18 @@
     return L;
   };
 
+  /* The painting kit and the generators, for js/backdrop5.js (the fifth
+     land's worlds), which adds its own GEN entries with the same helpers. */
+  BB.bgKit = {
+    H: H, SW: SW, HP: HP, snap: snap, mix: mix, strip: strip, tallStrip: tallStrip, R: R, disc: disc, ball: ball, canopy: canopy,
+    tree: tree, cloud: cloud, land: land, mountain: mountain, mist: mist, sun: sun, span: span, oval: oval, ring: ring,
+    line: line, glow: glow, stars: stars, bird: bird, streak: streak, boat: boat, lighthouse: lighthouse, windmill: windmill,
+    dune: dune, crescent: crescent, gear: gear, glowcap: glowcap, crystal: crystal, arch: arch, leaf: leaf, palm: palm,
+    crater: crater, gull: gull, bunting: bunting, awning: awning, beam: beam, castle: castle, girder: girder, hedge: hedge,
+    poplar: poplar, pad: pad, seaPine: seaPine, farPine: farPine, hline: hline, curve: curve, slide: slide, parasol: parasol,
+    swell: swell, villa: villa, hortensia: hortensia
+  };
+  BB.backdropGen = GEN;
   BB.backdrop = function (name, th) {
     var rnd = BB.rng(name.length * 977 + 13);
     // the sky: a graded wash from the theme's top colour through its middle

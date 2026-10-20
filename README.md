@@ -1,9 +1,10 @@
 # Bonnie Bounce
 
-A thirty-five-level platform adventure starring Bonnie, in the style of a 1999
+A forty-five-level platform adventure starring Bonnie, in the style of a 1999
 handheld colour game. Grown out of TEKEX Jump (the Easter egg on the Tekex
 site), it's now full screen, in colour, and a whole game: a world map,
-power-ups, checkpoints, three bosses and four endings.
+power-ups, checkpoints, four bosses and five endings. The fifth land was
+designed by Bonnie himself.
 
 > Grumble the Dragon has taken Monsty! Bounce through ten lands to bring him home —
 > and find Bear, the family's grey cat, who's hiding somewhere in every one.
@@ -16,6 +17,10 @@ power-ups, checkpoints, three bosses and four endings.
 >
 > And then — it's still the holidays: a waterpark, surfing, the bike ride
 > where Bonnie learnt to ride, Puy du Fou, Saint-Malo, and the ferry home.
+>
+> Home again, Bonnie writes his One Day list — everything he'd love to do one
+> day. But Queen Bee's bees carry it off, and his wishes flutter out all over
+> the world. Fold a paper aeroplane and fly after them.
 
 ## Playing it
 
@@ -75,14 +80,17 @@ Keyboard → Keyboard Shortcuts).
 
 ## The game
 
-**Thirty-five worlds in four lands**, each with its own look, music, enemies and trick.
+**Forty-five worlds in five lands**, each with its own look, music, enemies and trick.
 The second island, the Magpie Isles, opens when Monsty is home: a boat
 route across the water on the map, and a short party scene to start it.
 The third land, the Big Trip, opens when the presents are back: a ferry
 over to France, where the family's dark grey Yeti drives Bonnie from
 level to level. Bonnie's mum and dad, Lucy and Luke, are in it — waiting by
 the car at the end of every level and cheering at every checkpoint — and
-so is Brocco, Bonnie's broccoli soft toy.
+so is Brocco, Bonnie's broccoli soft toy. The fifth land, One Day…, opens
+when the holiday's over: Bonnie designed its ten levels himself (20 Oct,
+aged six) — things he'd like to do one day — and drew some of its cast. A
+paper aeroplane flies him across the map and waits at the end of each level.
 
 | | World | What's new |
 |---|---|---|
@@ -121,6 +129,21 @@ so is Brocco, Bonnie's broccoli soft toy.
 | 33 | The Bike Ride | Bonnie on his bike — Dad runs alongside holding the seat, then lets go; a musical bridge |
 | 34 | Puy du Fou | knights (two stomps), falcons, catapults over the castle walls, chariots, a Viking longship |
 | 35 | Saint-Malo | the ramparts and corsairs, stepping stones to the fort, the sea pool — and the ferry home |
+| 36 | Pokémon Meadow | Pikachu follows you; long grass that rustles — catch the Pokémon that pop out (touch them); Zubat, Ekans |
+| 37 | Universal Studios | the globe, Minions, a roller-coaster car and the Hogwarts Express to ride, a sound stage |
+| 38 | New York | Christmas snow, taxis over the bridge, steam from the manholes, a window-cleaner's cradle up a skyscraper |
+| 39 | Jamaica | bamboo rafts on the river, climbing Dunn's River Falls pool by pool, steel-drum springs, hummingbirds |
+| 40 | Antarctica | ice, sliding penguins, ice floes, leaping orcas, an ice slide, the southern lights |
+| 41 | Australia | ride in a kangaroo's pouch (huge jumps), emus, kookaburras, crocs in the billabong, the Opera House |
+| 42 | On a Rainbow | paint pots: only the colour you touched last is solid; cloud springs |
+| 43 | Chocolate Land | marshmallow springs, hot-chocolate geysers, biscuits that drop, a chocolate river |
+| 44 | Dinosaur Land | eggs that hatch babies who follow you, triceratops, a pterodactyl to ride — and the T. rex chase |
+| 45 | Bee Land | sticky honey, worker bees, flower springs, and Queen Bee: stomp her when she's stuck in her own honey |
+
+Bonnie drew these baddies himself: the **squirrel** that throws nuts, the
+walking **chocolate bar**, the cross **palm tree**, the **butterfly**, the
+**Christmas tree**, the **building** with eyes and the **polar bear** (two
+stomps). And his two things for the blocks: the **bullet** and the **heart**.
 
 **Things to find, in every level:** three golden **medals** (they show on
 the map, the level's card and the HUD, and win the football kits);
@@ -132,14 +155,15 @@ behind; **balloons** that float Bonnie up into the sky for a while;
 easy"). A bump from a baddie while he's small, or a fall into a pit or
 lava, and he starts again — from the checkpoint flag if he reached it,
 after a one-second card. Lives are unlimited. When he's big, a bump
-shrinks him first, without costing the heart. A heart from a present is
-a burst of points. To give him more hearts again, raise `HP_MAX` in
-`js/game.js` (2 a heart): the three-heart rules — carrying on after a
-bump, a bubble back to safe ground after a fall, half a heart back every
-12 stars — all return on their own.
+shrinks him first, without costing the heart. A **heart** from a present
+(Bonnie's idea) gives him a second heart for the rest of the level (or
+fills it again): with two, a bump costs one and he carries on, and a
+fall bubbles him back to safe ground. Back at a flag, it's one heart
+again. `HP_MAX` and `EXTRA_MAX` in `js/game.js` set both (2 a heart).
 
 **Bosses:** landing on top of a boss never hurts. At the right moment
-(Grumble any time, the Captain when he's landed, Rascal when he's dizzy)
+(Grumble any time, the Captain when he's landed, Rascal when he's dizzy,
+Queen Bee when she's stuck in her honey)
 it's a hit; at any other it's a bounce. A boss that's just been hit
 flashes, and can't hurt Bonnie until he stops. Only touching him from
 the side or below, or his fire, eggs and baguettes, costs the heart.
@@ -156,8 +180,13 @@ star pyjamas, a superhero suit with a cape, a Monsty suit, a pirate suit
 with a tricorn hat and a golden one with a crown, won by bringing Bear
 home 3, 6, 10, 15 and 20 times; a football kit, a golf outfit with a
 cap, and mouse ears for a day at the park, won by finishing levels 21,
-25 and 29; and his two teams' kits — PSG (navy, the red stripe) and
-Liverpool (all red), no badges — won with 10 and 25 golden medals.
+25 and 29; his two teams' kits — PSG (navy, the red stripe) and
+Liverpool (all red), no badges — won with 10 and 25 golden medals; and a
+Pokémon trainer's cap, a penguin suit, a dinosaur onesie and a bee
+costume, won by finishing levels 36, 40, 44 and 45. Its WHO'S PLAYING?
+page lets you play as **Bonnie, Mum or Dad** (Bonnie asked for it): the
+other two cheer at the flags and wait at the end. Once the holiday's
+over there's a **Pokédex** page for the Pokémon caught in level 36.
 
 **Grown-ups** (title menu or pause menu, hold to open) can record their
 own "Yay!", "Wheee!" and "Well done!" — played at checkpoints, on
@@ -168,7 +197,10 @@ trampolines and when a level is clear. The clips stay on that device.
 - **Cupcake** — Bonnie grows big; he can take a hit and smash bricks.
 - **Super Ball** — his jumper turns red and B throws bouncing balls.
 - **Rainbow Lolly** — a few seconds of rainbow invincibility.
-- **Heart** — a burst of points.
+- **Heart** — a second heart for the rest of the level.
+- **Bullet** (Bonnie's) — he surfs it at full speed for a few seconds,
+  knocking baddies flying; it rises over anything in the way (or when
+  jump's held), and only ever drops him on solid ground.
 
 Every level has a checkpoint flag halfway, and ends at an arch of
 balloons in front of Bonnie's house (on the Magpie Isles, his tent; on
@@ -202,7 +234,9 @@ numbers in `POSES` in `js/art.js`.
 | `js/light.js` | sunbeams, dusk and glowing lights, shadows — and how Bonnie catches the light |
 | `js/music.js` | the soundtrack — all original tunes, written as note strings |
 | `js/levels.js` | the level builder, and the first land's ten levels |
-| `js/levels2.js`, `levels3.js`, `levels4.js` | the other lands' levels, one file each, built with the same kit |
+| `js/levels2.js` … `levels5.js` | the other lands' levels, one file each, built with the same kit |
+| `js/creatures5a.js`, `creatures5b.js` | the fifth land's cast: Bonnie's own designs, the Pokémon, Queen Bee, the dinosaurs, the rides, its scenery |
+| `js/backdrop5.js`, `js/music5.js` | the fifth land's ten worlds (themes and backgrounds) and its songs |
 | `js/map.js` | the world map: two islands, France and the holiday coast, the boat, ferry and bridge between them, each world's landmark, all animated |
 | `js/ui.js` | the game's stationery: paper cards with a running stitch, ribbon banners, Monsty's head as the menu pointer |
 | `js/voice.js` | grown-ups' recorded voices: recording (MediaRecorder), keeping them on the device, playing them in the game |
@@ -224,7 +258,8 @@ Handy while editing:
   carrying on from the spot nearest the end. It starts small with the
   game's one heart, so a bump or a fall ends that try: a level it
   finishes can be finished without a single hit. It also checks every
-  level has its three medals (`&medals=1` goes after each of them). All thirty-five pass (the whole run takes a minute or two; the boss
+  level has its three medals (`&medals=1` goes after each of them;
+  `&bear=1` goes and finds Bear). All forty-five pass (the whole run takes a few minutes; the boss
   fights take longest). If one fails, it says how far it got.
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).

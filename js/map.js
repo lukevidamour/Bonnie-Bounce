@@ -15,6 +15,10 @@
    lagoon, dunes, a moon garden, a clock tower, and Captain Magpie's sky
    ship floating over the far headland.
 
+   After France and the holiday coast, a paper aeroplane flies on from
+   Saint-Malo to the fifth land, ONE DAY…: Bonnie's One Day List, drawn
+   as he'd draw it — in crayon, on a sheet of paper floating on the sea.
+
    Each island is painted once into a surface at full density (the
    second only once it's needed); everything that moves is drawn over
    it each frame. game.js owns the walking and
@@ -25,16 +29,18 @@
   var H = BB.H, HP = 1 / BB.R, snap = BB.snap, mix = BB.mix, A = BB.ART;
   // the two islands' ends, and where the water between them is split
   // between their two painted surfaces
-  var N = 35, ISLE = [[0, 650], [760, 1410], [1520, 2170], [2280, 2640]], SPLIT = 705, SPLIT2 = 1465, SPLIT3 = 2225, MW2 = 1410, MW3 = 2170, MW4 = 2640;
+  var N = 45, ISLE = [[0, 650], [760, 1410], [1520, 2170], [2280, 2640], [2750, 3400]], SPLIT = 705, SPLIT2 = 1465, SPLIT3 = 2225, SPLIT4 = 2695, MW2 = 1410, MW3 = 2170, MW4 = 2640, MW5 = 3400;
   var node = function (i) {
     if (i < 10) return { x: 44 + i * 62, y: 86 + Math.round(Math.sin(i * 1.2 + 0.4) * 15) };
     if (i < 20) return { x: 804 + (i - 10) * 62, y: 86 + Math.round(Math.sin((i - 10) * 1.1 + 2.2) * 15) };
     if (i < 30) return { x: 1564 + (i - 20) * 62, y: 86 + Math.round(Math.sin((i - 20) * 1.05 + 0.9) * 15) };
-    return { x: 2324 + (i - 30) * 62, y: 86 + Math.round(Math.sin((i - 30) * 1.2 + 1.5) * 15) };
+    if (i < 35) return { x: 2324 + (i - 30) * 62, y: 86 + Math.round(Math.sin((i - 30) * 1.2 + 1.5) * 15) };
+    return { x: 2794 + (i - 35) * 62, y: 86 + Math.round(Math.sin((i - 35) * 1.15 + 0.3) * 15) };
   };
   // the boat route between the islands, as a gentle arc over the water
-  // (the second crossing, to France, is the ferry's: from node 19 to 20)
-  var routeY = function (x) { var i = x > 2140 ? 29 : x > 1000 ? 19 : 9, a = node(i), b = node(i + 1), t = (x - a.x) / (b.x - a.x); return a.y + (b.y - a.y) * t - Math.sin(t * Math.PI) * 4; };
+  // (the second crossing, to France, is the ferry's: from node 19 to 20;
+  // the last, from Saint-Malo to the paper, the aeroplane's: 34 to 35)
+  var routeY = function (x) { var i = x > 2572 ? 34 : x > 2140 ? 29 : x > 1000 ? 19 : 9, a = node(i), b = node(i + 1), t = (x - a.x) / (b.x - a.x); return a.y + (b.y - a.y) * t - Math.sin(t * Math.PI) * 4; };
   var WORLD = [
     { land: '#82d65a', dark: '#4aa83c', col: '#5ccf6a' },
     { land: '#a2e26c', dark: '#5cb84a', col: '#8ee06a' },
@@ -73,7 +79,20 @@
     { land: '#f6dca0', dark: '#d0b070', col: '#2a7ad0' },
     { land: '#a8d870', dark: '#6aa848', col: '#4aa844' },
     { land: '#92c868', dark: '#5a9a44', col: '#b84a3a' },
-    { land: '#c8c4bc', dark: '#8a867e', col: '#4a6a96' }
+    { land: '#c8c4bc', dark: '#8a867e', col: '#4a6a96' },
+    // ONE DAY…, in crayon: the Pokémon meadow, Universal Studios, New York at
+    // Christmas, Jamaica, Antarctica, Australia, on a rainbow, chocolate land,
+    // dinosaur land, bee land
+    { land: '#a8dc6c', dark: '#4e9a3c', col: '#e8443a' },
+    { land: '#cbbcf2', dark: '#7660c0', col: '#3a6ae0' },
+    { land: '#eef3fb', dark: '#7f92ba', col: '#f2b81e' },
+    { land: '#64d2d4', dark: '#1f98a4', col: '#16aaa0' },
+    { land: '#e2f4ff', dark: '#6aaad6', col: '#3aa8ec' },
+    { land: '#f29450', dark: '#b4502a', col: '#e4602a' },
+    { land: '#a8daff', dark: '#5a9ade', col: '#a858e4' },
+    { land: '#9c603a', dark: '#5a3220', col: '#8a4a26' },
+    { land: '#68b850', dark: '#2f7634', col: '#dc5a28' },
+    { land: '#ffd448', dark: '#cc8e1a', col: '#eea416' }
   ];
 
   // painting helpers (no wrap-round here: the island has ends)
@@ -112,18 +131,26 @@
     if (x < SPLIT) return Math.max(0, Math.min(9, Math.round((x - 44) / 62)));
     if (x < SPLIT2) return Math.max(10, Math.min(19, 10 + Math.round((x - 804) / 62)));
     if (x < SPLIT3) return Math.max(20, Math.min(29, 20 + Math.round((x - 1564) / 62)));
-    return Math.max(30, Math.min(34, 30 + Math.round((x - 2324) / 62)));
+    if (x < SPLIT4) return Math.max(30, Math.min(34, 30 + Math.round((x - 2324) / 62)));
+    return Math.max(35, Math.min(44, 35 + Math.round((x - 2794) / 62)));
   };
   var LAGOON = function () { var p = node(3); return { x: p.x, y: p.y + 2, rx: 24, ry: 15 }; };
 
   var build = function (k) {
-    var X0 = [0, SPLIT, SPLIT2, SPLIT3][k], SW = [SPLIT, SPLIT2 - SPLIT, SPLIT3 - SPLIT2, MW4 - SPLIT3][k], IA = ISLE[k][0], IB = ISLE[k][1];
+    var X0 = [0, SPLIT, SPLIT2, SPLIT3, SPLIT4][k], SW = [SPLIT, SPLIT2 - SPLIT, SPLIT3 - SPLIT2, SPLIT4 - SPLIT3, MW5 - SPLIT4][k], IA = ISLE[k][0], IB = ISLE[k][1];
     var c = BB.surface(SW, H), g = c.getContext('2d'), rnd = BB.rng(2026 + k), i, x, y, p;
     // painted in the map's own coordinates
     g.translate(-X0, 0);
     // the sea, deepening away from the shore
     for (y = 0; y < H; y += HP) R(g, X0, y, SW, HP, mix('#5cc4f2', '#2a78c4', y / H));
-    for (i = 0; i < 160; i++) { x = X0 + rnd() * SW; y = rnd() * H; R(g, x, y, 2 + rnd() * 4, HP, 'rgba(255,255,255,0.18)'); }
+    // (the holiday coast's surface once ended at the map's edge; it now runs
+    // on under the water to the paper's, and its own sea keeps the glints it
+    // always had, with the new stretch given its own)
+    var GW = k === 3 ? MW4 - SPLIT3 : SW;
+    for (i = 0; i < 160; i++) { x = X0 + rnd() * GW; y = rnd() * H; R(g, x, y, 2 + rnd() * 4, HP, 'rgba(255,255,255,0.18)'); }
+    if (k === 3) { var r4 = BB.rng(2035); for (i = 0; i < 22; i++) { x = MW4 + r4() * (SPLIT4 - MW4); y = r4() * H; R(g, x, y, 2 + r4() * 4, HP, 'rgba(255,255,255,0.18)'); } }
+    // the fifth land isn't an island at all, but a sheet of paper
+    if (k === 4) { paper5(g, X0, SW); return c; }
     /* the island: a white line of surf, a sandy shore, then each world's
        own ground. The borders between worlds wander, so they read as
        landscape rather than lines; painted pixel by pixel. */
@@ -662,7 +689,545 @@
     if (!st.reduce) for (k = 0; k < 3; k++) { var sp = ((t * 0.4 + k * 18) % 54) / 54; ctx.globalAlpha = 0.6 * (1 - sp); disc(ctx, fx + 5.5 + sp * 6, fy - 10 - sp * 10, 1.2 + sp * 2, '#f0f0f4'); } ctx.globalAlpha = 1;
   };
 
-  var island = null, island2 = null, island3 = null, island4 = null, cloudC = null;
+  /* ---- ONE DAY… ----------------------------------------------------------------------
+     Bonnie's One Day List — the things he'd like to do one day — drawn the
+     way he'd draw them: in crayon, on a sheet of paper floating on the sea.
+     Each place is a patch of its own colour, coloured in not quite to the
+     line (and now and then over it) and gone round with a wobbly one, and
+     its landmark is drawn as a six-year-old draws it: a Poké Ball and
+     Pikachu, the Universal globe and the castle on the hill, the Empire
+     State and a Christmas tree, a palm and a waterfall, an iceberg and a
+     penguin, a kangaroo and the Opera House, a rainbow with its pot of
+     gold, a chocolate-bar mountain with a bite out of it, a volcano and its
+     dinosaur, and Queen Bee's hive with her crown on top.
+
+     The sheet and everything still on it are painted once, pixel by pixel,
+     the way the islands are. What moves (the Poké Ball wobbling, the globe
+     turning, the kangaroo, the penguin, the bee and the rest) are little
+     crayon drawings of their own, painted once and moved each frame. His
+     paper aeroplane is real paper, not crayon, so it's drawn clean and
+     white: it carries him over from Saint-Malo and waits at the sheet's
+     edge. */
+  var PX0 = 2756, PX1 = 3392, EAR = 10;
+  var pTop = function (x) { return 38.5 + Math.sin(x * 0.019) * 0.8 + Math.sin(x * 0.061 + 1) * 0.3; };
+  var pBot = function (x) { return 125.5 + Math.sin(x * 0.015 + 2) * 0.9 + Math.sin(x * 0.053) * 0.3; };
+  var pL = function (y) { return PX0 + (y - 82) * 0.025; }, pR = function (y) { return PX1 + (y - 82) * 0.02; };
+  // how far inside the sheet a point is (below nothing outside it); its top
+  // right corner is folded down, dog-eared
+  var paperIn = function (x, y) {
+    var ex = pR(y) - x, ey = y - pTop(x), dd = Math.min(x - pL(y), ex, ey, pBot(x) - y);
+    return ex + ey < EAR ? Math.min(dd, (ex + ey - EAR) * 0.7071) : dd;
+  };
+  var h5 = function (a, b) { var q = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return q - Math.floor(q); };
+  var n5 = function (x, y) {
+    var xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+    var a = h5(xi, yi), b = h5(xi + 1, yi), c = h5(xi, yi + 1), d = h5(xi + 1, yi + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  };
+  var C5 = BB.toRgb;
+  var shd = function (c, f) { return f > 0 ? [c[0] + (255 - c[0]) * f, c[1] + (255 - c[1]) * f, c[2] + (255 - c[2]) * f] : [c[0] * (1 + f), c[1] * (1 + f), c[2] * (1 + f)]; };
+  var mx5 = function (a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; };
+  var PAPER = C5('#fcf4e2'), WH5 = [255, 255, 255], INK5 = C5('#2a2236');
+  // a pixel into a painter's buffer, laid over what's already there
+  var pset = function (P, px, py, c, a) {
+    if (px < 0 || py < 0 || px >= P.iw || py >= P.ih) return;
+    var k = (py * P.iw + px) * 4, d = P.d;
+    if (a === undefined || a >= 1) { d[k] = c[0]; d[k + 1] = c[1]; d[k + 2] = c[2]; d[k + 3] = 255; return; }
+    var ea = d[k + 3] / 255, oa = a + ea * (1 - a);
+    if (oa <= 0) return;
+    for (var j = 0; j < 3; j++) d[k + j] = (c[j] * a + d[k + j] * ea * (1 - a)) / oa;
+    d[k + 3] = oa * 255;
+  };
+  // wax: the streaks a crayon leaves scribbled one way, pressed harder here
+  // and lighter there, with the paper's tooth showing where it skipped
+  var wax = function (c, x, y, px, py, s) {
+    var v = y * 0.8 + x * 0.6, band = Math.sin(v * 2.1 + n5(x * 0.6, y * 0.6) * 5);
+    var o = shd(c, (band * 0.07 + (n5(x * 0.15 + 50, y * 0.15) - 0.5) * 0.16) * s);
+    // (the skips run along the stroke, a pixel or two long)
+    return h5(Math.floor((x * 0.8 - y * 0.6) * 1.3), Math.floor(v * 3.6)) < (0.02 + (band < -0.6 ? 0.07 : 0)) * s ? mx5(o, PAPER, 0.6) : o;
+  };
+  /* a shape the way a child draws one. sdf says how far inside the shape a
+     point is; the hand wobbles, so the shape is looked up a little off true.
+     It's coloured in (fill: a colour, or fn(x, y, d) giving one or nothing)
+     not quite to the line and now and then over it, and gone round with a
+     line (or not, for strokes). A painter P may carry tf, a transform from
+     its pixels to the drawing's own coordinates (to turn or flip it). */
+  var kd = function (P, x0, y0, x1, y1, sdf, fill, line, o) {
+    o = o || {};
+    var Rr = BB.R, lw = o.lw || 1, wb = o.wob === undefined ? 0.4 : o.wob, sd = o.seed || 0, tx = o.tex === undefined ? 1 : o.tex, ff = typeof fill === 'function';
+    var pa = Math.max(0, Math.floor((x0 - P.ox) * Rr)), pb = Math.min(P.iw, Math.ceil((x1 - P.ox) * Rr)), qa = Math.max(0, Math.floor((y0 - P.oy) * Rr)), qb = Math.min(P.ih, Math.ceil((y1 - P.oy) * Rr));
+    if (P.tf) { pa = 0; pb = P.iw; qa = 0; qb = P.ih; }
+    for (var py = qa; py < qb; py++) for (var px = pa; px < pb; px++) {
+      var x = P.ox + (px + 0.5) / Rr, y = P.oy + (py + 0.5) / Rr;
+      if (P.tf) { var tt = P.tf(x, y); x = tt[0]; y = tt[1]; }
+      var d = sdf(x + (Math.sin(y * 0.9 + sd) * 0.7 + Math.sin(y * 2.3 + sd * 1.7) * 0.3) * wb, y + (Math.sin(x * 0.8 + sd * 0.6) * 0.7 + Math.sin(x * 2.1 + sd * 2.3) * 0.3) * wb), c = null;
+      if (d < -1) continue;
+      if (line && d >= 0 && d < lw) c = wax(line, x, y, px, py, tx * 0.4);
+      else if (fill && (!line ? d >= 0 : d < 0 ? d > -Math.max(0, Math.sin(x * 0.31 - y * 0.6 + sd) * 2.2 - 1.6) : d > lw + Math.max(0, Math.sin(x * 0.7 + y * 0.45 + sd * 3) * 1.1 - 0.4))) {
+        c = ff ? fill(x, y, d) : fill;
+        if (c) c = wax(c, x, y, px, py, tx);
+      }
+      if (c) pset(P, px, py, c);
+    }
+  };
+  // the shapes: each says how far inside it a point is
+  var sdE = function (x, y, cx, cy, rx, ry) { var dx = x - cx, dy = y - cy, k = Math.sqrt(dx * dx / (rx * rx) + dy * dy / (ry * ry)); return k < 1e-6 ? Math.min(rx, ry) : Math.sqrt(dx * dx + dy * dy) * (1 - k) / k; };
+  var sdER = function (x, y, cx, cy, rx, ry, a) { var cs = Math.cos(a), sn = Math.sin(a), dx = x - cx, dy = y - cy; return sdE(dx * cs + dy * sn, -dx * sn + dy * cs, 0, 0, rx, ry); };
+  var sdBlob = function (x, y, cx, cy, rx, ry, s, a) { var an = Math.atan2((y - cy) / ry, (x - cx) / rx), k = 1 + a * (Math.sin(an * 3 + s) * 0.6 + Math.sin(an * 5 + s * 2.1) * 0.4); return sdE(x, y, cx, cy, rx * k, ry * k); };
+  var sdB = function (x, y, cx, cy, hw, hh, r) { var qx = Math.abs(x - cx) - hw + r, qy = Math.abs(y - cy) - hh + r; return -(Math.sqrt(Math.max(qx, 0) * Math.max(qx, 0) + Math.max(qy, 0) * Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r); };
+  var sdL = function (x, y, ax, ay, bx, by, r) { var ex = bx - ax, ey = by - ay, wx = x - ax, wy = y - ay, t = Math.max(0, Math.min(1, (wx * ex + wy * ey) / (ex * ex + ey * ey))); return r - Math.sqrt((wx - ex * t) * (wx - ex * t) + (wy - ey * t) * (wy - ey * t)); };
+  var sdP = function (x, y, p) {
+    var d = 1e9, inside = false;
+    for (var i = 0, j = p.length - 2; i < p.length; j = i, i += 2) {
+      var ax = p[j], ay = p[j + 1], ex = p[i] - ax, ey = p[i + 1] - ay, wx = x - ax, wy = y - ay, t = Math.max(0, Math.min(1, (wx * ex + wy * ey) / (ex * ex + ey * ey))), qx = wx - ex * t, qy = wy - ey * t;
+      d = Math.min(d, qx * qx + qy * qy);
+      if ((ay > y) !== (p[i + 1] > y) && x < ax + (y - ay) * ex / ey) inside = !inside;
+    }
+    return inside ? Math.sqrt(d) : -Math.sqrt(d);
+  };
+  // a pointy-topped hexagon, a honeycomb's cell
+  var sdHex = function (x, y, cx, cy, r) { var dx = Math.abs(x - cx), dy = Math.abs(y - cy); return r * 0.866 - Math.max(dx, dx * 0.5 + dy * 0.866); };
+  var star5 = function (cx, cy, ro, ri, a) { var p = []; for (var k = 0; k < 10; k++) { var an = (a || 0) - Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? ri : ro; p.push(cx + Math.cos(an) * r, cy + Math.sin(an) * r); } return p; };
+  // and the ways of drawing them
+  var ell5 = function (P, cx, cy, rx, ry, fill, line, o) { kd(P, cx - rx - 2, cy - ry - 2, cx + rx + 2, cy + ry + 2, function (x, y) { return sdE(x, y, cx, cy, rx, ry); }, fill, line, o); };
+  var dot5 = function (P, cx, cy, r, col) { ell5(P, cx, cy, r, r, col, null, { wob: 0.1, tex: 0.5 }); };
+  var poly5 = function (P, p, fill, line, o) {
+    var x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (var i = 0; i < p.length; i += 2) { x0 = Math.min(x0, p[i]); x1 = Math.max(x1, p[i]); y0 = Math.min(y0, p[i + 1]); y1 = Math.max(y1, p[i + 1]); }
+    kd(P, x0 - 2, y0 - 2, x1 + 2, y1 + 2, function (x, y) { return sdP(x, y, p); }, fill, line, o);
+  };
+  var box5 = function (P, cx, cy, hw, hh, r, fill, line, o) { kd(P, cx - hw - 2, cy - hh - 2, cx + hw + 2, cy + hh + 2, function (x, y) { return sdB(x, y, cx, cy, hw, hh, r); }, fill, line, o); };
+  var ln5 = function (P, ax, ay, bx, by, r, col, o) { kd(P, Math.min(ax, bx) - r - 2, Math.min(ay, by) - r - 2, Math.max(ax, bx) + r + 2, Math.max(ay, by) + r + 2, function (x, y) { return sdL(x, y, ax, ay, bx, by, r); }, col, null, o || { wob: 0.25, tex: 0.6 }); };
+  var pl5 = function (P, pts, r, col) { for (var i = 2; i < pts.length; i += 2) ln5(P, pts[i - 2], pts[i - 1], pts[i], pts[i + 1], r, col); };
+  // turning a drawing about a point, or flipping it, as a painter's transform
+  var turn = function (a, cx, cy) { var cs = Math.cos(a), sn = Math.sin(a); return function (x, y) { var dx = x - cx, dy = y - cy; return [cx + dx * cs + dy * sn, cy - dx * sn + dy * cs]; }; };
+  var flip = function (w, tf) { return function (x, y) { return tf ? tf(w - x, y) : [w - x, y]; }; };
+  // a little crayon drawing of its own, to move about
+  var kidSprite = function (w, h, art, tf) {
+    var c = BB.surface(w, h), g = c.getContext('2d'), img = g.getImageData(0, 0, c.width, c.height);
+    art({ d: img.data, iw: c.width, ih: c.height, ox: 0, oy: 0, tf: tf });
+    g.putImageData(img, 0, 0);
+    return c;
+  };
+  // a kid's flower: petals round a middle, on a stalk
+  var flower5 = function (P, x, y, petal, mid, stalk) {
+    if (stalk) ln5(P, x, y + 1, x + 0.4, y + stalk, 0.45, C5('#3f9a3a'));
+    for (var k = 0; k < 5; k++) { var a = k * 1.2566 - 1.2; ell5(P, x + Math.cos(a) * 1.6, y + Math.sin(a) * 1.6, 1.25, 1.25, petal, mx5(petal, INK5, 0.45), { lw: 0.5, wob: 0.15 }); }
+    ell5(P, x, y, 1.05, 1.05, mid, C5('#d07a1a'), { lw: 0.5, wob: 0.1 });
+  };
+  // grass the way kids draw it: three strokes from one spot
+  var tuft5 = function (P, x, y, col) { ln5(P, x, y, x - 1.2, y - 2.4, 0.4, col); ln5(P, x, y, x, y - 3, 0.4, col); ln5(P, x, y, x + 1.2, y - 2.4, 0.4, col); };
+  // a palm frond, fat and pointed
+  var frond5 = function (P, x, y, a, len, col, line) { kd(P, x - len - 3, y - len - 3, x + len + 3, y + len + 3, function (px, py) { return sdER(px, py, x + Math.cos(a) * len * 0.55, y + Math.sin(a) * len * 0.55 + len * 0.08, len * 0.6, len * 0.2, a); }, col, line, { lw: 0.6, wob: 0.2 }); };
+
+  // the places, painted once onto the sheet
+  var world5 = function (P) {
+    var q = [], j, k, x, y, p, W5 = WORLD.slice(35).map(function (w) { return { land: C5(w.land), dark: C5(w.dark) }; });
+    for (j = 0; j < 10; j++) q.push(node(35 + j));
+    var GRN = C5('#3f8a34'), YEL = C5('#ffd23a'), RED5 = C5('#e8443a'), BLU = C5('#3a7ee0'), SKY = C5('#7ad0ff'), BRN = C5('#8a5230');
+
+    // ---- doodles on the bare paper, round the edges
+    // the sun in the corner, with a face (its rays go round: drawn each frame)
+    ell5(P, 2767, 47.5, 4.6, 4.6, YEL, C5('#f08a1e'), { seed: 2 });
+    dot5(P, 2765.4, 46.6, 0.55, INK5); dot5(P, 2768.6, 46.6, 0.55, INK5);
+    kd(P, 2763, 47, 2771, 51, function (x, y) { return y < 48.4 ? -1 : 0.38 - Math.abs(Math.hypot(x - 2767, y - 47.4) - 2.1); }, INK5, null, { wob: 0.1 });
+    // birds, hearts, gold stars (the wishes), waves
+    [[2887, 44], [2894, 47.5], [3133, 45], [3140, 43]].forEach(function (b) { pl5(P, [b[0] - 2.2, b[1] + 0.6, b[0] - 1.1, b[1] - 0.4, b[0], b[1] + 0.6, b[0] + 1.1, b[1] - 0.4, b[0] + 2.2, b[1] + 0.6], 0.38, C5('#5a5070')); });
+    [[3011, 119.5], [3197, 47]].forEach(function (h) { kd(P, h[0] - 4, h[1] - 4, h[0] + 4, h[1] + 4, function (x, y) { return Math.max(sdE(x, y, h[0] - 1.3, h[1] - 0.8, 1.6, 1.6), sdE(x, y, h[0] + 1.3, h[1] - 0.8, 1.6, 1.6), sdP(x, y, [h[0] - 2.9, h[1] - 0.4, h[0] + 2.9, h[1] - 0.4, h[0], h[1] + 2.8])); }, C5('#ff7aa8'), C5('#d8407a'), { lw: 0.6, wob: 0.15 }); });
+    [[2949, 46.5], [3073, 120], [3259, 45.5], [2826, 120]].forEach(function (s, i) { poly5(P, star5(s[0], s[1], 3, 1.3, i * 0.2), YEL, C5('#d8901a'), { lw: 0.6, wob: 0.15 }); });
+    [[3136, 121], [3322, 121], [2886, 121.5]].forEach(function (w) { pl5(P, [w[0] - 3, w[1], w[0] - 1.5, w[1] - 1, w[0], w[1], w[0] + 1.5, w[1] - 1, w[0] + 3, w[1]], 0.38, BLU); });
+
+    // ---- 36 · the Pokémon meadow: Pikachu in the long grass (the Poké Ball
+    // wobbles: drawn each frame)
+    p = q[0];
+    kd(P, p.x - 35, 52, p.x + 33, 122, function (x, y) { return sdBlob(x, y, p.x - 1, 87, 30, 30, 1, 0.06); }, W5[0].land, W5[0].dark, { wob: 0.6, seed: 1 });
+    [[2771, 73], [2778, 66], [2772, 82], [2795, 116], [2786, 113], [2822, 86], [2817, 96]].forEach(function (g2) { tuft5(P, g2[0], g2[1], GRN); });
+    flower5(P, 2781, 58.5, WH5, YEL, 0); flower5(P, 2803, 115, C5('#ff8ab8'), YEL, 0); flower5(P, 2768, 96, C5('#ffd23a'), C5('#ff8a3a'), 0);
+    var pk = function (cx, cy) {
+      var Y2 = C5('#ffd23a'), L2 = C5('#7a5218');
+      poly5(P, [cx + 3, cy + 2, cx + 7, cy - 1, cx + 5.4, cy - 2, cx + 8.6, cy - 6, cx + 9.8, cy - 4.6, cx + 7.4, cy - 0.6, cx + 8.8, cy + 0.4, cx + 4, cy + 4], Y2, L2, { lw: 0.7, wob: 0.15, seed: 4 });
+      [[-3, -1.2, -6.2, -10.8], [3, 1.2, 6.2, -10.8]].forEach(function (e) {
+        poly5(P, [cx + e[0], cy - 4.6, cx + e[2], cy + e[3], cx + e[1], cy - 5.6], function (x2, y2) { return y2 < cy - 8.8 ? INK5 : Y2; }, L2, { lw: 0.7, wob: 0.1, seed: 5 });
+      });
+      ell5(P, cx, cy + 3, 3.6, 3.9, Y2, L2, { lw: 0.7, wob: 0.15, seed: 6 });
+      ell5(P, cx - 1.8, cy + 6.6, 1.3, 0.8, Y2, L2, { lw: 0.6, wob: 0.1 }); ell5(P, cx + 1.8, cy + 6.6, 1.3, 0.8, Y2, L2, { lw: 0.6, wob: 0.1 });
+      ell5(P, cx, cy - 2.4, 4.4, 3.6, Y2, L2, { lw: 0.7, wob: 0.15, seed: 7 });
+      dot5(P, cx - 1.7, cy - 3, 0.75, INK5); dot5(P, cx + 1.7, cy - 3, 0.75, INK5);
+      dot5(P, cx - 1.9, cy - 3.3, 0.28, WH5); dot5(P, cx + 1.5, cy - 3.3, 0.28, WH5);
+      dot5(P, cx - 3.1, cy - 1.3, 0.95, RED5); dot5(P, cx + 3.1, cy - 1.3, 0.95, RED5);
+    };
+    pk(2808, 104);
+
+    // ---- 37 · Universal Studios: the castle on its hill, and the globe on
+    // its fountain (it turns: drawn each frame)
+    p = q[1];
+    kd(P, p.x - 32, 46, p.x + 34, 122, function (x, y) { return sdBlob(x, y, p.x + 1, 84, 29, 34, 2, 0.07); }, W5[1].land, W5[1].dark, { wob: 0.6, seed: 2 });
+    var hx = p.x - 17, STONE = C5('#b4b0c8'), SL = C5('#4a4660'), ROOF = C5('#3e4fa0'), RL = C5('#232a60');
+    ell5(P, hx, 86.5, 12.5, 3.6, C5('#7cc062'), GRN, { seed: 3 });
+    box5(P, hx, 80, 7, 4.5, 0, STONE, SL, { wob: 0.25 });
+    [[-7.5, 2.1, 74], [0, 2.6, 66], [7.5, 2.1, 75.5]].forEach(function (t2) {
+      box5(P, hx + t2[0], (t2[2] + 84) / 2, t2[1], (84 - t2[2]) / 2, 0, STONE, SL, { wob: 0.25, seed: t2[0] });
+      poly5(P, [hx + t2[0] - t2[1] - 1, t2[2] + 0.5, hx + t2[0], t2[2] - 7, hx + t2[0] + t2[1] + 1, t2[2] + 0.5], ROOF, RL, { wob: 0.2, seed: t2[0] + 1 });
+      dot5(P, hx + t2[0], t2[2] + 3, 0.6, YEL);
+    });
+    ln5(P, hx, 59, hx, 56, 0.3, SL); poly5(P, [hx, 56, hx + 2.6, 56.8, hx, 57.6], RED5, null, { wob: 0 });
+    box5(P, hx, 82.6, 1.4, 1.8, 1.2, C5('#5a3a2a'), null, { wob: 0.1 });
+    var gx5 = p.x + 19;
+    ell5(P, gx5, 88, 9.5, 3, C5('#5ab8f0'), C5('#7a7a90'), { lw: 1.2, seed: 4 });
+    box5(P, gx5, 82, 1.8, 5, 0.5, C5('#dcd8e8'), SL, { wob: 0.2 });
+
+    // ---- 38 · New York at Christmas: the Empire State, a yellow taxi, the
+    // tree in the park (it snows: drawn each frame)
+    p = q[2];
+    kd(P, p.x - 32, 48, p.x + 32, 120, function (x, y) { return sdBlob(x, y, p.x, 84, 29, 33, 3, 0.06); }, W5[2].land, W5[2].dark, { wob: 0.6, seed: 3 });
+    var ex5 = p.x - 18, BLD = C5('#9aa6cc'), BL = C5('#3a4470');
+    box5(P, ex5, 76, 5, 12, 0, BLD, BL, { wob: 0.25, seed: 1 });
+    box5(P, ex5, 60, 3.6, 4.5, 0, BLD, BL, { wob: 0.25, seed: 2 });
+    box5(P, ex5, 52, 2.2, 3.6, 0, BLD, BL, { wob: 0.2, seed: 3 });
+    ln5(P, ex5, 49, ex5, 41.5, 0.5, BL);
+    for (y = 66; y < 87; y += 3) for (x = -2.6; x <= 2.6; x += 2.6) dot5(P, ex5 + x, y, 0.55, h5(x, y) < 0.75 ? C5('#ffe060') : C5('#5a6488'));
+    for (y = 57.5; y < 63; y += 3) for (x = -1.3; x <= 1.3; x += 2.6) dot5(P, ex5 + x, y, 0.5, C5('#ffe060'));
+    var tx5 = p.x + 14, TG = C5('#2f9a48'), TL = C5('#1e5e30');
+    box5(P, tx5, 111, 1.3, 2, 0.3, BRN, null, { wob: 0.1 });
+    poly5(P, [tx5 - 8, 110, tx5, 100, tx5 + 8, 110], TG, TL, { seed: 1 });
+    poly5(P, [tx5 - 6.5, 104.5, tx5, 96, tx5 + 6.5, 104.5], TG, TL, { seed: 2 });
+    poly5(P, [tx5 - 5, 99, tx5, 91.5, tx5 + 5, 99], TG, TL, { seed: 3 });
+    poly5(P, star5(tx5, 91.2, 2.5, 1.1), YEL, C5('#d8901a'), { lw: 0.5, wob: 0.1 });
+    var cbx = p.x - 13;
+    box5(P, cbx, 110, 5.6, 2.1, 0.9, C5('#ffc61e'), C5('#6a4a10'), { lw: 0.8, wob: 0.2 });
+    box5(P, cbx, 107.3, 3.1, 1.5, 0.6, C5('#ffc61e'), C5('#6a4a10'), { lw: 0.7, wob: 0.15 });
+    box5(P, cbx - 1.4, 107.4, 1, 0.8, 0.2, SKY, null, { wob: 0 }); box5(P, cbx + 1.4, 107.4, 1, 0.8, 0.2, SKY, null, { wob: 0 });
+    for (k = -4; k <= 3; k += 2) box5(P, cbx + k + 0.5, 110, 0.5, 0.5, 0, INK5, null, { wob: 0 });
+    dot5(P, cbx - 3.4, 112.4, 1.3, INK5); dot5(P, cbx + 3.4, 112.4, 1.3, INK5);
+
+    // ---- 39 · Jamaica: an island in a turquoise sea, a palm, a waterfall
+    // into its pool (the water falls: drawn each frame)
+    p = q[3];
+    kd(P, p.x - 33, 50, p.x + 33, 122, function (x, y) { return sdBlob(x, y, p.x, 86, 30, 33, 4, 0.05); }, W5[3].land, W5[3].dark, { wob: 0.6, seed: 4 });
+    for (k = 0; k < 7; k++) { x = p.x - 22 + (k * 37) % 44; y = 58 + (k * 23) % 56; if (sdBlob(x, y, p.x + 1, 88, 23, 21, 7, 0.1) > -2.5) continue; pl5(P, [x - 1.6, y, x - 0.8, y - 0.7, x, y, x + 0.8, y - 0.7, x + 1.6, y], 0.32, WH5); }
+    kd(P, p.x - 26, 64, p.x + 28, 112, function (x, y) { return sdBlob(x, y, p.x + 1, 88, 23, 21, 7, 0.1); }, C5('#ffe08a'), C5('#d4a040'), { wob: 0.5, seed: 5 });
+    kd(P, p.x - 22, 67, p.x + 24, 109, function (x, y) { return sdBlob(x, y, p.x + 1.5, 88.5, 19, 17, 8, 0.1); }, C5('#5cc24e'), GRN, { wob: 0.5, seed: 6 });
+    var px5 = p.x - 13;
+    kd(P, px5 - 5, 84, px5 + 4, 106, function (x, y) { return Math.max(sdL(x, y, px5 - 2.5, 104, px5 - 1, 96, 1.2), sdL(x, y, px5 - 1, 96, px5 + 1, 89, 1.05)); }, function (x, y) { return Math.floor(y * 0.9) % 2 ? C5('#a8703e') : C5('#8a5530'); }, C5('#5a3418'), { lw: 0.6, wob: 0.15 });
+    [-2.7, -2.0, -1.2, -0.5, 0.25].forEach(function (a, i) { frond5(P, px5 + 1, 89, a, 6.5 - (i % 2) * 0.8, C5('#3cae48'), C5('#1e6e2c')); });
+    dot5(P, px5 + 0.2, 90.2, 0.9, BRN); dot5(P, px5 + 1.9, 90.5, 0.9, BRN);
+    var wx5 = p.x + 13;
+    kd(P, wx5 - 12, 89, wx5 + 12, 106, function (x, y) { return Math.min(sdE(x, y, wx5, 105, 10.5, 14), 105 - y); }, C5('#3e9a44'), C5('#24703a'), { seed: 7 });
+    dot5(P, wx5 - 6, 101, 1, C5('#9a98a8')); dot5(P, wx5 + 6.5, 99.5, 1.2, C5('#9a98a8'));
+    box5(P, wx5, 97.5, 2, 7, 0.8, SKY, C5('#2a7ac8'), { lw: 0.6, wob: 0.15 });
+    ell5(P, wx5, 105.6, 6, 2, SKY, C5('#2a7ac8'), { lw: 0.6, wob: 0.15 });
+
+    // ---- 40 · Antarctica: ice, an iceberg in its pool, snowflakes (the
+    // penguin waddles and the southern lights glow: drawn each frame)
+    p = q[4];
+    kd(P, p.x - 33, 46, p.x + 33, 118, function (x, y) {
+      var an = Math.atan2((y - 82) / 32, (x - p.x) / 29), w = Math.abs((((an * 9 / 6.283 + 0.3) % 1) + 1) % 1 - 0.5) * 2, kk = 0.93 + 0.09 * w + 0.03 * Math.sin(an * 2 + 1);
+      return sdE(x, y, p.x, 82, 29 * kk, 32 * kk);
+    }, W5[4].land, W5[4].dark, { wob: 0.45, seed: 5 });
+    var ib = p.x + 13;
+    ell5(P, ib, 105.5, 14, 2.8, C5('#5ab4ec'), C5('#2a7ac8'), { lw: 0.7, seed: 1 });
+    poly5(P, [ib - 12, 105, ib - 8, 96, ib - 5, 98.5, ib, 86, ib + 5, 95, ib + 8, 92.5, ib + 12.5, 105], function (x, y) { return x > ib + 0.6 + (y - 86) * 0.22 ? C5('#b8dcf4') : WH5; }, C5('#4a90c8'), { seed: 2 });
+    [[p.x - 20, 64], [p.x + 21, 81], [p.x - 22, 92], [p.x + 4, 112]].forEach(function (s) { for (k = 0; k < 3; k++) { var a = k * Math.PI / 3; ln5(P, s[0] - Math.cos(a) * 1.8, s[1] - Math.sin(a) * 1.8, s[0] + Math.cos(a) * 1.8, s[1] + Math.sin(a) * 1.8, 0.32, C5('#6aaad6')); } });
+
+    // ---- 41 · Australia, its own shape (from its real coast) and Tasmania,
+    // with the Opera House at Sydney (the kangaroo hops: drawn each frame)
+    p = q[5];
+    var AU = [0.44, -1, 0.4, -0.87, 0.39, -0.66, 0.36, -0.52, 0.28, -0.54, 0.2, -0.62, 0.12, -0.7, 0.15, -0.79, 0.17, -0.9, 0.05, -0.92, -0.04, -0.95, -0.13, -0.88, -0.2, -0.71, -0.29, -0.77, -0.37, -0.75, -0.46, -0.6, -0.55, -0.49, -0.61, -0.38, -0.73, -0.33, -0.82, -0.31, -0.95, -0.22, -0.97, -0.03, -0.95, 0.1, -0.92, 0.26, -0.9, 0.38, -0.87, 0.49, -0.9, 0.66, -0.76, 0.7, -0.57, 0.62, -0.46, 0.56, -0.36, 0.51, -0.22, 0.47, -0.1, 0.45, 0.01, 0.5, 0.1, 0.69, 0.15, 0.58, 0.21, 0.52, 0.2, 0.66, 0.24, 0.74, 0.3, 0.83, 0.36, 0.91, 0.43, 0.94, 0.51, 0.93, 0.56, 0.9, 0.63, 0.99, 0.68, 0.91, 0.8, 0.87, 0.81, 0.74, 0.86, 0.62, 0.93, 0.49, 0.98, 0.25, 0.96, 0.14, 0.96, 0, 0.89, -0.07, 0.83, -0.17, 0.77, -0.27, 0.65, -0.4, 0.6, -0.57, 0.57, -0.66, 0.54, -0.76, 0.49, -0.77, 0.46, -0.91].map(function (v, i) { return i % 2 ? 84 + v * 25 : p.x + v * 30; });
+    kd(P, p.x - 34, 54, p.x + 34, 120, function (x, y) { return Math.max(sdP(x, y, AU), sdE(x, y, p.x + 19.5, 114, 3.4, 2.8)); }, W5[5].land, W5[5].dark, { wob: 0.45, seed: 6 });
+    // (its shells: each a quarter of an oval, curved side to the harbour,
+    // the back ones drawn first)
+    var oh = p.x + 20, ob = 100;
+    ell5(P, oh + 0.5, ob + 1.6, 9, 1.6, C5('#5ab4ec'), C5('#2a7ac8'), { lw: 0.5, wob: 0.15 });
+    box5(P, oh + 0.3, ob + 0.5, 7.6, 1, 0.3, C5('#eadcc0'), C5('#8a6a4a'), { lw: 0.5, wob: 0.1 });
+    [[2.2, 4.4, 6], [-2.2, 5, 8.5], [-6, 4.5, 6.5]].forEach(function (s) {
+      var bx = oh + s[0], w = s[1], h = s[2];
+      kd(P, bx - 1, ob - h - 1, bx + w + 1, ob + 0.5, function (x, y) { return Math.min(sdE(x, y, bx + w, ob, w, h), ob - y, bx + w - x); }, WH5, C5('#6a7a98'), { lw: 0.6, wob: 0.1 });
+    });
+
+    // ---- 42 · on a rainbow: a sky of cloud, the rainbow arching over the
+    // path, a cloud at one end and the pot of gold at the other
+    p = q[6];
+    kd(P, p.x - 32, 48, p.x + 32, 120, function (x, y) {
+      var d = sdE(x, y, p.x, 84, 21, 25);
+      for (var k2 = 0; k2 < 11; k2++) { var a = k2 * 0.5712 + 0.3; d = Math.max(d, sdE(x, y, p.x + Math.cos(a) * 21, 84 + Math.sin(a) * 26, 7.5, 7.5)); }
+      return d;
+    }, W5[6].land, W5[6].dark, { wob: 0.5, seed: 7 });
+    var RB = ['#ff5a5a', '#ff9a3a', '#ffd83a', '#5cc85a', '#4a9ae8', '#9a6ae0'].map(C5);
+    kd(P, p.x - 30, 82, p.x + 30, 112, function (x, y) { var r = Math.hypot(x - p.x, y - 111); return Math.min(27.5 - r, r - 18.5, 111 - y); }, function (x, y) { return RB[Math.max(0, Math.min(5, Math.floor((27.5 - Math.hypot(x - p.x, y - 111)) / 1.5)))]; }, null, { wob: 0.45, seed: 8 });
+    kd(P, p.x - 32, 103, p.x - 12, 116, function (x, y) { return Math.max(sdE(x, y, p.x - 26.5, 110.5, 3.6, 3.2), sdE(x, y, p.x - 22, 108.6, 4.2, 3.8), sdE(x, y, p.x - 17.5, 110.8, 3.4, 3)); }, WH5, C5('#7aa8d8'), { lw: 0.7, wob: 0.2 });
+    var pg = p.x + 22.5;
+    box5(P, pg, 112.4, 4.3, 3, 1.6, C5('#2e2e40'), C5('#14141f'), { lw: 0.6, wob: 0.15 });
+    ell5(P, pg, 108.6, 3.9, 1.7, YEL, C5('#c8901a'), { lw: 0.6, wob: 0.15 });
+    dot5(P, pg - 1.6, 107.6, 0.9, C5('#ffe880')); dot5(P, pg + 1.2, 107.2, 0.9, C5('#ffe880')); dot5(P, pg - 0.2, 106.5, 0.9, C5('#ffe880'));
+    box5(P, pg, 109.9, 4.9, 0.8, 0.4, C5('#4a4a5e'), null, { wob: 0.1 });
+
+    // ---- 43 · chocolate land: dripping, a mountain made of chocolate bar
+    // with a bite out of the top, marshmallows (Bonnie's chocolate bar walks)
+    p = q[7];
+    kd(P, p.x - 31, 50, p.x + 31, 120, function (x, y) {
+      var d = sdB(x, y, p.x, 79, 27, 25, 8);
+      [[-17, 14], [-6, 9], [8, 16], [19, 10]].forEach(function (dr) { d = Math.max(d, sdL(x, y, p.x + dr[0], 98, p.x + dr[0], 100 + dr[1], 2.5)); });
+      return d;
+    }, W5[7].land, W5[7].dark, { wob: 0.5, seed: 8 });
+    // (the mountain's made of the bar's squares, each one raised, with white
+    // chocolate on top like snow, and a bite gone from its shoulder)
+    var mt = p.x + 16;
+    kd(P, mt - 16, 55, mt + 16, 90, function (x, y) { return Math.min(Math.max(sdP(x, y, [mt - 14, 88, mt - 3, 62, mt + 3, 62, mt + 14, 88]), sdE(x, y, mt, 63, 3.6, 3)), -sdE(x, y, mt + 7.6, 70, 3, 3)); }, function (x, y) {
+      if (y < 65.5 + Math.max(0, Math.sin(x * 1.4 + 1)) * 2.6) return C5('#fff2e2');
+      var gx = ((x - mt + 52.2) % 5.8 + 5.8) % 5.8, gy = ((y - 61) % 5.6 + 5.6) % 5.6;
+      if (gx < 0.7 || gy < 0.7) return C5('#6a3820');
+      return gx < 1.6 || gy < 1.6 ? C5('#dca06a') : gx > 4.8 || gy > 4.6 ? C5('#a4683c') : C5('#c4824c');
+    }, C5('#4a2614'), { seed: 9 });
+    [[p.x - 15, 103, '#ffb8d0'], [p.x - 9.5, 104.5, '#ffffff'], [p.x + 18, 101.5, '#ffb8d0']].forEach(function (m) { box5(P, m[0], m[1], 1.8, 1.4, 0.8, C5(m[2]), C5('#c87a9a'), { lw: 0.5, wob: 0.1 }); });
+
+    // ---- 44 · dinosaur land: a jungle, a volcano (it smokes: drawn each
+    // frame), a long-necked dinosaur and her eggs, ferns
+    p = q[8];
+    kd(P, p.x - 32, 48, p.x + 32, 120, function (x, y) { var an = Math.atan2((y - 84) / 33, (x - p.x) / 29), kk = 1 + 0.04 * Math.sin(an * 3 + 2) + 0.05 * (Math.abs(Math.sin(an * 6.5 + 1)) - 0.64); return sdE(x, y, p.x, 84, 29 * kk, 33 * kk); }, W5[8].land, W5[8].dark, { wob: 0.5, seed: 9 });
+    var vx = p.x + 17;
+    poly5(P, [vx - 13, 75, vx - 4, 55, vx + 4, 55, vx + 13, 75], C5('#8a6a5a'), C5('#4a3028'), { seed: 3 });
+    poly5(P, [vx - 4, 55, vx + 4, 55, vx + 3.2, 60.5, vx + 1.6, 58.4, vx + 0.4, 63, vx - 1.2, 58.6, vx - 2.8, 61.5], C5('#ff6a1e'), C5('#c8301a'), { lw: 0.6, wob: 0.15 });
+    ell5(P, vx, 55, 4.3, 1.2, C5('#ffb02a'), C5('#c8301a'), { lw: 0.6, wob: 0.1 });
+    var dn = p.x - 22, DF = C5('#4fb0d0');
+    kd(P, dn - 16, 89, dn + 15, 111, function (x, y) {
+      return Math.max(sdE(x, y, dn, 103, 7, 4.2), sdL(x, y, dn + 5, 101, dn + 9, 95.5, 1.6), sdE(x, y, dn + 10.6, 94.6, 2.6, 1.7), sdL(x, y, dn - 6, 104, dn - 12.5, 107.5, 1.3), sdB(x, y, dn - 4, 107.5, 1.1, 2, 0.4), sdB(x, y, dn + 4, 107.5, 1.1, 2, 0.4));
+    }, function (x, y) { return Math.hypot(x - dn + 2, y - 101.5) < 1.2 || Math.hypot(x - dn - 2.5, y - 102.5) < 1 || Math.hypot(x - dn + 4.5, y - 104) < 0.9 ? C5('#2a86a8') : DF; }, C5('#1e5a7a'), { seed: 4 });
+    dot5(P, dn + 11.2, 94.1, 0.5, INK5);
+    ell5(P, p.x - 4, 108.4, 1.8, 2.3, C5('#fff8ec'), C5('#8a8a9a'), { lw: 0.5, wob: 0.15 }); ell5(P, p.x - 0.4, 110, 1.7, 2.1, C5('#fff8ec'), C5('#8a8a9a'), { lw: 0.5, wob: 0.15 });
+    dot5(P, p.x - 4.4, 107.6, 0.4, C5('#7ac0e0')); dot5(P, p.x - 0.2, 109.4, 0.4, C5('#7ac0e0'));
+    [[p.x + 15, 108], [p.x + 22, 104]].forEach(function (f) { [-2.4, -1.9, -1.25, -0.7].forEach(function (a) { frond5(P, f[0], f[1], a, 5, C5('#2f8a3a'), C5('#1a5a28')); }); });
+
+    // ---- 45 · bee land: a honeycomb, flowers, and Queen Bee's hive with
+    // her crown on top (a bee buzzes round it: drawn each frame)
+    p = q[9];
+    var HC = W5[9].land, HL = C5('#f0b02a');
+    kd(P, p.x - 30, 50, p.x + 32, 118, function (x, y) { return sdHex(x, y, p.x + 1, 84, 31); }, function (x, y) {
+      var r0 = Math.round((y - 84) / 6), best = 1e9, bx = 0, by = 0;
+      for (var rr = r0 - 1; rr <= r0 + 1; rr++) { var off = (rr & 1) ? 3.464 : 0, cx = Math.round((x - p.x - off) / 6.928) * 6.928 + p.x + off, cy = 84 + rr * 6, dd = (x - cx) * (x - cx) + (y - cy) * (y - cy); if (dd < best) { best = dd; bx = cx; by = cy; } }
+      return sdHex(x, y, bx, by, 4) < 0.5 ? HL : HC;
+    }, W5[9].dark, { wob: 0.5, seed: 10 });
+    flower5(P, p.x - 14, 98, WH5, YEL, 8); flower5(P, p.x - 21, 90, C5('#ff8ab8'), YEL, 7); flower5(P, p.x - 7, 106, C5('#b88aff'), YEL, 5);
+    var hv = p.x + 12, HV = C5('#f3b33a'), HVL = C5('#8a4e14'), rows = [[106, 8.4], [102.5, 7.6], [99, 6.6], [95.6, 5.2], [92.6, 3.4]];
+    kd(P, hv - 11, 88, hv + 11, 109, function (x, y) { var d = -1e9; rows.forEach(function (r) { d = Math.max(d, sdB(x, y, hv, r[0], r[1], 2, 1.6)); }); return d; }, function (x, y) { for (var i = 0; i < rows.length - 1; i++) if (Math.abs(y - (rows[i][0] - 1.75)) < 0.35) return C5('#b8741e'); return HV; }, HVL, { seed: 11 });
+    kd(P, hv - 3, 103, hv + 3, 108, function (x, y) { return Math.min(sdE(x, y, hv, 107.6, 2.3, 2.6), 107.9 - y); }, C5('#4a2a10'), null, { wob: 0.1 });
+    poly5(P, [hv - 3.8, 91.2, hv - 3.8, 86.4, hv - 1.9, 88.8, hv, 85.4, hv + 1.9, 88.8, hv + 3.8, 86.4, hv + 3.8, 91.2], YEL, C5('#b8801a'), { lw: 0.6, wob: 0.1 });
+    dot5(P, hv, 89.4, 0.7, RED5); dot5(P, hv - 2.4, 89.9, 0.45, C5('#4aa8ff')); dot5(P, hv + 2.4, 89.9, 0.45, C5('#4aa8ff'));
+  };
+
+  // the sheet itself: painted into its surface over the sea there, then the places on it
+  var paper5 = function (g, X0, SW) {
+    var Rr = BB.R, iw = Math.round(SW * Rr), ih = H * Rr, img = g.getImageData(0, 0, iw, ih), P = { d: img.data, iw: iw, ih: ih, ox: X0, oy: 0 };
+    var SHADOW = [16, 46, 104], SHALLOW = [196, 238, 250], BACK = C5('#eadcbc');
+    for (var py = 0; py < ih; py++) for (var px = 0; px < iw; px++) {
+      var x = X0 + (px + 0.5) / Rr, y = (py + 0.5) / Rr;
+      if (x < PX0 - 10 || x > PX1 + 12) continue;
+      var d = paperIn(x, y);
+      if (d < 0) {
+        // the water round it: a little paler close by, and the sheet's shadow
+        if (d > -6) pset(P, px, py, SHALLOW, (1 + d / 6) * 0.3);
+        if (paperIn(x - 1.5, y - 2.5) >= 0) pset(P, px, py, SHADOW, 0.3);
+        continue;
+      }
+      // warm white, with a soft grain, a touch darker toward its edges
+      var f = (n5(x * 1.3, y * 1.3) - 0.5) * 0.05 + (n5(x * 0.2, y * 0.2) - 0.5) * 0.04, ex = pR(y) - x, ey = y - pTop(x), col = PAPER;
+      if (d < 2.5) f -= (2.5 - d) / 2.5 * 0.06;
+      if (h5(px, py) < 0.012) f -= 0.05;
+      // the crease where the list was folded in half
+      var cr = x - 3074 - Math.sin(y * 0.3) * 0.2;
+      if (cr > -0.5 && cr < 0) f += 0.04; else if (cr >= 0 && cr < 1) f -= 0.05;
+      // the dog-eared corner: the paper's back, folded down over it, and its shadow
+      if (ex <= EAR && ey <= EAR && ex + ey >= EAR) { col = BACK; f = (ex + ey - EAR) / EAR * -0.08 + (n5(x * 1.3, y * 1.3) - 0.5) * 0.04; if (ex > EAR - 0.6 || ey > EAR - 0.6) f -= 0.12; }
+      else if (ex < EAR + 1.4 && ey < EAR + 1.4 && ex + ey > EAR) f -= 0.08;
+      pset(P, px, py, shd(col, f));
+    }
+    world5(P);
+    g.putImageData(img, 0, 0);
+  };
+
+  // the crayon drawings that move, each painted once (and once more turned or flipped)
+  var S5 = null;
+  var sprites5 = function () {
+    if (S5) return S5;
+    S5 = { ball: [], globe: [], roo: [], peng: [], bee: [], choc: [], fly: [] };
+    var RED = C5('#e8443a'), BLU = C5('#3a8ae8'), GRN = C5('#5cc24e'), BRN = C5('#9a5428'), YEL = C5('#ffd23a');
+    // the Poké Ball, rocking on its base as it does when something's inside
+    var ball = function (P) {
+      kd(P, 0, 0, 20, 20, function (x, y) { return sdE(x, y, 10, 10, 7, 7); }, function (x, y) {
+        var ly = y - 10 + Math.sin(x * 0.7) * 0.25, rr = Math.hypot(x - 10, y - 10);
+        if (rr < 1.3) return WH5;
+        if (rr < 2.5 || Math.abs(ly) < 0.85) return INK5;
+        if (ly < 0) return Math.hypot(x - 7.2, y - 6.6) < 1.5 ? C5('#ffb0a8') : RED;
+        return WH5;
+      }, INK5, { wob: 0.25, seed: 3 });
+    };
+    [-0.32, -0.16, 0, 0.16, 0.32].forEach(function (a) { S5.ball.push(kidSprite(20, 20, ball, turn(a, 10, 17))); });
+    // the globe at Universal, turning inside its ring
+    var ring = function (P, front) {
+      kd(P, 0, 0, 24, 24, function (x, y) { var a = -0.22, cs = Math.cos(a), sn = Math.sin(a), dx = x - 12, dy = y - 12, lx = dx * cs + dy * sn, ly = -dx * sn + dy * cs; return Math.min(sdE(lx, ly, 0, 0, 11.6, 4), -sdE(lx, ly, 0, 0, 9.6, 2.5), front ? ly : -ly); }, C5('#e8eaf6'), C5('#5a6080'), { lw: 0.5, wob: 0.1 });
+    };
+    for (var f = 0; f < 12; f++) (function (ph) {
+      S5.globe.push(kidSprite(24, 24, function (P) {
+        ring(P, false);
+        kd(P, 0, 0, 24, 24, function (x, y) { return sdE(x, y, 12, 12, 8, 8); }, function (x, y) {
+          var nx = (x - 12) / 8, ny = (y - 12) / 8, z = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny)), lon = Math.atan2(nx, z) + ph;
+          var c = n5(Math.cos(lon) * 1.7 + 7, Math.sin(lon) * 1.7 + ny * 2.6 + 3) > 0.55 ? GRN : BLU;
+          return Math.hypot(nx + 0.38, ny + 0.42) < 0.26 ? mx5(c, WH5, 0.55) : c;
+        }, C5('#24407a'), { wob: 0.15, seed: 5 });
+        ring(P, true);
+      }));
+    })(f * Math.PI / 6);
+    // a kangaroo, her joey peeping out of the pouch: sitting, and mid-hop
+    // (leaning into it, the big foot out behind), facing either way
+    var roo = function (air) {
+      return function (P) {
+        var tf0 = P.tf, hip = turn(air ? -0.5 : 0, 7, 11), RL = C5('#6a3418');
+        P.tf = tf0 ? function (x, y) { var a = tf0(x, y); return hip(a[0], a[1]); } : hip;
+        var ft = air ? [5.4, 13.8, 1.4, 16.4] : [5.6, 15, 11.2, 15.4];
+        kd(P, 0, 0, 16, 18, function (x, y) {
+          return Math.max(sdL(x, y, 5, 11.5, 0.8, 15.4, 1.15), sdER(x, y, 7, 9.4, 3.3, 4.5, 0.25), sdE(x, y, 9.8, 3.8, 2.1, 1.7), sdE(x, y, 11.6, 4.4, 1.4, 0.95),
+            sdER(x, y, 8.8, 1.2, 0.7, 1.9, -0.25), sdER(x, y, 10.1, 1.1, 0.7, 1.9, 0.15), sdE(x, y, 6.6, 12.4, 2.6, 2.1), sdL(x, y, ft[0], ft[1], ft[2], ft[3], 0.8), sdL(x, y, 9.6, 7.4, 11.2, 8.8, 0.55));
+        }, function (x, y) { return sdE(x, y, 8.4, 9.8, 1.9, 3) > 0 ? C5('#f6d4a4') : BRN; }, C5('#4a200c'), { lw: 0.7, wob: 0.12, seed: 6 });
+        ell5(P, 9, 9.3, 1.15, 1.05, BRN, RL, { lw: 0.5, wob: 0.05 });
+        dot5(P, 9.4, 9.1, 0.3, INK5);
+        ln5(P, 7.4, 10.7, 10.3, 10.7, 0.35, RL);
+        dot5(P, 10.3, 3.5, 0.45, INK5); dot5(P, 12.9, 4.2, 0.4, INK5);
+        P.tf = tf0;
+      };
+    };
+    [false, true].forEach(function (air) { S5.roo.push([kidSprite(16, 18, roo(air)), kidSprite(16, 18, roo(air), flip(16))]); });
+    // a penguin, rocking side to side
+    var peng = function (P) {
+      kd(P, 0, 0, 12, 16, function (x, y) { return Math.max(sdE(x, y, 6, 8, 4.2, 5.8), sdER(x, y, 1.9, 9, 0.9, 2.8, 0.35), sdER(x, y, 10.1, 9, 0.9, 2.8, -0.35)); }, function (x, y) { return sdE(x, y, 6, 9.4, 2.8, 4.2) > 0 ? WH5 : C5('#2e3250'); }, C5('#14141f'), { lw: 0.6, wob: 0.15, seed: 7 });
+      dot5(P, 4.7, 5.4, 0.75, WH5); dot5(P, 7.3, 5.4, 0.75, WH5); dot5(P, 4.9, 5.5, 0.38, INK5); dot5(P, 7.1, 5.5, 0.38, INK5);
+      poly5(P, [4.8, 6.6, 7.2, 6.6, 6, 8.2], C5('#ff9a1e'), null, { wob: 0.05 });
+      ell5(P, 4.4, 13.9, 1.5, 0.7, C5('#ff9a1e'), null, { wob: 0.05 }); ell5(P, 7.6, 13.9, 1.5, 0.7, C5('#ff9a1e'), null, { wob: 0.05 });
+    };
+    [-0.14, 0.14].forEach(function (a) { S5.peng.push(kidSprite(12, 16, peng, turn(a, 6, 14.5))); });
+    // a bee, wings up and down, facing either way
+    var bee = function (up) {
+      return function (P) {
+        kd(P, 0, 0, 10, 9, function (x, y) { return sdE(x, y, 5, 5.8, 3.4, 2.4); }, function (x) { return (x > 3.4 && x < 4.4) || (x > 5.4 && x < 6.4) ? INK5 : YEL; }, INK5, { lw: 0.5, wob: 0.1, seed: 8 });
+        poly5(P, [1.8, 5.2, 1.8, 6.4, 0.3, 5.8], INK5, null, { wob: 0 });
+        dot5(P, 7.4, 5.2, 0.5, INK5);
+        var wy = up ? 2.2 : 3.4, wr = up ? 2.3 : 1.6;
+        ell5(P, 4.4, wy, 1.5, wr, C5('#f4fbff'), C5('#7ab4e0'), { lw: 0.5, wob: 0.05 }); ell5(P, 6, wy + 0.2, 1.3, wr * 0.9, C5('#f4fbff'), C5('#7ab4e0'), { lw: 0.5, wob: 0.05 });
+      };
+    };
+    [true, false].forEach(function (up) { S5.bee.push([kidSprite(10, 9, bee(up)), kidSprite(10, 9, bee(up), flip(10))]); });
+    // Bonnie's own chocolate bar, on legs, walking
+    var choc = function (step) {
+      return function (P) {
+        var LEG = C5('#3a2214');
+        ln5(P, 3.8, 10, 3.8 + (step ? 0.9 : -0.6), 13.2, 0.45, LEG); ln5(P, 6.2, 10, 6.2 + (step ? 0.6 : -0.9), 13.2, 0.45, LEG);
+        ln5(P, 1.8, 5.6, 0.3, step ? 7.8 : 3.8, 0.42, LEG); ln5(P, 8.2, 5.6, 9.7, step ? 3.8 : 7.8, 0.42, LEG);
+        box5(P, 5, 6.2, 3.4, 4.6, 0.8, function (x, y) { return y > 8.4 ? (y < 9 ? C5('#e8e4f0') : C5('#e8443a')) : Math.abs(x - 5) < 0.35 || Math.abs(y - 4.2) < 0.35 || Math.abs(y - 6.6) < 0.35 ? C5('#8a5030') : C5('#6a3a1e'); }, C5('#3a1e0e'), { lw: 0.6, wob: 0.12, seed: 9 });
+        dot5(P, 3.8, 4.4, 0.75, WH5); dot5(P, 6.2, 4.4, 0.75, WH5); dot5(P, 3.9, 4.6, 0.35, INK5); dot5(P, 6.1, 4.6, 0.35, INK5);
+        kd(P, 3, 5, 7, 8, function (x, y) { return y < 6.4 ? -1 : 0.3 - Math.abs(Math.hypot(x - 5, y - 5.6) - 1.3); }, WH5, null, { wob: 0 });
+      };
+    };
+    [0, 1].forEach(function (s) { S5.choc.push(kidSprite(10, 14, choc(s))); });
+    // a butterfly (Bonnie drew one), opening and closing its wings
+    var fly = function (open) {
+      return function (P) {
+        var sx = open ? 1 : 0.4;
+        [[-1, 3.6, 3.3, 2.8, '#ff7ab8'], [1, 3.6, 3.3, 2.8, '#ff7ab8'], [-1, 7.4, 2.3, 2, '#a878f0'], [1, 7.4, 2.3, 2, '#a878f0']].forEach(function (w) {
+          var cx = 7 + w[0] * (w[2] * sx + 0.3);
+          ell5(P, cx, w[1], w[2] * sx, w[3], C5(w[4]), C5('#6a3a8a'), { lw: 0.5, wob: 0.1 });
+          if (open) dot5(P, cx + w[0] * 0.5, w[1] - 0.2, 0.7, WH5);
+        });
+        ln5(P, 7, 2.4, 7, 9, 0.6, INK5); ln5(P, 7, 2.6, 5.2, 0.4, 0.3, INK5); ln5(P, 7, 2.6, 8.8, 0.4, 0.3, INK5);
+      };
+    };
+    [true, false].forEach(function (o) { S5.fly.push(kidSprite(14, 10, fly(o))); });
+    return S5;
+  };
+
+  // Bonnie's paper aeroplane: real folded paper, crisp and white
+  var PLANE_FAR = [[19, 0], [-15.5, 0], [-12, -6.5]], PLANE_NEAR = [[19, 0], [-15.5, 0], [-15, 3.1]], PLANE_LOW = [[19, 0], [-15, 3.1], [-13, 7.8]];
+  var ftri = function (g, p, col) {
+    var y0 = Math.min(p[0][1], p[1][1], p[2][1]), y1 = Math.max(p[0][1], p[1][1], p[2][1]);
+    for (var y = snap(y0); y < y1; y += HP) {
+      var yc = y + HP / 2, xs = [];
+      for (var i = 0; i < 3; i++) { var a = p[i], b = p[(i + 1) % 3]; if ((a[1] <= yc) !== (b[1] <= yc)) xs.push(a[0] + (yc - a[1]) * (b[0] - a[0]) / (b[1] - a[1])); }
+      if (xs.length === 2) R(g, Math.min(xs[0], xs[1]), y, Math.abs(xs[1] - xs[0]), HP, col);
+    }
+  };
+  var fline = function (g, a, b, col) { var n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / HP)); for (var i = 0; i <= n; i++) R(g, a[0] + (b[0] - a[0]) * i / n - HP / 2, a[1] + (b[1] - a[1]) * i / n - HP / 2, HP, HP, col); };
+  var plane = function (g, x, y, f, pitch, part) {
+    var cs = Math.cos(pitch), sn = Math.sin(pitch), at = function (pts) { return pts.map(function (p) { return [x + (p[0] * cs + p[1] * sn) * f, y - p[0] * sn + p[1] * cs]; }); };
+    var EDGE = '#5a6a8c';
+    if (part !== 'near') { var fw = at(PLANE_FAR); ftri(g, fw, '#d4dcea'); fline(g, fw[1], fw[2], EDGE); fline(g, fw[2], fw[0], EDGE); }
+    if (part !== 'far') {
+      var nw = at(PLANE_NEAR), lw = at(PLANE_LOW);
+      ftri(g, nw, '#ffffff'); ftri(g, lw, '#e8eef6');
+      fline(g, nw[0], nw[1], '#b8c4d8'); fline(g, lw[0], lw[1], '#c8d2e2');
+      fline(g, lw[0], lw[2], EDGE); fline(g, lw[2], lw[1], EDGE); fline(g, nw[1], nw[2], EDGE);
+    }
+  };
+  // where the aeroplane waits, at the sheet's edge below the first place
+  var PARK = { x: 2774, y: 108.5 };
+
+  // the parts of ONE DAY… that move
+  var drawIsles5 = function (ctx, st, t) {
+    var S = sprites5(), q = function (i) { return node(35 + i); }, p, k, i, x, y;
+    // the sun's rays going round
+    for (k = 0; k < 8; k++) { var ra = k * Math.PI / 4 + t * 0.008, rl = 2.4 + (st.reduce ? 0 : Math.sin(t * 0.06 + k * 1.7) * 0.5); for (var r = 6.2; r < 6.2 + rl; r += HP) R(ctx, 2767 + Math.cos(ra) * r - 0.5, 47.5 + Math.sin(ra) * r - 0.5, 1, 1, '#ffb21e'); }
+    // the wishes twinkling
+    [[2949, 46.5], [3073, 120], [3259, 45.5], [2826, 120]].forEach(function (s, j) { if ((t + j * 41) % 110 < 9) { R(ctx, s[0] - 0.25, s[1] - 3.5, HP, 7, '#ffffff'); R(ctx, s[0] - 3.5, s[1] - 0.25, 7, HP, '#ffffff'); } });
+    // the Poké Ball: still, then a wobble, wobble, wobble… click
+    var bp5 = (t % 170) / 170, bi = bp5 < 0.42 ? Math.round(Math.sin(bp5 / 0.42 * Math.PI * 3) * 2 * (1 - bp5 / 0.6)) : 0;
+    BB.blit(ctx, S.ball[bi + 2], 2803, 55);
+    if (bp5 > 0.45 && bp5 < 0.52) { R(ctx, 2813 - 0.25, 50, HP, 3, '#fff6b0'); R(ctx, 2811.5, 51.25, 3, HP, '#fff6b0'); }
+    // the globe turning
+    p = q(1);
+    BB.blit(ctx, S.globe[Math.floor(t / 9) % 12], p.x + 19 - 12, 56);
+    // snow over New York, and the tree's lights
+    p = q(2);
+    if (!st.reduce) for (i = 0; i < 16; i++) { x = p.x - 26 + ((i * 29 + Math.sin(t * 0.02 + i) * 3) % 52 + 52) % 52; y = 50 + ((i * 41 + t * 0.25) % 64); R(ctx, x, y + HP, 1, HP, 'rgba(120,140,190,0.35)'); R(ctx, x, y, 1, 1, '#ffffff'); }
+    [[-3, 107, '#ff4a4a'], [3.2, 105.5, '#4aa8ff'], [-1.5, 101.5, '#ffd84a'], [2, 97.5, '#ff4a4a'], [-0.5, 95.5, '#ffffff']].forEach(function (b, j) { var on = (Math.floor(t / 20) + j) % 3; disc(ctx, p.x + 14 + b[0], b[1], 0.8, on ? b[2] : '#fff8d0'); });
+    // the waterfall falling
+    p = q(3);
+    for (k = 0; k < 4; k++) { y = 91.5 + ((t * 0.35 + k * 3.4) % 13); R(ctx, p.x + 12 + (k % 2) * 1.2, y, 0.5, 1.5, '#ffffff'); }
+    if (!st.reduce) for (k = 0; k < 3; k++) { var sph = ((t * 0.08 + k * 0.33) % 1); R(ctx, p.x + 13 + (k - 1) * 2.5 * sph, 104.6 - Math.sin(sph * Math.PI) * 2, HP, HP, '#ffffff'); }
+    // the penguin waddling, and the southern lights
+    p = q(4);
+    var pw = Math.floor(t / 14) % 2;
+    BB.blit(ctx, S.peng[pw], p.x - 12 - 6, 104 - 14.5 - (st.reduce ? 0 : Math.abs(Math.sin(t * Math.PI / 14)) * 0.5));
+    for (k = 0; k < 3; k++) { ctx.globalAlpha = 0.55 + (st.reduce ? 0 : Math.sin(t * 0.04 + k * 2) * 0.2); for (x = 0; x < 20; x += HP) R(ctx, p.x + 16 + x, 44 + k * 2.2 + Math.sin(x * 0.35 + t * 0.03 + k) * 1.4, HP, 1, ['#7af0a0', '#5ad8e8', '#ff9ad8'][k]); }
+    ctx.globalAlpha = 1;
+    // the kangaroo hopping back and forth
+    p = q(5);
+    var hop = Math.floor(t / 70), hph = (t % 70) / 70, dir = hop % 2 ? -1 : 1, rx0 = dir > 0 ? p.x - 24 : p.x - 15, air = hph < 0.45, hu = air ? hph / 0.45 : 1;
+    var rxx = st.reduce ? p.x - 19 : rx0 + dir * 9 * hu, ryy = 98 - (air && !st.reduce ? Math.sin(hu * Math.PI) * 5 : 0);
+    shadow(ctx, rxx + 1, 98, 3.5);
+    BB.blit(ctx, S.roo[air && !st.reduce ? 1 : 0][dir > 0 ? 0 : 1], dir > 0 ? rxx - 7 : rxx - 9, ryy - 16.4);
+    // the rainbow shimmering, a glint running along each band, and the butterfly
+    p = q(6);
+    if (!st.reduce) for (i = 0; i < 6; i++) { var ga = Math.PI + ((t * 0.006 + i * 0.05) % 1.4) * Math.PI / 1.0, gr = 27.5 - (i + 0.5) * 1.5; if (ga > Math.PI * 2) continue; ctx.globalAlpha = 0.5; for (var da = -0.12; da < 0.12; da += 0.02) R(ctx, p.x + Math.cos(ga + da) * gr - 0.25, 111 + Math.sin(ga + da) * gr - 0.25, HP * 2, HP * 2, '#ffffff'); ctx.globalAlpha = 1; }
+    [[-19, 92], [17, 90], [0, 80]].forEach(function (s, j) { if ((t + j * 37) % 95 < 8) { R(ctx, p.x + s[0] - 0.25, s[1] - 1.5, HP, 3, '#ffffff'); R(ctx, p.x + s[0] - 1.5, s[1] - 0.25, 3, HP, '#ffffff'); } });
+    var bfx = p.x - 16 + Math.sin(t * 0.021) * 6, bfy = 64 + Math.sin(t * 0.037) * 3;
+    BB.blit(ctx, S.fly[st.reduce ? 0 : Math.floor(t / 7) % 2], bfx - 7, bfy - 5);
+    // Bonnie's chocolate bar out for a walk
+    p = q(7);
+    var cw = st.reduce ? 0 : Math.sin(t * 0.016) * 4;
+    BB.blit(ctx, S.choc[st.reduce ? 0 : Math.floor(t / 8) % 2], p.x - 17 + cw - 5, 88 - 13.5);
+    // the volcano smoking, its lava glowing
+    p = q(8);
+    var vg = ctx.createRadialGradient(p.x + 17, 56, 1, p.x + 17, 56, 10);
+    vg.addColorStop(0, 'rgba(255,140,60,' + (0.35 + Math.sin(t * 0.07) * 0.12) + ')'); vg.addColorStop(1, 'rgba(255,100,40,0)');
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = vg; ctx.fillRect(p.x + 7, 46, 20, 20); ctx.restore();
+    if (!st.reduce) for (k = 0; k < 4; k++) { var sp = ((t * 0.35 + k * 22) % 88) / 88, sx = p.x + 17 + Math.sin(sp * 5 + k) * 1.5 + sp * 4, sy = 53 - sp * 13, sr = 1.3 + sp * 2.2; ctx.globalAlpha = 1 - sp * 0.85; disc(ctx, sx, sy, sr + 0.5, '#6a6070'); disc(ctx, sx, sy, sr, '#c8c0c8'); disc(ctx, sx - sr * 0.3, sy - sr * 0.3, sr * 0.4, '#e8e4ec'); }
+    ctx.globalAlpha = 1;
+    // a bee buzzing round Queen Bee's hive, its dotted path behind it
+    p = q(9);
+    var hcx = p.x + 12, hcy = 97, ba = t * 0.03, bpos = function (a) { return [hcx + Math.sin(a) * 14, hcy - 2 + Math.sin(a * 2) * 6]; };
+    if (!st.reduce) for (k = 2.5; k < 26; k += 1.8) { var tp = bpos(ba - k * 0.075); ctx.globalAlpha = 0.9 * (1 - k / 28); R(ctx, tp[0] - 0.5, tp[1] - 0.5, 1, 1, '#2e2640'); }
+    ctx.globalAlpha = 1;
+    var bxy = bpos(ba);
+    BB.blit(ctx, S.bee[st.reduce ? 0 : Math.floor(t / 3) % 2][Math.cos(ba) >= 0 ? 0 : 1], bxy[0] - 5, bxy[1] - 5);
+  };
+
+  var island = null, island2 = null, island3 = null, island4 = null, island5 = null, cloudC = null;
   // the path between two levels, as a list of dots
   var dots = function (i) {
     var a = node(i), b = node(i + 1), out = [], n = Math.round((b.x - a.x) / 8);
@@ -672,7 +1237,7 @@
   var medal = function (g, x, y, i, st, t) {
     var w = WORLD[i], open = i < st.unlocked, done = st.cleared.indexOf(i + 1) > -1, here = i + 1 === st.at;
     // two digits need the room, and each land's last level is the big one
-    var e = i === 19 || i === 29 ? 1.8 : i >= 9 ? 1.2 : 0;
+    var e = i === 19 || i === 29 || i === 44 ? 1.8 : i >= 9 ? 1.2 : 0;
     if (here && !st.reduce) { var pr = 8 + e + Math.sin(t * 0.12) * 1.2; disc(g, x, y, pr, 'rgba(255,255,255,0.35)'); }
     disc(g, x, y + 1, 6.6 + e, 'rgba(20,10,40,0.35)');
     disc(g, x, y, 6.4 + e, '#1c1428');
@@ -695,22 +1260,29 @@
 
   BB.Map = {
     // the map's width: the second island is there once the first land is won
-    widthFor: function (won, won2, won3) { return won3 ? MW4 : won2 ? MW3 : won ? MW2 : ISLE[0][1]; },
+    widthFor: function (won, won2, won3, won4) { return won4 ? MW5 : won3 ? MW4 : won2 ? MW3 : won ? MW2 : ISLE[0][1]; },
     node: node,
     draw: function (ctx, st) {
-      var W = BB.W, t = st.reduce ? 0 : st.t, cx = st.camX, i, k, p, lands = st.won3 ? 4 : st.won2 ? 3 : st.won ? 2 : 1, MW = ISLE[lands - 1][1], NN = [10, 20, 30, 35][lands - 1];
+      var W = BB.W, t = st.reduce ? 0 : st.t, cx = st.camX, i, k, p, lands = st.won4 ? 5 : st.won3 ? 4 : st.won2 ? 3 : st.won ? 2 : 1, MW = ISLE[lands - 1][1], NN = [10, 20, 30, 35, 45][lands - 1];
       if (!island) island = build(0);
       if (st.won && !island2) island2 = build(1);
       if (st.won2 && !island3) island3 = build(2);
       if (st.won3 && !island4) island4 = build(3);
+      if (st.won4 && !island5) island5 = build(4);
       ctx.save();
       ctx.translate(-snap(cx), 0);
       BB.blit(ctx, island, 0, 0);
       if (island2) BB.blit(ctx, island2, SPLIT, 0);
       if (island3) BB.blit(ctx, island3, SPLIT2, 0);
       if (island4) BB.blit(ctx, island4, SPLIT3, 0);
-      // glints on the sea
-      for (i = 0; i < 40 * lands; i++) { var gx = (i * 53 + t * 0.2) % MW, gy = (i * 37) % H; if ((gx < 654 || gx > 756) && (gx < 1414 || gx > 1516) && (gx < 2174 || gx > 2276) && gy > coastTop(gx) - 4 && gy < coastBot(gx) + 4) continue; if ((t + i * 13) % 90 < 50) R(ctx, gx, gy, 2, HP, 'rgba(255,255,255,0.55)'); }
+      if (island5) BB.blit(ctx, island5, SPLIT4, 0);
+      // glints on the sea (not on the land, nor on the paper)
+      for (i = 0; i < 40 * lands; i++) {
+        var gx = (i * 53 + t * 0.2) % MW, gy = (i * 37) % H, onLand = (gx < 654 || gx > 756) && (gx < 1414 || gx > 1516) && (gx < 2174 || gx > 2276) && gy > coastTop(gx) - 4 && gy < coastBot(gx) + 4;
+        if (gx > 2644) onLand = gx > PX0 - 6 && gx < PX1 + 4 && gy > 33 && gy < 131;
+        if (onLand) continue;
+        if ((t + i * 13) % 90 < 50) R(ctx, gx, gy, 2, HP, 'rgba(255,255,255,0.55)');
+      }
       // the boat sails along the south shore
       var bx = 30 + ((t * 0.12) % 590), by = 134;
       R(ctx, bx - 4, by, 9, 2, '#a8744c'); for (k = 0; k < 6; k += HP) R(ctx, bx, by - 6 + k, k * 0.6, HP, '#ffffff'); R(ctx, bx, by - 7, HP, 7, '#6a4a3a');
@@ -782,10 +1354,29 @@
       }
       if (island2 && cx + W > SPLIT && cx < SPLIT2) drawIsles2(ctx, st, t);
       if (island3 && cx + W > SPLIT2 && cx < SPLIT3) drawIsles3(ctx, st, t);
-      if (island4 && cx + W > SPLIT3 - 90) drawIsles4(ctx, st, t);
+      if (island4 && cx + W > SPLIT3 - 90 && cx < SPLIT4) drawIsles4(ctx, st, t);
+      // the paper aeroplane's crossing, from Saint-Malo up over the sea and
+      // down onto the sheet: where Bonnie is on it, and how high
+      var a34 = node(34), b35 = node(35), flying = island5 && st.bonnie.x > a34.x && st.bonnie.x < b35.x;
+      var flight = function (x) { var u = (x - a34.x) / (b35.x - a34.x); return { u: u, y: a34.y + (b35.y - a34.y) * u - Math.sin(u * Math.PI) * 4, lift: Math.sin(u * Math.PI) * 16 }; };
+      if (island5 && cx + W > SPLIT4 - 120) {
+        drawIsles5(ctx, st, t);
+        // the aeroplane waiting at the edge of the sheet, when he isn't on it
+        if (!flying) { shadow(ctx, PARK.x + 1, PARK.y + 3.5, 9); plane(ctx, PARK.x, PARK.y, 1, 0.05); }
+      }
       // the path: bright where you've been, faint where you haven't; over
       // the water between the islands it's the boat's wake, dashes of foam
       for (i = 0; i < NN - 1; i++) {
+        if (i === 34) {
+          // the aeroplane's: a dotted line drawn through the sky
+          var open34 = i + 1 < st.unlocked;
+          for (var fx5 = a34.x + 6, j5 = 0; fx5 < b35.x - 4; fx5 += 5, j5++) {
+            var fl5 = flight(fx5), fy5 = fl5.y - fl5.lift + 2;
+            if (open34) { if ((j5 + Math.floor(t / 20)) % 3) { R(ctx, fx5 - 1.5, fy5 + HP, 3, HP, 'rgba(30,40,90,0.25)'); R(ctx, fx5 - 1.5, fy5, 3, HP * 2, 'rgba(255,255,255,0.85)'); } }
+            else if (j5 % 2 === 0) R(ctx, fx5 - 1, fy5, 2, HP, 'rgba(255,255,255,0.4)');
+          }
+          continue;
+        }
         var open = i + 1 < st.unlocked, ds = dots(i), sea = i === 9 || i === 19, s0 = i === 9 ? 646 : 1406, s1 = i === 9 ? 766 : 1526;
         ds.forEach(function (d, j) {
           if (sea && d[0] > s0 && d[0] < s1) { if (open && (j + Math.floor(t / 20)) % 3) R(ctx, d[0] - 1.5, d[1], 3, 1, 'rgba(255,255,255,0.75)'); else if (!open && j % 2 === 0) R(ctx, d[0] - 1, d[1], 2, HP, 'rgba(255,255,255,0.4)'); return; }
@@ -798,7 +1389,7 @@
       // clouds drifting over, with their shadows on the land
       if (!cloudC) cloudC = BB.surface(40, 24);
       var cl = cloudC.getContext('2d');
-      for (i = 0; i < [5, 9, 13, 16][lands - 1]; i++) {
+      for (i = 0; i < [5, 9, 13, 16, 20][lands - 1]; i++) {
         var cx2 = ((i * 160 + t * 0.08 * (1 + i * 0.2)) % (MW + 80)) - 40, cy2 = 18 + (i * 29) % 40;
         ctx.globalAlpha = 0.16; oval(ctx, cx2 + 6, cy2 + 30, 14, 4, '#1c1030'); ctx.globalAlpha = 1;
         // drawn on their own layer and laid down see-through, so a cloud
@@ -830,7 +1421,21 @@
         ctx.restore();
         return;
       }
-      if (bp.x >= 1516 && ys) {
+      if (flying) {
+        // off to the One Day lands on his paper aeroplane, Bear peeping over
+        // his shoulder, up over the sea and down onto the sheet
+        var fl = flight(bp.x), bob = st.reduce ? 0 : Math.sin(t * 0.12) * 0.8, ply = bp.y - fl.lift + 2 + bob, s3 = BS.idle;
+        var pitch = Math.atan(16 * Math.PI * Math.cos(fl.u * Math.PI) * st.facing / (b35.x - a34.x)) * 0.8;
+        ctx.globalAlpha = 0.6; shadow(ctx, bp.x, bp.y + 3, 10 - fl.lift * 0.25); ctx.globalAlpha = 1;
+        plane(ctx, bp.x, ply, st.facing, pitch, 'far');
+        BB.draw(ctx, A.bearHead, bp.x - st.facing * 10 - 4.5, ply - 6.5 + Math.sin(pitch) * 10);
+        BB.draw(ctx, s3, bp.x - s3.w / 2, ply - s3.h + 2.5, st.facing < 0, st.power === 2 ? A.bonnie.red : st.v);
+        hat(s3, bp.x - s3.w / 2, ply - s3.h + 2.5, st.facing < 0);
+        plane(ctx, bp.x, ply, st.facing, pitch, 'near');
+        ctx.restore();
+        return;
+      }
+      if (bp.x >= 1516 && bp.x <= a34.x && ys) {
         // in France the family drives: the Yeti between the medallions, and parked beside Bonnie at one
         if (st.walking) {
           var yf = ys[Math.floor(t / 4) % ys.length];

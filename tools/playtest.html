@@ -22,22 +22,28 @@
      boss until it's beaten, then whatever it leaves behind.
      /tools/playtest.html?level=11   (or ?level=11-20, or ?level=all;
      &from=120 starts it partway along a level, to check one stretch;
-     &medals=1 sends it after each of a level's three medals instead) -->
+     &medals=1 sends it after each of a level's three medals instead;
+     &bear=1 after Bear, to prove he can be found) -->
 <canvas id="screen" width="240" height="144"></canvas>
 <div id="pad"><div data-dpad></div></div>
 <div id="out"></div>
 <script src="../js/core.js"></script>
 <script src="../js/art.js"></script>
 <script src="../js/creatures.js"></script>
+<script src="../js/creatures5a.js"></script>
+<script src="../js/creatures5b.js"></script>
 <script src="../js/family.js"></script>
 <script src="../js/backdrop.js"></script>
+<script src="../js/backdrop5.js"></script>
 <script src="../js/light.js"></script>
 <script src="../js/map.js"></script>
 <script src="../js/music.js"></script>
+<script src="../js/music5.js"></script>
 <script src="../js/levels.js"></script>
 <script src="../js/levels2.js"></script>
 <script src="../js/levels3.js"></script>
 <script src="../js/levels4.js"></script>
+<script src="../js/levels5.js"></script>
 <script src="../js/ui.js"></script>
 <script src="../js/voice.js"></script>
 <script src="../js/game.js"></script>
@@ -72,13 +78,18 @@
      level's three medals in turn (from the start), to prove each can be
      reached — a medal sealed in rock or out of reach shows as ✗ */
   var TARGET = -1;
-  var medalEnt = function (G) { for (var i = 0; i < G.ents.length; i++) { var e = G.ents[i]; if (e.k === 'medal' && e.sp.i === TARGET) return e; } return null; };
+  var medalEnt = function (G) {
+    for (var i = 0; i < G.ents.length; i++) { var e = G.ents[i]; if (TARGET === 'bear' ? e.k === 'bear' : e.k === 'medal' && e.sp.i === TARGET) return e; }
+    return null;
+  };
+  // the target reached: the medal picked up, or Bear following
+  var gotTarget = function (G) { var t = medalEnt(G); return TARGET === 'bear' ? t && t.mode === 'follow' : t && !t.alive; };
   var goalOf = function (G) {
-    if (TARGET >= 0) { var me = medalEnt(G); return me && me.alive ? me : null; }
+    if (TARGET !== -1) { var me = medalEnt(G); return me && me.alive && me.mode !== 'follow' ? me : null; }
     var p = G.p, best = null, bd = 1e9;
     G.ents.forEach(function (e) {
       // a boss until he's beaten; then whoever (or whatever) he was keeping
-      var want = G.def.boss ? (G.bossDone ? /^(present|cage|monsty|brocco)$/.test(e.k) : !!(e.K && e.K.boss && e.alive)) : e.k === 'goal';
+      var want = G.def.boss ? (G.bossDone ? /^(present|cage|monsty|brocco|listprize)$/.test(e.k) : !!(e.K && e.K.boss && e.alive)) : e.k === 'goal';
       if (!want) return;
       var d = Math.abs(e.x - p.x) + Math.abs(e.y - p.y);
       if (d < bd) { bd = d; best = e; }
@@ -89,7 +100,7 @@
   // the boss still needs counts as a long way
   var h = function (G) {
     var p = G.p, g = goalOf(G);
-    if (TARGET >= 0) return g ? Math.abs(g.x + g.w / 2 - p.x - p.w / 2) + Math.abs(g.y + g.h / 2 - p.y - p.h / 2) * 1.5 : 0;
+    if (TARGET !== -1) return g ? Math.abs(g.x + g.w / 2 - p.x - p.w / 2) + Math.abs(g.y + g.h / 2 - p.y - p.h / 2) * 1.5 : 0;
     if (!g) return G.def.boss && !G.bossDone ? 1e6 : 0;
     // a flying boss is reached by being under him, not up in the air with him
     if (G.def.boss && !G.bossDone) return Math.abs(g.x + g.w / 2 - p.x - p.w / 2) + (g.hp || 0) * 400;
@@ -108,6 +119,12 @@
   };
   var bossHp = function (G) { var b = goalOf(G); return b && !G.bossDone ? (b.hp || 0) + (b.st || '') : 'D'; };
   var run = function (n) {
+    if (BEAR) {
+      TARGET = 'bear'; var rb = runOne(n, true); TARGET = -1;
+      say((rb.ok ? '<span class="ok">✓ ' : '<span class="bad">✗ ') + n + ' ' + BB.LEVELS[n - 1].name + '</span> — Bear: ' + (rb.ok ? 'found' : 'not found (got to tile ' + rb.bestX + ', row ' + rb.bestRow + ')'));
+      window.results = (window.results || []).concat([{ n: n, bear: rb.ok }]);
+      return;
+    }
     if (!MEDALS) return runOne(n);
     var name = BB.LEVELS[n - 1].name, got = [];
     for (TARGET = 0; TARGET < 3; TARGET++) got.push(runOne(n, true));
@@ -144,7 +161,7 @@
         var p = G.p;
         // a fall (he's popped back in a bubble) or the last heart: not a way forward
         if (p.st === 'dead' || p.bubble || BB.game.scene() !== 'play' || doomed(G)) continue;
-        if (TARGET >= 0) { var tm = medalEnt(G); if (tm && !tm.alive) { done = { frames: (node.d + 1) * STEP }; break; } }
+        if (TARGET !== -1) { if (gotTarget(G)) { done = { frames: (node.d + 1) * STEP }; break; } }
         else if (p.st === 'arch' || p.st === 'cheer' || p.st === 'walk' || p.st === 'in') { done = { frames: (node.d + 1) * STEP }; break; }
         /* a place, and roughly when: moving platforms, fire bars and
            bosses all go round in cycles, so the same spot at a different
@@ -167,7 +184,7 @@
     else say('<span class="bad">✗ ' + n + ' ' + name + '</span> —  got no nearer than tile ' + bestX + ', row ' + bestRow + ' (' + Math.round(best) + 'px from the end) after ' + n2 + ' tries');
     window.results = (window.results || []).concat([{ n: n, ok: !!done, bestX: bestX, tries: n2, medals: medals, w: G.w, secs: done ? done.frames / 60 : 0 }]);
   };
-  var q = location.search, m1 = /level=(\d+)(?:-(\d+))?/.exec(q), list = [], FROM = +((/from=(\d+)/.exec(q) || [0, 0])[1]), MEDALS = /medals=1/.test(q);
+  var q = location.search, m1 = /level=(\d+)(?:-(\d+))?/.exec(q), list = [], FROM = +((/from=(\d+)/.exec(q) || [0, 0])[1]), MEDALS = /medals=1/.test(q), BEAR = /bear=1/.test(q);
   if (/level=all/.test(q)) list = BB.LEVELS.map(function (d) { return d.n; });
   else if (m1) for (var i = +m1[1]; i <= +(m1[2] || m1[1]); i++) list.push(i);
   else list = [1];
