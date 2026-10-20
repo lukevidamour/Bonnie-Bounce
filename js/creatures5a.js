@@ -60,7 +60,7 @@
   };
 
   var INK = 'fghij', SNOW = '21WwR', RED = 'uvxyz', GOLD = 'ABCDF', WOOD = 'STUVX', IRON = 'NOPQR', PINK = 'pqrst',
-    FOX = 'klmno', PURP = 'abcde', LEAF = '()<>^', CACT = '[]{}~', CREAM = 'ZZYYw', TEAL = '@+=-:', COAT = ';_|?/';
+    FOX = 'klmno', PURP = 'abcde', LEAF = '()<>^';
   var RUSS = ramp(['#4a1a0c', '#7c3216', '#b45626', '#de8648', '#fcc494']);   // a red squirrel's coat
   var FAWN = ramp(['#9a7050', '#c89e76', '#ecd0a8', '#fbe8cc', '#fffaf0']);   // his cream front
   var NUT = ramp(['#4e4210', '#86741c', '#bea43a', '#e4d074', '#fff6c4']);    // an acorn, olive-gold
@@ -96,7 +96,6 @@
   var MINT = ramp(['#2a7a6a', '#52b29c', '#88d6c2', '#c2f0e2', '#f0fffa']);
   var STRAW = ramp(['#6a4a12', '#a07828', '#ccA444', '#ecd27c', '#fff2c0']);
   var STEEL = ramp(['#4a5060', '#727a8c', '#a2aabc', '#ccd2de', '#f4f8ff']);
-  var TERRA = ramp(['#6a2414', '#a4432a', '#d06a40', '#ee9a6c', '#ffd8bc']); // a glazed clay pot
 
   /* ---- the kit, as creatures.js uses it ---- */
   var orb = function (cx, cy, rx, ry, t) {
@@ -109,9 +108,6 @@
   var P = function (c, f, tex, line) { return { c: c, f: f, tex: tex, line: line || null }; };
   var O = function (cx, cy, rx, ry, t, line) { return P(t[2], ell(cx, cy, rx, ry), orb(cx, cy, rx, ry, t), line); };
   var or = function () { var fs = arguments; return function (x, y) { for (var i = 0; i < fs.length; i++) if (fs[i](x, y)) return true; return false; }; };
-  var both = function (a, b) { return function (x, y) { return a(x, y) && b(x, y); }; };
-  var but = function (a, b) { return function (x, y) { return a(x, y) && !b(x, y); }; };
-  var box = function (x0, y0, x1, y1) { return function (x, y) { return x >= x0 && x < x1 && y >= y0 && y < y1; }; };
   // paint rows anywhere, even where the scene left nothing ('.' keeps what's there):
   // for sparkles and glows that shouldn't get an outline
   var put = function (rows, x, y, list) {
@@ -139,12 +135,8 @@
     sp.noLight = 'all';
     return sp;
   };
-  // stamp rows written with stand-in letters, swapped for real colours
-  var sub = function (rows, map) { return rows.map(function (r) { return r.replace(/[a-zA-Z0-9]/g, function (c) { return map[c] || c; }); }); };
   var EYE = ['.##.', '#ww#', '#Ew#', '#EE#', '.##.'];
-  var EYE_S = ['.#.', '#Ew', '#EE', '.#.'];
   var EYE_L = ['.###.', '#www#', '#Eww#', '#EEw#', '#EEE#', '.###.'];
-  var SHUT = ['....', '#..#', '.##.'];
   var tri = function (ax, ay, bx, by, cx, cy) {
     return function (x, y) {
       var s1 = (x - bx) * (ay - by) - (ax - bx) * (y - by), s2 = (x - cx) * (by - cy) - (bx - cx) * (y - cy), s3 = (x - ax) * (cy - ay) - (cx - ax) * (y - ay);
@@ -261,8 +253,8 @@
   /* The chocolate bar (Chocolate Land): a bar of milk chocolate, no
      wrapper, two squares wide and four tall exactly as Bonnie drew it,
      every square a raised block lit on its top-left bevel. His eyes are
-     in the top two squares. Stomped, it snaps in two and lies flat, eyes
-     gone to little crosses — with its legs in the air. */
+     in the top two squares. Stomped, it snaps in two and lies flat, its
+     eyes gone to little crosses. */
   var cells = function (x0, y0, cw, rows, t, light) {
     // a texture for a grid of raised squares: grooves dark, bevels lit top-left
     return function (x, y) {
@@ -332,7 +324,7 @@
       }, TRUNK[0]),
       O(cx, cy, 7.4, 6.8, HUSK, HUSK[0])
     );
-    return build(34, 46, parts, [[11, 10, ['##..', '.###']], [17, 10, ['.###', '##..']], [11, 12, EYE], [17, 12, EYE], [13, 18, ['.####.', '#....#']]]);
+    return build(34, 46, parts, [[11, 10, ['##..', '.###']], [17, 10, ['.###', '##..']], [11, 12, EYE], [17, 12, EYE], [13, 18, ['.####.', '#....#']]], [], LEAF[0]);
   };
   E.palmtree = [palmtree(0), palmtree(1)];
 
@@ -443,7 +435,7 @@
 
   /* The polar bear (Antarctica): big, fluffy and cream-white, a black
      nose, walking on all fours. Two stomps: the first sits him down,
-     dizzy, eyes swirling, little stars going round. */
+     dizzy, his eyes boggling, little stars going round. */
   var fluff = function (cx, cy, rx, ry, n, amp) {
     return function (x, y) {
       var dx = (x - cx) / rx, dy = (y - cy) / ry, a = Math.atan2(dy, dx);
@@ -549,7 +541,7 @@
   E.bulbasaur = hop(function (f) {
     var by = f ? -1.6 : 0, k = f ? 1 : 0;
     var spots = function (x, y) { return ell(4.6, 9.6 + by, 1.2, 1)(x + 0.5, y + 0.5) || ell(9.4, 8.8 + by, 1, 0.9)(x + 0.5, y + 0.5) || ell(14.4, 17 + by, 1.4, 1.1)(x + 0.5, y + 0.5) || ell(18.6, 15.6 + by, 1, 0.9)(x + 0.5, y + 0.5); };
-    var leg = function (x, far) { return P(BULB[far ? 1 : 2], rrect(x - 1.8, 17 + by, x + 1.8, 23.4 - (far ? 0.4 : 0) + k * 0.4, 1.2), orb(x - 1, 18, 3, 5, far ? BULB[0] + BULB.slice(0, 4) : BULB), BULB[0]); };
+    var leg = function (x, far) { return P(BULB[far ? 1 : 2], rrect(x - 1.8, 17 + by, x + 1.8, 24 - (far ? 0.4 : 0) - k, 1.2), orb(x - 1, 18, 3, 5, far ? BULB[0] + BULB.slice(0, 4) : BULB), BULB[0]); };
     return build(24, 24, [
       leg(10.4, true), leg(19.6, true),
       O(15, 9.4 + by, 6.4, 5.8, '[]{}~', '['),
@@ -787,10 +779,10 @@
       Pt(HONEY[3], fluff(26.6, 32, 9.4, 8.8, 13, 0.07), fuzzy(orb(24, 28, 11, 11, HONEY.slice(1) + 'w'), HONEY[2]), HONEY[1])
     );
     parts.push(wing(W[0]), wing(W[1]));
-    // arms (a bee's, dark and thin): only when she's sorry, her hands
-    // together in front of her ruff
+    // arms (a bee's, dark and thin, in little white gloves): only when she's
+    // sorry, her hands together under her ruff
     var armP = function (pts, hand) {
-      return [Pt(BEEB[2], limb(pts, 1.2), orb(16, 30, 8, 8, BEEB), BEEB[0]), Pt(HONEY[3], ell(hand[0], hand[1], 1.9, 1.9), orb(hand[0] - 0.6, hand[1] - 0.6, 2.4, 2.4, HONEY.slice(1) + 'w'), BEEB[1])];
+      return [Pt(BEEB[2], limb(pts, 1.2), orb(16, 30, 8, 8, BEEB), BEEB[0]), Pt('w', ell(hand[0], hand[1], 2.2, 2), orb(hand[0] - 0.8, hand[1] - 0.8, 2.6, 2.6, '2WwwR'), '2')];
     };
     parts.push(
       // the ermine ruff
@@ -800,7 +792,7 @@
       Ph(HONEY[3], or(ell(5.6, 3.2, 1.6, 1.6), ell(27.4, 2.6, 1.6, 1.6)), orb(5, 2, 4, 3, HONEY), HONEY[0]),
       Ph('C', ell(head[0], head[1], hR[0], hR[1]), orb(head[0] - 2, head[1] - 2, hR[0] + 1, hR[1] + 1, 'BCCDF'), 'A')
     );
-    if (sorry) parts = parts.concat(armP([[25, 38], [21.4, 36], [19, 31.6]], [18.6, 31]), armP([[21, 39], [16.4, 36.4], [15.6, 31.8]], [15.4, 31.2]));
+    if (sorry) parts = parts.concat(armP([[24, 32], [23, 35.4], [20.6, 36]], [20.2, 35.8]), armP([[13.6, 32], [14, 35.6], [16, 36.2]], [16.2, 35.9]));
     // the crown: three points and a band with jewels; knocked askew when she's hit
     var askew = hurt || sorry || stuck;
     var cx = askew ? 21.4 : 16.6, cy = askew ? 11 : 9.8, ca = askew ? 0.5 : -0.12;
@@ -858,7 +850,6 @@
     ];
     return parts;
   };
-  var puff = function (balls) { return balls.map(function (b) { return P('W', ell(b[0], b[1], b[2], b[2]), orb(b[0] - 0.4, b[1] - 0.6, b[2] + 0.4, b[2] + 0.4, '21WwR'), '2'); }); };
   A.rocket = [0, 1].map(function (f) {
     // a little puff of smoke off its back on the second frame
     var smoke = f ? [[16, 5, ['.WW.', 'WwwW', 'WwW1', '.11.']], [18, 9, ['W1', '11']]] : [[16, 7, ['W.', '1W']]];
@@ -884,7 +875,8 @@
     else fr.push([43, 4, ['WWW..ww']], [40, 28, ['wwww..W']]);
     return build(52, 30, parts, st, fr);
   });
-  A.rocketRide[0].seat = A.rocketRide[1].seat = [24, 4];
+  // where the rider's feet go: the middle of its flat top, in front of the fin
+  A.rocketRide[0].seat = A.rocketRide[1].seat = [22, 4];
 
   /* Poké Ball: shut, wobbling one way and the other, and open with a
      flash of light inside. */
@@ -945,7 +937,7 @@
       [[15, 12, TWINKLE], [2, 1, ['F']], [16, 4, ['7']]],
       [[0, 12, TWINKLE], [15, 2, ['F']], [2, 2, ['7']]]
     ][f];
-    return build(18, 18, parts, [], glow);
+    return build(18, 18, parts, [], glow, 'A');
   });
 
   /* Bonnie's "ONE DAY" list: a sheet of lined paper, a bit crumpled from

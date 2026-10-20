@@ -4117,7 +4117,8 @@
   var updateMap = function () {
     sceneT++;
     if (mapWalk) {
-      mapWalk.t += 1;
+      // (on the way to somewhere further along, he hurries through the stops in between)
+      mapWalk.t += mapGoal && mapGoal !== mapWalk.to ? 3 : 1;
       var a = nodePos(mapWalk.from - 1), b = nodePos(mapWalk.to - 1), dist = Math.abs(b.x - a.x), k = Math.min(1, mapWalk.t * 1.1 / dist);
       mapX = a.x + (b.x - a.x) * k;
       mapY = a.y + (b.y - a.y) * k - Math.sin(k * Math.PI) * 4;
@@ -4134,7 +4135,9 @@
         if (Math.hypot(tp.x + mapCam - mapX, tp.y - (mapY - 10)) < 10) tappedNode = save.at;
       }
       var pb = playBtn(), bb = bookBtn();
+      var wb = whereBtn();
       if (tapIn(bb.x, bb.y, bb.w, bb.h) && sceneT > 10) openBook();
+      else if ((tapIn(wb.x, wb.y, wb.w, wb.h) || BB.hit('up')) && sceneT > 10) openWhere();
       else if (BB.hit('b') && sceneT > 10) openBook();
       else if (BB.inputMode === 'touch' && tapIn(pb.x, pb.y, pb.w, pb.h) && sceneT > 10) playLevel();
       else if (tappedNode && tappedNode > save.unlocked) sfx('bump');
@@ -4174,6 +4177,11 @@
     UI.paper(ctx, bk.x, bk.y, bk.w, bk.h, { stitch: false, fill: '#ffe6f0' });
     ctx.fillStyle = '#e86aa4'; ctx.fillRect(bk.x + 4, bk.y + 3.5, 6, 7); ctx.fillStyle = '#ffffff'; ctx.fillRect(bk.x + 5, bk.y + 4.5, 0.5, 5);
     if (bk.w > 20) BB.text(ctx, 'BOOK', bk.x + 12, bk.y + 3.5, { color: INK });
+    // …and under it, WHERE TO?: every level, to go straight to
+    var wb = whereBtn();
+    UI.paper(ctx, wb.x, wb.y, wb.w, wb.h, { stitch: false, fill: '#e6f6ff' });
+    mapIcon(ctx, wb.x + 3.5, wb.y + 3);
+    if (wb.w > 20) BB.text(ctx, 'GO', wb.x + 13, wb.y + 3.5, { color: INK });
     // what to do, on a strip of paper at the bottom
     if (!mapWalk && !mapGoal) {
       if (BB.inputMode === 'touch') {
@@ -4344,6 +4352,80 @@
   var bookPage = 0, outfitAt = 0;
   // on a narrow screen the tab is just the book, so it clears the level's ribbon
   var bookBtn = function () { return { x: 3, y: 3, w: BB.W > 200 ? 36 : 15, h: 14 }; };
+  var whereBtn = function () { return { x: 3, y: 19, w: BB.W > 200 ? 36 : 15, h: 14 }; };
+  // a little folded map: green land on blue sea, a red dot for "you are here"
+  var mapIcon = function (ctx, x, y) {
+    ctx.fillStyle = INK; ctx.fillRect(x - 0.5, y - 0.5, 9, 8);
+    ctx.fillStyle = '#7ac8f0'; ctx.fillRect(x, y, 8, 7);
+    ctx.fillStyle = '#5cc85a'; ctx.fillRect(x + 1, y + 1.5, 3, 3); ctx.fillRect(x + 4.5, y + 3, 2.5, 3); ctx.fillRect(x + 2, y + 4, 3, 2);
+    ctx.fillStyle = 'rgba(28,14,48,0.25)'; ctx.fillRect(x + 2.5, y, 0.5, 7); ctx.fillRect(x + 5.5, y, 0.5, 7);
+    BB.icons.disc(ctx, x + 5.6, y + 2.2, 1.1, '#e83a4a');
+  };
+
+  /* ---- WHERE TO? ----------------------------------------------------------------
+     Every level he's reached, a row for each land, each number in its world's
+     colour (a star once it's finished): tap one and he's there on the map,
+     ready to play. (Before this, going back to level 10 from the holiday
+     meant walking the whole map a stop at a time — owner, 20 Oct.) */
+  var LAND_FROM = [0, 10, 20, 30, 35];
+  var whereAt = 1;
+  var openWhere = function () { sfx('select'); whereAt = save.at; wipeTo(function () { go('where'); }); };
+  var landOpen = function (i) { return i === 0 || save.unlocked > LAND_FROM[i]; };
+  var landEmblem = function (i) {
+    var F = A.family || {};
+    return [A.monsty, frameOf(art('magpie', 'gull'), 0), F.brocco ? F.brocco.idle : A.monsty, A.deco.umbrella || A.monsty, A.wish ? A.wish[0] : A.starSmall][i];
+  };
+  var whereCells = function () {
+    var W = BB.W, out = [], rows = 0, cw = Math.min(17, (W - 34) / 10), x0 = W / 2 - (cw * 10) / 2 + 9;
+    for (var i = 0; i < LAND_LAST.length; i++) {
+      if (!landOpen(i)) continue;
+      for (var n = LAND_FROM[i] + 1; n <= LAND_LAST[i]; n++) out.push({ n: n, land: i, x: x0 + (n - LAND_FROM[i] - 1) * cw, y: 26 + rows * 21, w: cw - 1, h: 15 });
+      rows++;
+    }
+    return out;
+  };
+  var updateWhere = function () {
+    sceneT++;
+    var W = BB.W, cells = whereCells();
+    var pick = function (n) {
+      if (n > save.unlocked) { sfx('bump'); return; }
+      save.at = n; store(); sfx('start');
+      wipeTo(function () { go('map'); mapEnter(); });
+    };
+    if (BB.hit('start') || BB.hit('b') || (BB.tap && tapIn(W - 18, 0, 18, 18))) { sfx('select'); wipeTo(function () { go('map'); mapEnter(); }); return; }
+    cells.forEach(function (c) { if (sceneT > 6 && tapIn(c.x, c.y, c.w, c.h)) pick(c.n); });
+    // keys: along a row, and up and down between the lands
+    var at = cells.filter(function (c) { return c.n === whereAt; })[0] || cells[0];
+    var move = function (dx, dy) {
+      var best = null, bd = 1e9;
+      cells.forEach(function (c) { if (c.n > save.unlocked) return; var ok = dx ? Math.sign(c.x - at.x) === dx && Math.abs(c.y - at.y) < 2 : Math.sign(c.y - at.y) === dy; if (!ok) return; var d = Math.abs(c.x - at.x) + Math.abs(c.y - at.y) * 3; if (d < bd) { bd = d; best = c; } });
+      if (best) { whereAt = best.n; sfx('select'); } else sfx('bump');
+    };
+    if (BB.hit('left')) move(-1, 0); if (BB.hit('right')) move(1, 0); if (BB.hit('up')) move(0, -1); if (BB.hit('down')) move(0, 1);
+    if (BB.hit('a') && sceneT > 6) pick(whereAt);
+  };
+  var drawWhere = function (ctx) {
+    var W = BB.W;
+    ctx.fillStyle = '#3a5a8a'; ctx.fillRect(0, 0, W, H);
+    UI.paper(ctx, 2, 4, W - 4, H - 8);
+    UI.ribbon(ctx, W / 2, 1, 'WHERE TO?', '#3a7ad8');
+    var cells = whereCells(), shown = {};
+    cells.forEach(function (c) {
+      // each land's sticker at the start of its row
+      if (!shown[c.land]) { shown[c.land] = 1; var em = landEmblem(c.land); if (em) drawSticker(ctx, em, true, c.x - 10, c.y + 13, 14); }
+      var open = c.n <= save.unlocked, done = save.cleared.indexOf(c.n) > -1, here = c.n === save.at;
+      UI.round(ctx, c.x, c.y, c.w, c.h, open ? INK : '#d8bc8c', 2);
+      UI.round(ctx, c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1, open ? LEVEL_COL[c.n - 1] : '#f4e4c4', 1.5);
+      if (open) BB.text(ctx, String(c.n), c.x + c.w / 2, c.y + 4, { color: '#ffffff', align: 'center', shadow: 'rgba(28,14,48,0.5)' });
+      // finished: a gold dot in its corner (a star there covered the number on a narrow screen)
+      if (done) { BB.icons.disc(ctx, c.x + c.w - 1.5, c.y + 1.5, 2.1, INK); BB.icons.disc(ctx, c.x + c.w - 1.5, c.y + 1.5, 1.5, '#ffd23e'); }
+      if (here) { ctx.fillStyle = INK; ctx.fillRect(c.x + 1, c.y + c.h + 1, c.w - 2, 1); }
+      if (c.n === whereAt && BB.inputMode !== 'touch' && (tick % 40 < 30 || reduce)) { ctx.strokeStyle = PICK; ctx.lineWidth = 1; ctx.strokeRect(c.x - 1, c.y - 1, c.w + 2, c.h + 2); }
+    });
+    var hint = BB.inputMode === 'touch' ? [['t', 'TAP A LEVEL TO GO THERE']] : [['g', 'move'], ['t', 'CHOOSE'], ['g', 'ok'], ['t', 'GO']];
+    BB.prompt(ctx, hint, W / 2, H - 16, { align: 'center', color: INK, shadow: null });
+    BB.text(ctx, 'X', W - 11, 6, { color: INK });
+  };
   // it opens on Bear's page for the island Bonnie's on
   var openBook = function () { sfx('select'); bookPage = Math.min(landOf(save.at), save.won4 ? 5 : save.won3 ? 4 : save.won2 ? 3 : save.won ? 2 : 1) - 1; outfitAt = 0; OUTFITS.forEach(function (o, i) { if (o.id === save.outfit) outfitAt = i; }); wipeTo(function () { go('book'); }); };
   // three across, three rows (nine to a page): fits every screen with the names clear
@@ -4780,6 +4862,7 @@
       case 'story4': updateStory4(); break;
       case 'story5': updateStory5(); break;
       case 'book': updateBook(); break;
+      case 'where': updateWhere(); break;
       case 'grownups': updateGrownups(); break;
     }
   };
@@ -4801,6 +4884,7 @@
       case 'story4': drawStory4(ctx); break;
       case 'story5': drawStory5(ctx); break;
       case 'book': drawBook(ctx); break;
+      case 'where': drawWhere(ctx); break;
       case 'grownups': drawGrownups(ctx); break;
     }
     if (BB.drawTouch) BB.drawTouch(ctx);
