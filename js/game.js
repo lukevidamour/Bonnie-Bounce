@@ -1187,7 +1187,7 @@
       if (p.st !== 'play' || !overlap(p, e)) return;
       e.alive = false;
       if (!(medalBits(G.n) & e.bit)) { save.medals[G.n] = medalBits(G.n) | e.bit; store(); }
-      sfx('medal'); points(1000, e.x, e.y);
+      sfx('medal'); points(1000, e.x, e.y); hooray();
       // the word stays below the HUD, and above a "SECRET!" that's just popped up
       var my = Math.max(G.cam.y + 30, e.y - 10) - (G.tick - (G.secretAt || -999) < 60 ? 12 : 0);
       fx('text', e.x - 8, Math.max(G.cam.y + 24, my), { s: 'MEDAL!', vy: -0.3, life: 60, col: '#ffe048' });
@@ -1504,7 +1504,7 @@
         e.mode = 'caught'; e.t2 = 0; e.vx = 0; sfx('throw');
         if (!save.dex || !save.dex[mon]) fx('text', e.x - 6, e.y - 14, { s: mon.toUpperCase() + '!', vy: -0.35, life: 70, col: '#ffffff' });
         // in the Pokédex at once: a bump during the wobble mustn't lose it
-        save.dex = save.dex || {}; save.dex[mon] = 1; store();
+        save.dex = save.dex || {}; save.dex[mon] = 1; store(); hooray();
       }
     },
     draw: function (ctx, e) {
@@ -1526,7 +1526,9 @@
     var p = G.p, tr = G.trail, lag = (FOLLOW_LAG[e.k] || 26) + (e.n || 0) * 10, tg = tr.length > lag ? tr[tr.length - 1 - lag] : tr[0];
     e.moving = false;
     if (!tg) { e.vy = Math.min(FALL, e.vy + GRAV); if (moveY(e, e.vy, true)) e.vy = 0; return; }
-    var bx = e.x + e.w / 2, nx = tg.x;
+    var bx = e.x + e.w / 2, nx = tg.x, gap = 13 + (e.n || 0) * 9 + (e.k === 'baby' ? 10 : 0);
+    // (when he stops, they stop a step behind him — one behind the other — not on top of him)
+    if (Math.abs(p.x + p.w / 2 - nx) < gap && Math.abs(p.y + p.h - tg.y) < 4 && Math.abs(tg.y - (e.y + e.h)) < 1) { e.face = p.x + p.w / 2 > bx ? 1 : -1; return; }
     if (Math.abs(nx - bx) > 0.2) { e.face = nx > bx ? 1 : -1; e.moving = true; }
     e.x = nx - e.w / 2; e.y = tg.y - e.h;
   };
@@ -1537,9 +1539,9 @@
     draw: function (ctx, e) {
       var P2 = E[e.sp.mon || 'pikachu'];
       if (!P2) return;
-      var f = e.cheer && P2.cheer ? P2.cheer : !e.moving ? P2.idle : G.p.ground ? frameOf(P2.run, Math.floor(e.t / 5)) : P2.jump || P2.idle;
+      var joy = G.cheerT > 0 && !reduce, f = (e.cheer || joy) && P2.cheer ? P2.cheer : !e.moving ? P2.idle : G.p.ground ? frameOf(P2.run, Math.floor(e.t / 5)) : P2.jump || P2.idle;
       shadowUnder(ctx, e.x + e.w / 2, e.y + e.h, 8);
-      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 0.5 - G.cam.y), e.face > 0);
+      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 0.5 - G.cam.y - (joy ? Math.abs(Math.sin(G.cheerT * 0.28)) * 5 : 0)), e.face > 0);
     }
   };
 
@@ -1570,9 +1572,9 @@
     draw: function (ctx, e) {
       var B2 = E.babydino;
       if (!B2) return;
-      var f = frameOf(B2, e.moving ? Math.floor(e.t / 6) : 0);
+      var joy = G.cheerT > 0 && !reduce, f = frameOf(B2, e.moving || joy ? Math.floor(e.t / 6) : 0);
       shadowUnder(ctx, e.x + e.w / 2, e.y + e.h, 8);
-      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 0.5 - G.cam.y), e.face > 0);
+      BB.draw(ctx, f, snap(e.x + e.w / 2 - f.w / 2 - G.cam.x), snap(e.y + e.h - f.h + 0.5 - G.cam.y - (joy ? Math.abs(Math.sin(G.cheerT * 0.3 + (e.n || 0))) * 4 : 0)), e.face > 0);
     }
   };
   /* A pterodactyl, hovering: jump up and grab its feet, and it carries
@@ -2423,6 +2425,25 @@
       if (q.sp.fling) { p.vx = q.sp.fling * 2.6; p.vy = -SPRING * 1.08; }
       sfx('boing');
       if (BB.voice) BB.voice.play('wheee');
+      springJoy(q);
+    }
+  };
+  /* Each world's spring answers in its own way: a steel drum plays the
+     next note of its tune, a marshmallow puffs sugar, a cloud scatters a
+     rainbow, a flower throws its petals. */
+  var PAN = ['C5', 'E5', 'G5', 'A5', 'G5', 'E5', 'D5', 'C6'];
+  var springJoy = function (q) {
+    var th = G.def.theme, x = q.x + q.w / 2, y = q.y, k;
+    if (reduce) return;
+    if (th === 'jamaica') {
+      G.panN = ((G.panN || 0) + 1) % PAN.length; BB.playNote(PAN[G.panN]);
+      fx('note', x, y - 6, { vy: -0.7, vx: 0.2, life: 44, col: NOTE_COL[G.panN % NOTE_COL.length] });
+    } else if (th === 'chocolate') {
+      for (k = 0; k < 8; k++) fx('spark', x, y, { vx: (k - 3.5) * 0.45, vy: -1.6 - (k % 3) * 0.4, life: 30, col: k % 2 ? '#ffc8e0' : '#ffffff' });
+    } else if (th === 'rainbow') {
+      for (k = 0; k < 7; k++) { var a = Math.PI + k / 6 * Math.PI; fx('spark', x, y - 2, { vx: Math.cos(a) * 1.4, vy: Math.sin(a) * 1.4, life: 34, col: ['#ff5a6a', '#ffa040', '#ffd84a', '#5cd06a', '#4aa8ff', '#7a6ae8', '#c070f0'][k] }); }
+    } else if (th === 'beeland' || th === 'pokemon') {
+      for (k = 0; k < 7; k++) fx('petal', x, y - 2, { vx: (k - 3) * 0.4, vy: -1.4 - (k % 3) * 0.35, life: 46, col: FLOWER[k % FLOWER.length] });
     }
   };
 
@@ -2455,6 +2476,11 @@
     // there's no room to stand, he can always walk out from under it
     if (p.crouch && p.ground && BB.key('down')) dir = 0;
     var held = BB.key('a') || BB.key('up');
+    /* Left standing for a while, he gives whoever's playing a wave (and
+       his friends join in), every few seconds until he's off again. */
+    if (p.ground && !dir && !held && Math.abs(p.vx) < 0.05 && p.st === 'play') p.idleT = (p.idleT || 0) + 1; else p.idleT = 0;
+    if (p.idleT >= 300 && (p.idleT - 300) % 360 === 0) { p.waveT = 50; hooray(); }
+    if (G.cheerT) G.cheerT--;
     // in the water: a water level, or a pool or the sea in an ordinary one
     var inW = G.water || waterAt(p.x + p.w / 2, p.y + p.h * 0.55);
     // a stroke that breaks the surface carries him up and out, onto the side
@@ -2604,6 +2630,14 @@
       sfx('pop');
       for (var i = 0; i < 6; i++) fx('puff', p.x + p.w / 2 - 3 + (i - 2.5) * 3, p.y + p.h + 2, { life: 20 });
     }
+  };
+  // a "hooray!" his friends join in with: a medal, a Pokémon caught, a wave
+  var hooray = function () {
+    G.cheerT = 44;
+    G.ents.forEach(function (e) {
+      if (e.k === 'bear' && e.mode === 'follow') e.happy = 44;
+      if (e.k === 'buddy' && !reduce) fx('text', e.x - 6, e.y - 12, { s: 'PIKA!', vy: -0.4, life: 40, col: '#ffe048' });
+    });
   };
   var collectCoins = function (p) {
     var tx0 = Math.floor(p.x / T), tx1 = Math.floor((p.x + p.w - 1) / T), ty0 = Math.floor(p.y / T), ty1 = Math.floor((p.y + p.h - 1) / T);
@@ -3499,10 +3533,29 @@
 
   /* Ambient life: falling snow, fireflies in the woods, bubbles under the
      sea, embers in the castle. Purely for show; none with reduced motion. */
+  /* What drifts in the air of each of One Day's worlds: dandelion seeds
+     over the Pokémon meadow, confetti at the park, sea spray and butterflies
+     of light in Jamaica, ice crystals twinkling over Antarctica, red dust in
+     the outback, rainbow twinkles, sprinkles falling in Chocolate Land,
+     embers from the volcanoes, pollen in Bee Land. (New York has its snow.) */
+  var dot = function (ctx, q, col, w, h) { ctx.fillStyle = col; ctx.fillRect(Math.round(q.x), Math.round(q.y), w || 1, h || 1); };
+  var RB = ['#ff5a6a', '#ffa040', '#ffd84a', '#5cd06a', '#4aa8ff', '#c070f0'];
+  var AIR5 = {
+    pokemon: { n: 14, f: function (ctx, q) { q.x += 0.25 + Math.sin(q.t * 0.03 + q.s * 7) * 0.2; q.y += Math.sin(q.t * 0.02 + q.s * 3) * 0.15 - 0.03; ctx.globalAlpha = 0.85; dot(ctx, q, '#ffffff', 1.5, 1.5); ctx.fillStyle = '#e8e0d0'; for (var k = -1; k <= 1; k++) ctx.fillRect(Math.round(q.x + k), Math.round(q.y - 1), 0.5, 0.5); ctx.globalAlpha = 1; } },
+    universal: { n: 18, f: function (ctx, q) { q.y += 0.25 + q.s * 0.25; q.x += Math.sin(q.t * 0.06 + q.s * 9) * 0.35; dot(ctx, q, RB[Math.floor(q.s * 6)], q.t % 20 < 10 ? 1.5 : 0.5, 1); } },
+    jamaica: { n: 10, f: function (ctx, q) { q.x -= 0.1; q.y -= 0.08 + q.s * 0.05; if (Math.sin(q.t * 0.04 + q.s * 6) > 0.2) { ctx.globalAlpha = 0.7; dot(ctx, q, q.s > 0.5 ? '#fffbe0' : '#c8fff8'); ctx.globalAlpha = 1; } } },
+    antarctica: { n: 16, f: function (ctx, q) { q.y += 0.12 + q.s * 0.15; q.x += Math.sin(q.t * 0.02 + q.s * 4) * 0.2; var tw = Math.sin(q.t * 0.08 + q.s * 9); if (tw > 0.6) { dot(ctx, q, '#ffffff', 0.5, 2.5); ctx.fillRect(Math.round(q.x) - 1, Math.round(q.y) + 1, 2.5, 0.5); } else dot(ctx, q, '#e8f8ff'); } },
+    australia: { n: 14, f: function (ctx, q) { q.x -= 0.35 + q.s * 0.3; q.y += Math.sin(q.t * 0.05 + q.s * 5) * 0.1; ctx.globalAlpha = 0.5; dot(ctx, q, q.s > 0.7 ? '#f0a060' : '#e8c090'); ctx.globalAlpha = 1; } },
+    rainbow: { n: 16, f: function (ctx, q) { q.y -= 0.06; if (q.t % 70 < 40) { var c = RB[Math.floor(q.t / 10 + q.s * 6) % 6]; dot(ctx, q, c, 0.5, 2.5); ctx.fillRect(Math.round(q.x) - 1, Math.round(q.y) + 1, 2.5, 0.5); } } },
+    chocolate: { n: 22, f: function (ctx, q) { q.y += 0.35 + q.s * 0.3; q.x += Math.sin(q.t * 0.03) * 0.1; dot(ctx, q, RB[Math.floor(q.s * 6)], q.s > 0.5 ? 1.5 : 0.5, q.s > 0.5 ? 0.5 : 1.5); } },
+    dinosaurs: { n: 10, f: function (ctx, q) { q.y -= 0.2 + q.s * 0.25; q.x += Math.sin(q.t * 0.04 + q.s * 7) * 0.2; dot(ctx, q, q.t % 30 < 15 ? '#ffd23c' : '#fa9c38'); } },
+    beeland: { n: 20, f: function (ctx, q) { q.x += Math.sin(q.t * 0.015 + q.s * 8) * 0.25 + 0.05; q.y += Math.cos(q.t * 0.012 + q.s * 5) * 0.2; ctx.globalAlpha = 0.8; dot(ctx, q, q.s > 0.4 ? '#ffe680' : '#fff8d0', 1, 1); ctx.globalAlpha = 1; } }
+  };
   var ambient = function (ctx) {
     if (reduce) return;
     var th = G.th, a = G.ambient, W = BB.W;
-    var want = th.snowing ? 40 : G.def.theme === 'woods' ? 14 : th.water ? 10 : th.lava ? 14 : G.def.theme === 'cave' ? 10 : G.def.wind ? 22 : G.def.theme === 'glow' ? 16 : G.def.lowgrav ? 18 : 0;
+    var air = AIR5[G.def.theme];
+    var want = air ? air.n : th.snowing ? 40 : G.def.theme === 'woods' ? 14 : th.water ? 10 : th.lava ? 14 : G.def.theme === 'cave' ? 10 : G.def.wind ? 22 : G.def.theme === 'glow' ? 16 : G.def.lowgrav ? 18 : 0;
     while (a.length < want) a.push({ x: Math.random() * W, y: Math.random() * H, s: Math.random(), t: Math.random() * 100 });
     a.forEach(function (q) {
       q.t++;
@@ -3513,7 +3566,8 @@
           if (q.s > 0.55) { ctx.fillStyle = q.s > 0.8 ? '#7ed858' : '#ffd84a'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1.5, 1); }
           else { ctx.globalAlpha = 0.5 * Math.abs(wv); ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 6 + q.s * 8, 0.5); ctx.globalAlpha = 1; }
         }
-      } else if (G.def.theme === 'glow') { q.x += Math.sin(q.t * 0.02) * 0.3; q.y += Math.cos(q.t * 0.017) * 0.25; if (Math.sin(q.t * 0.05 + q.s * 6) > 0) { ctx.fillStyle = q.s > 0.5 ? '#a8ffe8' : '#ffb0f0'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1, 1); } }
+      } else if (air) { air.f(ctx, q); }
+      else if (G.def.theme === 'glow') { q.x += Math.sin(q.t * 0.02) * 0.3; q.y += Math.cos(q.t * 0.017) * 0.25; if (Math.sin(q.t * 0.05 + q.s * 6) > 0) { ctx.fillStyle = q.s > 0.5 ? '#a8ffe8' : '#ffb0f0'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1, 1); } }
       else if (G.def.lowgrav) { q.y -= 0.12 + q.s * 0.1; q.x += Math.sin(q.t * 0.02 + q.s * 5) * 0.15; ctx.globalAlpha = 0.6; ctx.fillStyle = '#e8e0ff'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1, 1); ctx.globalAlpha = 1; }
       else if (th.snowing) { q.y += 0.3 + q.s * 0.5; q.x += Math.sin(q.t * 0.03) * 0.3 - 0.1; ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(q.x), Math.round(q.y), q.s > 0.6 ? 2 : 1, q.s > 0.6 ? 2 : 1); }
       else if (G.def.theme === 'woods') { q.x += Math.sin(q.t * 0.02) * 0.3; q.y += Math.cos(q.t * 0.017) * 0.25; if (Math.sin(q.t * 0.05 + q.s * 6) > 0) { ctx.fillStyle = '#e8ff70'; ctx.fillRect(Math.round(q.x), Math.round(q.y), 1, 1); } }
