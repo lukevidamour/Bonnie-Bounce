@@ -73,6 +73,13 @@ face buttons on a gamepad — and switches the moment you do.
 
 Under the sea, tap jump to swim.
 
+**Getting about the map.** Tap a level to walk there (a long way, and he
+hurries through the stops on the way), or tap **GO** (under BOOK, top
+left; ↑ on a keyboard) for **WHERE TO?**: every level reached, a row for
+each land in its colours, a gold dot on the finished ones. Tap one and
+he's there, ready to play — level 10 from the far end of the game in two
+taps.
+
 On a Mac, ⌘ + Space opens Spotlight before the browser sees it, so a
 running jump with ⌘ held brings up Spotlight. Option does the same job as ⌘
 without that clash (or switch off Spotlight's shortcut in System Settings →
