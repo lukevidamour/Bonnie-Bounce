@@ -198,6 +198,11 @@ over there's a **Pokédex** page for the Pokémon caught in level 36.
 **Grown-ups** (title menu or pause menu, hold to open) can record their
 own "Yay!", "Wheee!" and "Well done!" — played at checkpoints, on
 trampolines and when a level is clear. The clips stay on that device.
+Under them, **OPEN LEVEL 36** (or whichever land is next) opens the next
+land without finishing the one before: the lands before it count as won,
+its story still plays, and nothing else in the save changes. One land
+per tap. It's how Bonnie's iPad got to the new levels before he'd
+finished the holiday.
 
 **Power-ups** come out of the presents:
 

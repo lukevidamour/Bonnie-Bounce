@@ -4273,10 +4273,27 @@
   var guButtons = function () {
     // laid out to fit the narrowest screen: the names on the left, three buttons on the right
     var W = BB.W, x0 = W - 80, out = [];
-    VOICES.forEach(function (v, r) { [['REC', 24], ['PLAY', 30], ['X', 12]].forEach(function (b, c) { var x = x0 + [0, 27, 60][c]; out.push({ r: r, c: c, x: x, y: 46 + r * 22, w: b[1], h: 14, t: b[0] }); }); });
+    VOICES.forEach(function (v, r) { [['REC', 24], ['PLAY', 30], ['X', 12]].forEach(function (b, c) { var x = x0 + [0, 27, 60][c]; out.push({ r: r, c: c, x: x, y: 34 + r * 20, w: b[1], h: 14, t: b[0] }); }); });
+    // and under the voices, a button to open the next land
+    var land = landOf(Math.max(1, save.unlocked)), t = land < LAND_LAST.length ? 'OPEN LEVEL ' + (LAND_LAST[land - 1] + 1) : 'ALL LANDS OPEN';
+    out.push({ r: 3, c: 0, x: W / 2 - 50, y: 98, w: 100, h: 14, t: t, land: true });
     return out;
   };
+  /* Open the next land without playing through the one before (owner,
+     20 Oct: Bonnie wanted to play his new levels before finishing the
+     holiday). It counts every land up to the one he's in as won, and
+     opens the next land's first level — its story still plays when he
+     picks it. One land per tap; nothing else in his save changes. */
+  var openNextLand = function () {
+    var land = landOf(Math.max(1, save.unlocked));
+    if (land >= LAND_LAST.length) { gu.msg = 'NOTHING MORE TO OPEN'; sfx('bump'); return; }
+    ['won', 'won2', 'won3', 'won4'].slice(0, land).forEach(function (k) { save[k] = true; });
+    save.unlocked = Math.max(save.unlocked, LAND_LAST[land - 1] + 1);
+    save.at = save.unlocked;
+    store(); sfx('power'); gu.msg = 'LEVEL ' + save.unlocked + ' IS OPEN!';
+  };
   var guDo = function (r, c) {
+    if (r === 3) { openNextLand(); return; }
     var n = VOICES[r][0];
     if (!BB.voice || !BB.voice.can()) { gu.msg = 'NO MICROPHONE HERE'; sfx('bump'); return; }
     if (c === 0) { gu.msg = 'SAY IT NOW!'; BB.audioKick(); BB.voice.record(n, function (ok) { gu.msg = ok ? 'SAVED' : 'COULD NOT RECORD'; }); }
@@ -4293,8 +4310,8 @@
       return;
     }
     if (BB.voice && BB.voice.recording()) return;
-    if (BB.hit('up')) { gu.row = (gu.row + 2) % 3; sfx('select'); }
-    if (BB.hit('down')) { gu.row = (gu.row + 1) % 3; sfx('select'); }
+    if (BB.hit('up')) { gu.row = (gu.row + 3) % 4; sfx('select'); }
+    if (BB.hit('down')) { gu.row = (gu.row + 1) % 4; sfx('select'); }
     if (BB.hit('left')) { gu.col = (gu.col + 2) % 3; sfx('select'); }
     if (BB.hit('right')) { gu.col = (gu.col + 1) % 3; sfx('select'); }
     if (BB.hit('a')) guDo(gu.row, gu.col);
@@ -4317,12 +4334,12 @@
     BB.text(ctx, 'RECORD A VOICE FOR BONNIE', W / 2, 20, { color: INK, align: 'center' });
     var rc = BB.voice && BB.voice.recording();
     VOICES.forEach(function (v, r) {
-      var y = 46 + r * 22;
+      var y = 34 + r * 20;
       BB.icons.disc(ctx, 14, y + 6, 2.4, BB.voice && BB.voice.has(v[0]) ? '#46a83e' : '#d8bc8c');
       BB.text(ctx, v[1], 21, y + 3.5, { color: INK });
     });
     guButtons().forEach(function (b) {
-      var sel = BB.inputMode !== 'touch' && b.r === gu.row && b.c === gu.col, live = rc && rc.n === VOICES[b.r][0] && b.c === 0;
+      var sel = BB.inputMode !== 'touch' && b.r === gu.row && (b.land || b.c === gu.col), live = !b.land && rc && rc.n === VOICES[b.r][0] && b.c === 0;
       UI.round(ctx, b.x, b.y, b.w, b.h, INK, 2);
       UI.round(ctx, b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1, live ? '#ff6a7a' : sel ? '#ffe6a8' : '#fff4dc', 1.5);
       if (live) { ctx.fillStyle = '#c8304a'; ctx.fillRect(b.x + 1, b.y + b.h - 3, (b.w - 2) * rc.k, 2); }
