@@ -1781,7 +1781,10 @@
   };
   /* A pterodactyl, hovering: jump up and grab its feet, and it carries
      Bonnie away over the jungle ({ dist: tiles }), then lets him down
-     gently — never over a gap. Jump again to let go sooner. */
+     gently — never over a gap. Jump again to let go sooner. Then it flies
+     off, and a while later glides home to its perch for another go (it
+     used to fly off for good: let go over the gap, back on the ledge, and
+     there was no way across — 23 Oct). */
   KINDS.ptero = {
     w: 16, h: 10, fly: true,
     init: function (e) { e.x0 = e.x; e.y0 = e.y; e.st = 'wait'; e.dist = (e.sp.dist || 30) * T; },
@@ -1797,7 +1800,14 @@
         if (p.carry !== e) e.st = 'away';
         else if (e.go > e.dist && floorBelow(e.x + e.w / 2, e.y + e.h + 20, 72) !== null) { e.st = 'away'; dropCarry(p); }
         else if (e.x > G.w * T - 40) { e.st = 'away'; dropCarry(p); }
-      } else { e.x += 1.6; e.y -= 0.9; if (e.y < -60) e.alive = false; }
+      } else if (e.st === 'away') {
+        e.x += 1.6; e.y -= 0.9;
+        if (e.y < -60) { e.st = 'home'; e.x = e.x0 - 90; e.y = -40; }
+      } else {
+        // home: gliding back down to the perch
+        var dx = e.x0 - e.x, dy = e.y0 - e.y, d = Math.hypot(dx, dy);
+        if (d < 1.5) { e.st = 'wait'; e.x = e.x0; e.y = e.y0; } else { e.x += dx / d * 1.4; e.y += dy / d * 1.4; }
+      }
     },
     draw: function (ctx, e) {
       var Pt = E.ptero;

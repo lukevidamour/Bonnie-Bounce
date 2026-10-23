@@ -337,15 +337,20 @@ Handy while editing:
   was made after Bonnie got stuck in a secret room (23 Oct): the land-6
   dens had one secret wall, so walking along the ground took him in and
   the far wall was solid. Every secret room on the way is a tunnel now,
-  in one side and out the other. It always heads onwards, so where the
-  way on is back behind him (Windy Hill's second kite, a few tiles back
-  from the edge) or a slow ride (the buggy coming back) it can run out of
-  tries; and a room off to one side that's nearer the target (Toy
-  Factory's storeroom up on the gantry) can use up all its tries before
-  it thinks to go underneath. A listed spot like that is worth checking
-  by hand before it's believed. Checked by hand, and fine: Windy Hill
-  323–330 (he walks back, takes the kite and is carried over) and Toy
-  Factory 204–222 (back out of the storeroom, down, and on underneath).
+  in one side and out the other. It always heads onwards, so a room off
+  to the side that's nearer its target can use up all its tries; a spot
+  it can't get on from gets a second chance — every way round about, for
+  a spot at least as far along that can (out of a secret room and up onto
+  its roof, say). It still can't see a way on that's well back behind him
+  (Windy Hill's second kite) or out of the far end of a long room, so a
+  listed spot is worth checking by hand before it's believed. Checked by
+  hand, 23 Oct, and fine: Coral Reef 193 (swim up over the rock), Toy
+  Factory 220–222 (back out of the storeroom, down, and on underneath),
+  Pokémon Meadow 186 (from inside every Big Trip secret room he's up on
+  its roof in a second and a half), Windy Hill 323–330 (he walks back,
+  takes the kite and is carried over). The check that it still finds a
+  real trap: put Pumpkin Patch's corn rick back as it was, with one door,
+  and it lists the inside.
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).
 - `tools/icon.html` redraws the home-screen icons; save each into `icons/`.
