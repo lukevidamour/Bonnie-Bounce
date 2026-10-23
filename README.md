@@ -346,9 +346,12 @@ Handy while editing:
   listed spot is worth checking by hand before it's believed. Checked by
   hand, 23 Oct, and fine: Coral Reef 193 (swim up over the rock), Toy
   Factory 220–222 (back out of the storeroom, down, and on underneath),
-  Pokémon Meadow 186 (from inside every Big Trip secret room he's up on
-  its roof in a second and a half), Windy Hill 323–330 (he walks back,
-  takes the kite and is carried over). The check that it still finds a
+  the far ends of the Big Trip's secret rooms — Pokémon Meadow 186,
+  Chocolate Land 174, Dinosaur Land 133–134, Bee Land 140 (from inside
+  every one he's up on its roof in a second and a half) — Dinosaur
+  Land's pterodactyl ledges, 69–70 and 165–166 (it's just behind him),
+  and Windy Hill 323–330 (he walks back, takes the kite and is carried
+  over). The check that it still finds a
   real trap: put Pumpkin Patch's corn rick back as it was, with one door,
   and it lists the inside.
 - `index.html?touch` plays as a touch screen does, to check the phone and
