@@ -343,6 +343,10 @@ going back and dawdling a little dear, running free — without it the
 robot hops about all the time. Luke and Lucy are kept out of shot.
 `REEL.sheet(i, 12, 'name')` saves a contact sheet of scene `i` to
 `tools/reel/out/name.png`, to check a scene before filming it all.
+`tools/reel/?reel=halfterm` films the Half Term! trailer instead (23 Oct,
+25 seconds): the leaf pile, the owl, the kite, a trick-or-treat door,
+the curly hill, a hitchhiker, the stretching room, the broomstick, a
+rocket and a stomp on the Witch, under Pumpkin Town's tune.
 
 1. `node tools/reel/serve.js 8171`, and open `localhost:8171/tools/reel/`
    (it serves the game and saves what the page sends it).

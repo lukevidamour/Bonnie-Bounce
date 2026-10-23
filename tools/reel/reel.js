@@ -19,6 +19,10 @@
      REEL.film()            film every scene, then make the soundtrack
    Scenes are cut to the song's bars: SONG's 16ths are 0.1s, so a bar is
    96 frames and a beat 24.
+
+   ?reel=halfterm films the Half Term! trailer instead (23 Oct): ten
+   scenes from levels 46–55, under Pumpkin Town's waltz-march (twelve
+   0.1s steps to the bar: a bar is 72 frames).
    ========================================================================== */
 (function () {
   'use strict';
@@ -27,7 +31,8 @@
      autoplay, the first frame is the picture people see, so it must be
      play, not a dark screen; the sound only eases out over DECLICK
      seconds at the very end, so it stops without a click. */
-  var SONG = 'hills', DECLICK = 0.03;
+  var HALF = /[?&]reel=halfterm\b/.test(location.search);
+  var SONG = HALF ? 'pumpkintown' : 'hills', DECLICK = 0.03;
   var out = document.getElementById('out');
   var say = function (html) { var d = document.createElement('div'); d.innerHTML = html; out.appendChild(d); return d; };
   BB.reel = true;
@@ -65,7 +70,27 @@
     //  the search just finds the cheapest wait and one well-timed jump)
     dodge: { done: function (G) { var p = G.p; return !p.ground && G.ents.some(function (e) { return e.k === 'baguette' && e.alive && e.x + e.w > p.x && e.x < p.x + p.w && e.y > p.y + p.h && e.y < p.y + p.h + 24; }); }, h: function () { return 0; } },
     // a stomp on Rascal, while he's dizzy
-    fox: { done: function (G) { var f = near(G, 'fox', G.p.x); return f && f.hp < 6; }, h: function (G) { var f = near(G, 'fox', G.p.x); return Math.abs(f.x + f.w / 2 - G.p.x - G.p.w / 2) + (f.st === 'dizzy' ? 0 : 60); } }
+    fox: { done: function (G) { var f = near(G, 'fox', G.p.x); return f && f.hp < 6; }, h: function (G) { var f = near(G, 'fox', G.p.x); return Math.abs(f.x + f.w / 2 - G.p.x - G.p.w / 2) + (f.st === 'dizzy' ? 0 : 60); } },
+    // Half Term!: a leaf pile jumped in…
+    leaves: { done: function (G) { return G.ents.some(function (e) { return e.k === 'leafpile' && e.burst > 0; }); }, h: function (G) { return dist(G, near(G, 'leafpile', G.p.x + 24)); } },
+    // …a sleepy owl, flapping him up into the trees…
+    owl: { done: function (G) { var o = G.p.on; return !!(o && o.lift && o.lo > 48); }, h: function (G) { var o = null; G.ents.forEach(function (e) { if (e.k === 'plat' && e.lift && (!o || Math.abs(e.x - G.p.x) < Math.abs(o.x - G.p.x))) o = e; }); return dist(G, o) + (G.p.on === o ? 0 : 20); } },
+    // …a kite's tail caught…
+    kite: { done: function (G) { return !!(G.p.carry && G.p.carry.k === 'kite'); }, h: function (G) { return dist(G, near(G, 'kite', G.p.x)); } },
+    // …a front door knocked on and answered…
+    knock: { done: function (G) { return G.ents.some(function (e) { return e.k === 'door' && e.st === 'open'; }); }, h: function (G) { return dist(G, near(G, 'door', G.p.x)); } },
+    // …across the curly hill, once it's unrolled…
+    curl: { done: function (G) { var c = near(G, 'curlhill', G.p.x); return !!(c && c.st === 'done' && G.p.x > c.x + c.len - 8); }, h: function (G) { var c = near(G, 'curlhill', G.p.x); return Math.abs(c.x + c.len - G.p.x); } },
+    // …a hitchhiking ghost joining the line…
+    hitch: { done: function (G) { return G.ents.some(function (e) { return e.k === 'pal' && e.alive; }); }, h: function (G) { return dist(G, near(G, 'hitch', G.p.x)); } },
+    // …up and away on the broomstick…
+    broom: { done: function (G) { return G.p.mount === 'broom' && G.p.y < 80; }, h: function (G) { return G.p.mount === 'broom' ? Math.max(0, G.p.y - 80) : 100 + dist(G, near(G, 'broom', G.p.x)); } },
+    // …a firework rocket, ridden till it bursts…
+    rocket: { done: function (G) { return G.ents.some(function (e) { return e.k === 'firework' && e.st === 'gone'; }); }, h: function (G) { return dist(G, near(G, 'firework', G.p.x)); } },
+    // …and the giant pumpkin, given back, floating down to him
+    pumpkin: { done: function (G) { var z = near(G, 'pumpkinprize', G.p.x); return !!(z && Math.abs(z.x + z.w / 2 - G.p.x - G.p.w / 2) < 10); }, h: function (G) { var z = near(G, 'pumpkinprize', G.p.x); return z ? Math.abs(z.x + z.w / 2 - G.p.x - G.p.w / 2) : 200; } },
+    // …and a stomp on the Witch's hat
+    witch: { done: function (G) { return G.ents.some(function (e) { return e.k === 'witch' && (e.st === 'sorry' || e.hp < 2); }); }, h: function (G) { return dist(G, near(G, 'witch', G.p.x)); } }
   };
   var by = function (beat, f) { return { done: beat.done, h: beat.h, by: f }; };
   /* What playing well looks like: the cost of each kind of move, in
@@ -75,7 +100,34 @@
      is free. Without these the robot hops about all the time — it gets
      there, but it doesn't look like anyone playing. */
   var STYLE = { jump: 30, short: 24, left: 12, turn: 12, wait: 4, walk: 3, run: 0, pace: 6 };
-  var SCENES = R.SCENES = [
+  /* Half Term! (23 Oct): its set pieces, two bars each (a bar of Pumpkin
+     Town's tune is 72 frames), and the Witch to finish, three. The ghost
+     dog floats along behind from Pumpkin Town on. Mum and Dad are only at
+     the checkpoints (taken away) and the house at each level's end (no
+     scene goes that far), and the story isn't filmed. */
+  var HALFTERM = [
+    // down the pumpkin hill, into the leaf pile at its foot
+    { name: 'pumpkin patch: the leaf pile', n: 46, x: 84, frames: 144, outfit: 'wellies', beats: [by(BEAT.leaves, 70)], go: 118 },
+    // (up on the owl, and off along the branches at the top)
+    { name: 'conker woods: the owl', n: 47, x: 108, frames: 144, beats: [by(BEAT.owl, 110)], go: 132, gy: 4 },
+    { name: 'windy hill: the kite', n: 48, x: 96, frames: 144, outfit: 'wellies', beats: [by(BEAT.kite, 50)], then: 'stay' },
+    { name: 'trick or treat: a door', n: 49, x: 152, frames: 144, outfit: 'pumpkin', beats: [by(BEAT.knock, 80)], go: 172 },
+    { name: 'pumpkin town: the curly hill', n: 50, x: 64, frames: 144, beats: [by(BEAT.curl, 136)], go: 100 },
+    { name: 'graveyard: a hitchhiker', n: 51, x: 34, frames: 144, outfit: 'skeleton', beats: [by(BEAT.hitch, 50)], go: 62 },
+    // (on the stretching room's floor from the start, standing, as it sinks)
+    { name: 'the mansion: the stretching room', n: 52, x: 3, row: 8, frames: 144, pre: 0, then: 'stay',
+      prep: function (G) { var p = G.p; p.x = 21.5 * T; p.y = 8 * T - p.h; G.safe = { x: p.x, y: p.y }; G.cam.x = 0; } },
+    { name: "the witch's wood: the broomstick", n: 53, x: 214, frames: 144, outfit: 'witch', beats: [by(BEAT.broom, 70)], go: 300 },
+    { name: 'firework night: a rocket', n: 54, x: 30, frames: 144, beats: [by(BEAT.rocket, 110)], then: 'stay' },
+    /* the Witch, staged: down dizzy on her kitchen floor just ahead of him,
+       one stomp from saying sorry — then the giant pumpkin floats down */
+    { name: 'the witch', n: 55, x: 120, frames: 216, pre: 0, beats: [by(BEAT.witch, 80), by(BEAT.pumpkin, 150)], then: 'stay', budget: 300000,
+      prep2: function (G) {
+        var w = near(G, 'witch', G.p.x), p = G.p;
+        G.bossOn = true; w.active = true; w.st = 'dizzy'; w.t2 = 0; w.hp = 2; w.x = p.x + 34; w.y = 13 * T - w.h; w.vy = 0;
+      } }
+  ];
+  var SCENES = R.SCENES = HALF ? HALFTERM : [
     { name: 'cloud kingdom', n: 8, x: 92, frames: 144 },
     { name: 'coral reef, swimming', n: 4, x: 100, frames: 96, go: 124, gy: 5, style: { jump: 6, short: 6 } },
     { name: 'sunset harbour: Bear', n: 11, x: 124, frames: 216, outfit: 'pirate', beats: [by(BEAT.bear, 100)] },
@@ -143,10 +195,10 @@
   };
   var doomed = function (G) {
     var p = G.p;
-    if (p.ground || p.vy <= 0 || G.water || p.lift) return false;
+    if (p.ground || p.vy <= 0 || G.water || p.lift || p.carry || p.mount === 'broom' || p.floaty) return false;
     var x0 = Math.floor(p.x / T) - 1, x1 = Math.floor((p.x + p.w - 1) / T) + 1, r0 = Math.floor((p.y + p.h) / T);
     for (var x = Math.max(0, x0); x <= Math.min(G.w - 1, x1); x++) for (var r = Math.max(0, r0); r < G.h; r++) if (G.map[r * G.w + x]) return false;
-    return !G.ents.some(function (e) { return (e.k === 'plat' || e.surf) && e.alive && e.x < p.x + p.w + 24 && e.x + e.w > p.x - 24 && e.y > p.y; });
+    return !G.ents.some(function (e) { return (e.k === 'plat' || e.surf || e.top) && e.alive && e.x < p.x + p.w + 24 && e.x + e.w > p.x - 24 && e.y > p.y; });
   };
   var near = function (G, k, x) {
     var best = null;
@@ -176,6 +228,8 @@
       G.cam.y = Math.max(0, Math.min(G.h * T - BB.H, p.y + p.h / 2 - BB.H * 0.55));
     }
     if (sc.prep) sc.prep(G, sc);
+    // (whoever follows him — the ghost dog — is put down at his heels too, not left at the level's start)
+    G.ents.forEach(function (e) { if (e.K && e.K.line && e.st !== 'sleep') { e.x = G.p.x - 14; e.y = G.p.y + G.p.h - e.h; e.active = true; } });
     BB.steps(sc.settle || 20, keys({}, false), true);
     if (sc.prep2) sc.prep2(BB.game.G(), sc);
     return { g: snap(), save: JSON.stringify(BB.game.save()) };
