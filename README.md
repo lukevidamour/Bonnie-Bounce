@@ -175,7 +175,8 @@ stomps). And his two things for the blocks: the **bullet** and the **heart**.
 **Things to find, in every level:** three golden **medals** (they show on
 the map, the level's card and the HUD, and win the football kits);
 **secret walls** that look solid but walk straight through, with a room
-behind; **balloons** that float Bonnie up into the sky for a while;
+behind (one sat across the way on has a secret wall at each end, so
+it's a tunnel, never a dead end); **balloons** that float Bonnie up into the sky for a while;
 **musical blocks** that play their note as he lands on or runs across them.
 
 **Hearts:** Bonnie has one (it was three, until he found the game "very
@@ -234,7 +235,8 @@ doesn't lose him). The three **hitchhiking ghosts** in the graveyard
 join the line behind him too. A **kite**, a **sycamore seed** or a
 **firework rocket** carries him hanging underneath (jump to let go of a
 kite); the **broomstick** flies — hold jump to climb, let go to glide —
-until its magic fizzles, never over a gap; a bump knocks him off it (no
+until its magic fizzles, never over a gap, and it won't sink out of
+sight into one (it skims the bottom); a bump knocks him off it (no
 heart lost) and it flies home. The Witch's **potions** turn him into a
 frog for a few seconds instead of costing his heart (another splash
 just keeps him a frog for longer).
@@ -249,7 +251,9 @@ just keeps him a frog for longer).
   knocking baddies flying; it rises over anything in the way (or when
   jump's held), and only ever drops him on solid ground.
 
-Every level has a checkpoint flag halfway, and ends at an arch of
+Every level has a checkpoint flag halfway (`L.check(x)` stands it on
+whatever ground is at x, however high — give a row only for a ledge or a
+roof that isn't the ground), and ends at an arch of
 balloons in front of Bonnie's house (on the Magpie Isles, his tent; on
 the Big Trip, the family car with Mum and Dad beside it) — the
 higher he runs through it, the more points. Progress saves automatically (in the browser, on that device).
@@ -309,7 +313,10 @@ Handy while editing:
   finishes can be finished without a single hit. It also checks every
   level has its three medals (`&medals=1` goes after each of them;
   `&bear=1` goes and finds Bear). All of 1–54 pass (the whole run takes a few minutes; the boss
-  fights take longest). If one fails, it says how far it got. The one it
+  fights take longest). If one fails, it says how far it got. After each
+  level it also starts again from every checkpoint, as after losing the
+  last heart, and checks he can walk off (a flag buried in Windy Hill's
+  hill once put him back inside it). The one it
   can't do is the Witch (55): it climbs her tower and gets into her
   kitchen, but her fight means waiting out a long flight with nothing to
   aim at, and its search runs out first. She was beaten (23 Oct) by a
@@ -317,6 +324,22 @@ Handy while editing:
   loops and swoops, then hop down and stomp her when she's dizzy — and
   her medals and Bear pass as usual. Ghost platforms keep a 160-frame bar
   so they line up with the robot's 320-frame clock.
+- `tools/playtest.html?level=46-55&stuck=1` hunts for places he can get
+  stuck — somewhere he can get into but not out of. Finishing a level
+  proves one way through; this wanders everywhere else (into every
+  secret room, onto every ledge, island and roof, baddies taken away and
+  nothing able to hurt him), and from every spot he can stand on asks
+  whether he can still get on 24 tiles (in the Witch's tower, up five
+  rows). It lists the spots he can't, where he can stay alive but not get
+  out — a spot he can only fall from is a fall, not a trap, and isn't
+  listed. `&spot=273,13` (with `&level=` one level) explains one listed
+  spot: what he was stood on, what was near, how far each try got. It
+  was made after Bonnie got stuck in a secret room (23 Oct): the land-6
+  dens had one secret wall, so walking along the ground took him in and
+  the far wall was solid. Every secret room on the way is a tunnel now,
+  in one side and out the other. A slow ride (a bubble up a cliff, the
+  buggy coming back) takes the robot a lot of trying, so a listed spot
+  next to one is worth checking by hand before it's believed.
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).
 - `tools/icon.html` redraws the home-screen icons; save each into `icons/`.

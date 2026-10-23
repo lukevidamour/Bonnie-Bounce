@@ -136,7 +136,28 @@
     return o;
   };
   B.spring = function (x, row) { this.e('spring', x, row); this.noDeco.push([x - 1, x + 3]); };
-  B.check = function (x, row) { this.e('check', x, row); this.noDeco.push([x - 1, x + 2]); };
+  /* A checkpoint flag. Without a row it stands on whatever ground is
+     there, at whatever height (see settle) */
+  B.check = function (x, row) { var o = this.e('check', x, row); if (row === undefined) o.onGround = true; this.noDeco.push([x - 1, x + 2]); };
+  /* Once the whole level's built: each checkpoint with no row of its own
+     is stood on the ground actually there — up out of it, or down onto
+     it. They used to go at the usual ground height whatever was there, and
+     one on a hill put Bonnie back inside the hill when he restarted from
+     it, stuck (Windy Hill, 23 Oct; five more were buried). It checks the
+     flag's tile and the two after, where he's put back. */
+  var STANDS = [TL.GROUND, TL.BRICK, TL.Q, TL.USED, TL.HARD, TL.PIPE, TL.PIPER, TL.PIPETOP, TL.PIPETOPR, TL.SEMI, TL.CONVL, TL.CONVR, TL.CRATE, TL.WALL];
+  B.settle = function () {
+    var L = this;
+    var solid = function (x, y) { return STANDS.indexOf(L.get(x, y)) >= 0 || STANDS.indexOf(L.get(x + 1, y)) >= 0 || STANDS.indexOf(L.get(x + 2, y)) >= 0; };
+    this.ents.forEach(function (o) {
+      if (!o.onGround) return;
+      var x = Math.floor(o.x / T), r = o.row;
+      while (r > 2 && solid(x, r - 1)) r--;
+      var d = r;
+      while (d < L.h && !solid(x, d)) d++;
+      o.row = d < L.h ? d : r;
+    });
+  };
   // moving platforms: w tiles wide; dx/dy the travel in tiles; fall: drops
   // a moment after you land on it
   B.plat = function (x, row, w, o) { return this.e('plat', x, row, Object.assign({ w: w }, o || {})); };
@@ -994,6 +1015,7 @@
     var def = LEVELS[n - 1];
     var L = new Builder(def);
     def.build(L);
+    L.settle();
     L.scatter(BB.ART.themes[def.theme], def.seed);
     L.def = def;
     return L;

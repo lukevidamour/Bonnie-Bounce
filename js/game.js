@@ -2661,6 +2661,11 @@
     if (p.y < G.cam.y + 14 && p.vy < 0) p.vy = 0;
     if (moveX(p, p.vx)) p.vx = 0;
     playerMoveY(p, p.vy);
+    /* never down out of sight into a gap: he skims along its bottom (he
+       could sink into the chasm and fly on underneath the whole wood, lost
+       off the screen till the broom gave out — the robot found it, 23 Oct) */
+    var low = G.h * T - p.h - 6;
+    if (p.y > low) { p.y = low; if (p.vy > 0) p.vy = 0; }
     p.ground = onGround(p);
     collectCoins(p);
     if (!reduce && G.tick % 3 === 0) fx('spark', p.x + p.w / 2 - p.face * 9, p.y + p.h + 1, { vx: -p.face * 0.8, vy: 0.2, life: 22, col: ['#c8a0ff', '#ffe048', '#7ee8ff'][G.tick % 3] });
@@ -2761,7 +2766,8 @@
           if (p.carry === e) { p.carry = null; p.floaty = 110; p.vy = -1.2; p.vx = (e.sp.dir || 1) * 1.6; }
           hooray();
         }
-      } else if (++e.t2 > 240 && !near(e, 50)) { e.st = 'stand'; e.y = e.y0; e.x = e.x0; }
+      // (a new one stands there again a while later, even with him waiting right by it)
+      } else if (++e.t2 > 240) { e.st = 'stand'; e.y = e.y0; e.x = e.x0; }
     },
     draw: function (ctx, e) {
       var F6 = A.firework;

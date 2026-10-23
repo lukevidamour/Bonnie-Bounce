@@ -44,11 +44,16 @@
   };
   // a run of ghost platforms, each 3 wide, taking turns to be there ([x, row] pairs)
   var ghosts = function (L, list) { list.forEach(function (g, i) { L.e('ghostplat', g[0], g[1], { w: 3, beat: i % 2 }); }); };
-  // a little room inside a block, its door a secret wall on the left
-  var den = function (L, x0, y0, x1) {
-    L.box(x0, y0, x1, 16);
-    L.clear(x0 + 2, y0 + 1, x1 - 1, 16);
-    L.secret(x0, y0 + 1, x0 + 2, 16);
+  /* A little room inside a block, a secret wall at each end. They all sit
+     across the way on, so walking along the ground takes you in one side
+     and out of the other: a secret tunnel, never a dead end. (At first
+     each had one door; Bonnie walked into the "ground", found the far
+     wall solid and was stuck, 23 Oct.) look: 'hard' for the world's
+     blocks rather than its ground. */
+  var den = function (L, x0, y0, x1, look) {
+    L.box(x0, y0, x1, 16, look === 'hard' ? TL.HARD : undefined);
+    L.clear(x0 + 2, y0 + 1, x1 - 2, 16);
+    L.secret(x0, y0 + 1, x0 + 2, 16, look); L.secret(x1 - 2, y0 + 1, x1, 16, look);
   };
 
   /* 46 — Pumpkin Patch. Half term, a golden afternoon on the farm: leaf
@@ -86,7 +91,7 @@
       den(L, 134, 10, 148);
       L.medal(144, 14); L.coins(138, 13, 4);
       L.e('scarecrow', 141, 10);
-      L.stairs(148, 3, -1);
+      // (no steps down off its far side: they'd stand in the way out of the tunnel)
       L.check(158);
       L.e('leafpile', 164, 16);
       L.e('scarecrow', 170);
@@ -248,7 +253,7 @@
       L.ground(360, 448, 14);
       L.e('brolly', 368, 8);
       // a hay barn on the hill, with a secret way in: the last medal
-      L.box(374, 9, 388, 14); L.clear(376, 10, 387, 14); L.secret(374, 10, 376, 14);
+      L.box(374, 9, 388, 14); L.clear(376, 10, 386, 14); L.secret(374, 10, 376, 14); L.secret(386, 10, 388, 14);
       L.medal(384, 12); L.coins(378, 11, 3);
       L.spring(370, 14);
       L.e('crow', 394, 7);
@@ -395,7 +400,7 @@
       L.deco1('crookedhouse', 362, 12);
       L.e('skelly', 372, 12);
       // behind the bandstand: a secret way in, and the last medal
-      L.box(380, 7, 392, 12); L.clear(382, 8, 391, 12); L.secret(380, 8, 382, 12);
+      L.box(380, 7, 392, 12); L.clear(382, 8, 390, 12); L.secret(380, 8, 382, 12); L.secret(390, 8, 392, 12);
       L.medal(388, 10); L.coins(383, 9, 3);
       L.e('jackhop', 398, 12); L.e('skelly', 408, 12);
       L.stairs(418, 3, 1, 12);
@@ -450,9 +455,11 @@
       L.medal(256, 8);
       L.ground(268, 464);
       L.e('skelly', 276); L.e('jackhop', 284); L.e('bat', 290, 6);
-      // Bear, on top of the mausoleum
+      // Bear, on top of the mausoleum (the spring's the way up) — and a secret way through it underneath
       L.spring(292);
-      L.box(296, 8, 306, 16, TL.HARD); L.bear(301, 8);
+      L.box(296, 8, 306, 16, TL.HARD); L.clear(298, 11, 304, 16); L.secret(296, 11, 298, 16, 'hard'); L.secret(304, 11, 306, 16, 'hard');
+      L.coins(299, 13, 4);
+      L.bear(301, 8);
       L.e('skelly', 314); L.e('skelly', 322);
       L.e('jackhop', 340);
       L.row(346, R1, 'B?B');
@@ -497,7 +504,8 @@
       L.deco1('candle3', 78); L.deco1('grandclock', 86);
       // the cellar stairs: floating candelabras over the hole
       L.plat(98, 12, 3, { dx: 6, speed: 0.5, look: 'candelabra' });
-      L.plat(110, 10, 3, { dy: 3, speed: 0.4, look: 'candelabra' });
+      L.plat(109, 10, 3, { dy: 3, speed: 0.4, look: 'candelabra' });
+      L.plat(116, 12, 3, { dx: 3, speed: 0.4, look: 'candelabra' });
       L.coins(104, 9, 3);
       L.ground(124, 210);
       L.check(128);
@@ -513,14 +521,17 @@
       L.row(180, 13, 'X');
       den(L, 182, 9, 196);
       L.coins(186, 13, 6); L.medal(192, 14);
-      L.deco1('candle3', 200);
-      L.check(204);
-      // the ballroom: swing across on the chandeliers
+      L.check(199);
+      /* the ballroom: swing across on the chandeliers — from a little
+         balcony up three steps (from the floor, the first one was nearly
+         as high as he can jump, and moving) */
+      L.stairs(202, 3); L.ground(205, 210, 13);
+      L.deco1('candle3', 206, 13);
       L.plat(218, 2, 4, { swing: 9, look: 'chandelier', speed: 0.025 });
-      L.plat(230, 2, 4, { swing: 9, look: 'chandelier', speed: 0.025, phase: Math.PI });
-      L.plat(242, 2, 4, { swing: 9, look: 'chandelier', speed: 0.025 });
-      L.coins(224, 8, 2); L.coins(236, 8, 2);
-      L.ground(252, 270);
+      L.plat(228, 2, 4, { swing: 9, look: 'chandelier', speed: 0.025, phase: Math.PI });
+      L.plat(238, 2, 4, { swing: 9, look: 'chandelier', speed: 0.025 });
+      L.coins(222, 8, 2); L.coins(232, 8, 2);
+      L.ground(247, 270);
       L.deco1('bust', 256);
       L.e('book', 262, 8);
       // the long dark gallery: ride the buggy all the way down it
@@ -563,8 +574,8 @@
       den(L, 72, 10, 84);
       L.medal(80, 14); L.coins(75, 13, 3);
       L.e('toad', 92); L.e('jackhop', 100);
-      // the cauldron: ride a bubble up the cliff
-      L.e('cauldron', 104, 16, { every: 100, h: 11 });
+      // the cauldron, right at the foot of the cliff: ride a bubble up and step off onto the top
+      L.e('cauldron', 109, 16, { every: 100, h: 11 });
       L.box(112, 5, 130, 16);
       L.coins(114, 3, 6);
       L.box(130, 9, 136, 16); L.box(136, 12, 140, 16);
@@ -583,7 +594,6 @@
       L.check(214);
       // the witch's spare broomstick, at the edge of the chasm: fly over it
       L.e('broom', 222, 16);
-      L.ground(250, 254, 13); L.ground(276, 280, 12);
       L.coins(232, 9, 6); L.arc(256, 8, 12); L.coins(284, 7, 8);
       L.medal(270, 3);
       L.e('bat', 262, 5); L.e('minwitch', 290, 8);
@@ -621,7 +631,7 @@
       L.box(60, 4, 62, 7, TL.HARD); L.steam(60, 4, 4);
       L.coins(64, 5, 6);
       L.e('minwitch', 70, 3);
-      L.ground(84, 120, 9);
+      L.ground(84, 126, 9);
       L.e('blackcat', 96, 9);
       L.row(102, 4, 'B?B');
       L.deco1('bonfire', 110, 9);
@@ -630,7 +640,7 @@
       L.plat(134, 8, 3, { circle: 4, phase: Math.PI * 2 / 3, speed: 0.013 });
       L.plat(134, 8, 3, { circle: 4, phase: Math.PI * 4 / 3, speed: 0.013 });
       L.medal(134, 4);
-      L.ground(150, 200, 10);
+      L.ground(144, 200, 10);
       L.check(152);
       L.e('blackcat', 162, 10);
       L.e('minwitch', 172, 5);
@@ -643,7 +653,7 @@
       L.e('blackcat', 232, 7);
       // the big gap: a rocket over it, and float down onto the low roofs beyond
       L.e('firework', 236, 7, { h: 6 });
-      L.ground(250, 310, 12);
+      L.ground(248, 310, 12);
       L.check(276);
       L.e('blackcat', 286, 12); L.e('minwitch', 296, 7);
       L.deco1('bonfire', 300, 12);
