@@ -198,10 +198,12 @@
       L.arc(96, 10, 8); L.arc(108, 9, 8); L.medal(104, 6);
       L.ground(120, 172);
       L.e('knight', 128);
-      // the castle keep: a secret door in its wall, a medal inside
+      /* the castle keep: a secret door in each wall, a medal inside (it
+         stands across the way on, so in at one door and out of the other —
+         with one, walking in along the ground was a dead end, 23 Oct) */
       L.box(136, 7, 148, 16, TL.HARD);
       L.clear(138, 9, 146, 16);
-      L.secret(136, 9, 138, 16, 'hard');
+      L.secret(136, 9, 138, 16, 'hard'); L.secret(146, 9, 148, 16, 'hard');
       L.medal(142, 13); L.coins(139, 12, 2); L.coins(144, 12, 2);
       // up onto its battlements by catapult: Bear's keeping watch
       L.e('spring', 127, 16, { fling: 1 });

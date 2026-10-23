@@ -355,6 +355,7 @@
     /* &spot=273,13: only that spot, and what was going on there — what he
        was stood on, what was moving nearby, how far along each try got */
     if (SPOT) {
+      window.PT = { canGetOn: canGetOn, spots: spots, restore: restore, snap: snap, stepMove: stepMove, MOVES: MOVES, last: function () { return { best: lastBest, deep: lastDeep, all: lastAll, min: lastMin, n: lastN }; } };
       keysOf = keysOf.filter(function (sk) { return sk === SPOT; });
       if (!keysOf.length) say('spot ' + SPOT + ' was never stood on');
       keysOf.forEach(function (sk) {
@@ -363,6 +364,10 @@
         var near2 = G2.ents.filter(function (e) { return e.alive !== false && Math.abs(e.x - p2.x) < 120; }).map(function (e) { return e.k + '@' + Math.round(e.x / T2) + ',' + Math.round(e.y / T2) + (e.st ? ' ' + e.st : ''); });
         var pv = {}; for (var pk in p2) if (p2[pk] === null || typeof p2[pk] !== 'object') pv[pk] = p2[pk];
         say('him: ' + JSON.stringify(pv) + ' freeze ' + G2.freeze);
+        // the tiles round about, as they are at that moment (from the spot on 26 tiles, up 8 rows)
+        var x0m = +sk.split(',')[0] - 2, r0m = +sk.split(',')[1], rowsM = [];
+        for (var ry = r0m - 8; ry <= r0m + 1; ry++) { var line = ry + ':'; for (var rx = x0m; rx < x0m + 30; rx++) { var tv = G2.map[ry * G2.w + rx]; line += ' ' + (tv ? (tv < 10 ? '0' : '') + tv : '··'); } rowsM.push(line); }
+        say('tiles from ' + x0m + ':<pre>' + rowsM.join('\n') + '</pre>');
         say('spot ' + sk + ': at ' + p2.x.toFixed(1) + ',' + (p2.y + p2.h).toFixed(1) + (p2.on ? ' on ' + p2.on.k + (p2.on.st ? ' (' + p2.on.st + ')' : '') : '') + (p2.carry ? ' carried by ' + p2.carry.k : '') + ', tick ' + G2.tick + '; target x ' + target + (ty === null ? '' : ', floor ' + ty) + '<br>near: ' + near2.join('; '));
         (Hh > 20 ? [false, true] : [false]).forEach(function (aimUp) {
           BUDGETS.forEach(function (b) { var ok = canGetOn(spots[sk], target, b, ty, aimUp); say('  ' + (aimUp ? 'aiming up, ' : '') + 'budget ' + b + ': ' + (ok ? 'gets on' : 'no — got as far as x ' + Math.round(lastBest) + ', stayed up ' + lastDeep + ' steps' + (lastAll ? ', every way tried' : '') + (lastAll && lastDeep < DEEP ? ' (a fall, not stuck)' : '') + '; highest feet ' + Math.round(lastTop) + ', furthest back x ' + Math.round(lastMin) + ', ' + lastN + ' steps alive; ended by ' + JSON.stringify(lastWhy))); });
@@ -377,7 +382,7 @@
         say('  standing still: ' + trace.join(' · '));
         [{ left: 1 }, { right: 1 }].forEach(function (mv) {
           restore(spots[sk]); var tr = [];
-          for (var i = 0; i < 16; i++) { var al = stepMove(mv), G4 = BB.game.G(), p4 = G4.p; tr.push(Math.round(p4.x) + ',' + Math.round(p4.y + p4.h) + (p4.ground ? 'g' : '') + (al ? '' : ' X')); if (!al) break; }
+          for (var i = 0; i < 40; i++) { var al = stepMove(mv), G4 = BB.game.G(), p4 = G4.p; tr.push(Math.round(p4.x) + ',' + Math.round(p4.y + p4.h) + (p4.ground ? 'g' : '') + (al ? '' : ' X')); if (!al) break; }
           say('  walking ' + (mv.left ? 'left' : 'right') + ': ' + tr.join(' · '));
         });
       });
