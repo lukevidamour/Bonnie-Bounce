@@ -310,6 +310,11 @@
     for (var y = 2; y < G.h; y++) if (STAND.indexOf(G.map[y * G.w + x]) >= 0 && !G.map[(y - 1) * G.w + x] && !G.map[(y - 2) * G.w + x]) return y;
     return -1;
   };
+  // the floor at the target to aim up at: only if it's higher than the spot (row), and not under the sea
+  var aimFloor = function (G, target, row) {
+    var fr = floorAt(G, Math.floor(target / T));
+    return fr < 0 || G.water || fr >= row ? null : fr * T;
+  };
   var stuckRun = function (n) {
     var t0 = performance.now(), T2 = T;
     BB.game.save().power = 0;
@@ -354,7 +359,7 @@
       if (!keysOf.length) say('spot ' + SPOT + ' was never stood on');
       keysOf.forEach(function (sk) {
         restore(spots[sk]); var G2 = BB.game.G(), p2 = G2.p, x = +sk.split(',')[0], target = Math.min(W * T2 - 48, (x + 24) * T2, gateX + 32);
-        var fr = floorAt(G2, Math.floor(target / T2)), ty = fr < 0 ? null : fr * T2;
+        var ty = aimFloor(G2, target, +sk.split(',')[1]);
         var near2 = G2.ents.filter(function (e) { return e.alive !== false && Math.abs(e.x - p2.x) < 120; }).map(function (e) { return e.k + '@' + Math.round(e.x / T2) + ',' + Math.round(e.y / T2) + (e.st ? ' ' + e.st : ''); });
         var pv = {}; for (var pk in p2) if (p2[pk] === null || typeof p2[pk] !== 'object') pv[pk] = p2[pk];
         say('him: ' + JSON.stringify(pv) + ' freeze ' + G2.freeze);
@@ -381,7 +386,7 @@
     }
     keysOf.forEach(function (sk) {
       var x = +sk.split(',')[0], target = Math.min(W * T2 - 48, (x + 24) * T2, gateX + 32);
-      var fr = floorAt(BB.game.G(), Math.floor(target / T2)), ty = fr < 0 || G.water || fr * T2 >= +sk.split(',')[1] * T2 ? null : fr * T2;
+      var ty = aimFloor(BB.game.G(), target, +sk.split(',')[1]);
       far = Math.max(far, x);
       var ok = false;
       for (var bi = 0, all = false; bi < BUDGETS.length && !ok && !all; bi++) {
