@@ -337,9 +337,13 @@ Handy while editing:
   was made after Bonnie got stuck in a secret room (23 Oct): the land-6
   dens had one secret wall, so walking along the ground took him in and
   the far wall was solid. Every secret room on the way is a tunnel now,
-  in one side and out the other. A slow ride (a bubble up a cliff, the
-  buggy coming back) takes the robot a lot of trying, so a listed spot
-  next to one is worth checking by hand before it's believed.
+  in one side and out the other. It always heads onwards, so where the
+  way on is back behind him (Windy Hill's second kite, a few tiles back
+  from the edge) or a slow ride (the buggy coming back) it can run out of
+  tries: a listed spot like that is worth checking by hand before it's
+  believed. Two are listed in land 6, both checked by hand: Windy Hill
+  323–330 (he walks back, takes the kite and is carried over) and the
+  Witch's Wood 87 (on along, a bubble up the cliff, five seconds).
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).
 - `tools/icon.html` redraws the home-screen icons; save each into `icons/`.

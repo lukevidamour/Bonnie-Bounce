@@ -257,7 +257,7 @@
      every way on ends in under two seconds — the moment he leapt off the
      buggy too fast, say — is a fall: a heart, and back in a bubble on safe
      ground) */
-  var lastBest = 0, lastDeep = 0, lastAll = false, DEEP = 20;
+  var lastBest = 0, lastDeep = 0, lastAll = false, DEEP = 20, lastWhy = {}, lastTop = 0, lastMin = 0, lastN = 0;
   /* (on a level taller than the screen — the Witch's tower — the way on
      is up: standing five rows higher counts too, and that spot is checked
      in its turn, all the way up to the top, where the gate is the target.
@@ -265,7 +265,7 @@
      the way up is often away from the gate) */
   var canGetOn = function (s0, target, budget, ty, aimUp) {
     var hp = heapOf(), seen = {}, n2 = 0;
-    lastBest = 0; lastDeep = 0; lastAll = false;
+    lastBest = 0; lastDeep = 0; lastAll = false; lastWhy = {}; lastTop = 1e9; lastMin = 1e9; lastN = 0;
     restore(s0);
     var G0 = BB.game.G(), up = G0.h > 20 ? G0.p.y + G0.p.h - 5 * T : -1e9;
     hp.push({ s: s0, f: 0, heldA: false, d: 0 });
@@ -277,10 +277,16 @@
         restore(node.s); n2++;
         var alive = stepMove(m), G = BB.game.G(), p = G.p;
         if (p.st === 'arch' || p.st === 'walk' || p.st === 'in' || p.x >= target) return true;
-        if (!alive) continue;
+        if (!alive) { var why = p.st !== 'play' ? p.st : p.bubble ? 'bubble' : BB.game.scene() !== 'play' ? 'scene ' + BB.game.scene() : 'pit'; lastWhy[why] = (lastWhy[why] || 0) + 1; continue; }
+        lastTop = Math.min(lastTop, p.y + p.h); lastMin = Math.min(lastMin, p.x); lastN++;
         if (p.ground && p.y + p.h <= up) return true;
         lastBest = Math.max(lastBest, p.x); lastDeep = Math.max(lastDeep, node.d + 1);
-        var key = Math.floor(p.x / 4) + ',' + Math.floor(p.y / 4) + ',' + (p.ground ? 1 : 0) + ',' + (m.a ? 1 : 0) + ',' + Math.floor(G.tick / 20) % 16;
+        /* (which way he's going is part of it: up against a wall, the first
+           step back the other way doesn't leave the 4-pixel square, and
+           taken for the same as pushing on into the wall it was thrown
+           away — so he could never turn round there. The Witch's tower,
+           Bear's ledge, 23 Oct) */
+        var key = Math.floor(p.x / 4) + ',' + Math.floor(p.y / 4) + ',' + (p.ground ? 1 : 0) + ',' + (m.a ? 1 : 0) + ',' + (p.vx > 0.4 ? 1 : p.vx < -0.4 ? 2 : 0) + ',' + Math.floor(G.tick / 20) % 16;
         if (seen[key]) continue;
         seen[key] = 1;
         var f = Math.abs(target - p.x) + (ty === null ? 0 : Math.abs(ty - p.y - p.h));
@@ -348,8 +354,12 @@
         restore(spots[sk]); var G2 = BB.game.G(), p2 = G2.p, x = +sk.split(',')[0], target = Math.min(W * T2 - 48, (x + 24) * T2, gateX + 32);
         var fr = floorAt(G2, Math.floor(target / T2)), ty = fr < 0 ? null : fr * T2;
         var near2 = G2.ents.filter(function (e) { return e.alive !== false && Math.abs(e.x - p2.x) < 120; }).map(function (e) { return e.k + '@' + Math.round(e.x / T2) + ',' + Math.round(e.y / T2) + (e.st ? ' ' + e.st : ''); });
+        var pv = {}; for (var pk in p2) if (p2[pk] === null || typeof p2[pk] !== 'object') pv[pk] = p2[pk];
+        say('him: ' + JSON.stringify(pv) + ' freeze ' + G2.freeze);
         say('spot ' + sk + ': at ' + p2.x.toFixed(1) + ',' + (p2.y + p2.h).toFixed(1) + (p2.on ? ' on ' + p2.on.k + (p2.on.st ? ' (' + p2.on.st + ')' : '') : '') + (p2.carry ? ' carried by ' + p2.carry.k : '') + ', tick ' + G2.tick + '; target x ' + target + (ty === null ? '' : ', floor ' + ty) + '<br>near: ' + near2.join('; '));
-        BUDGETS.forEach(function (b) { var ok = canGetOn(spots[sk], target, b, ty); say('  budget ' + b + ': ' + (ok ? 'gets on' : 'no — got as far as x ' + Math.round(lastBest) + ', stayed up ' + lastDeep + ' steps' + (lastAll ? ', every way tried' : '') + (lastAll && lastDeep < DEEP ? ' (a fall, not stuck)' : ''))); });
+        (Hh > 20 ? [false, true] : [false]).forEach(function (aimUp) {
+          BUDGETS.forEach(function (b) { var ok = canGetOn(spots[sk], target, b, ty, aimUp); say('  ' + (aimUp ? 'aiming up, ' : '') + 'budget ' + b + ': ' + (ok ? 'gets on' : 'no — got as far as x ' + Math.round(lastBest) + ', stayed up ' + lastDeep + ' steps' + (lastAll ? ', every way tried' : '') + (lastAll && lastDeep < DEEP ? ' (a fall, not stuck)' : '') + '; highest feet ' + Math.round(lastTop) + ', furthest back x ' + Math.round(lastMin) + ', ' + lastN + ' steps alive; ended by ' + JSON.stringify(lastWhy))); });
+        });
         // and standing still from there, step by step
         restore(spots[sk]); var trace = [];
         for (var i = 0; i < 40; i++) {
@@ -358,6 +368,11 @@
           if (!alive) break;
         }
         say('  standing still: ' + trace.join(' · '));
+        [{ left: 1 }, { right: 1 }].forEach(function (mv) {
+          restore(spots[sk]); var tr = [];
+          for (var i = 0; i < 16; i++) { var al = stepMove(mv), G4 = BB.game.G(), p4 = G4.p; tr.push(Math.round(p4.x) + ',' + Math.round(p4.y + p4.h) + (p4.ground ? 'g' : '') + (al ? '' : ' X')); if (!al) break; }
+          say('  walking ' + (mv.left ? 'left' : 'right') + ': ' + tr.join(' · '));
+        });
       });
       BB.steps(0, null);
       return;
