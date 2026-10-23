@@ -248,9 +248,11 @@
     var G = BB.game.G();
     return G.p.st === 'play' && !G.p.bubble && BB.game.scene() === 'play' && !doomed(G);
   };
-  /* (aiming for the floor at the target as well as along — a ledge, a
+  /* (aiming up too when the floor at the target is higher — a ledge, a
      clifftop — so a ride up, a bubble or a lift, looks like progress and
-     isn't tried last of all; over a gap there's no floor, only along) */
+     isn't tried last of all. Only up: aimed down, it went down every dip
+     and ditch on the way and ran out of tries in them; and not under the
+     sea, where he swims anywhere) */
   /* (lastDeep: how long he stayed up, at best, and lastAll: whether every
      way on from there was tried before the tries ran out. Stuck is
      somewhere he can stand about for ever and not get out of; a spot where
@@ -289,7 +291,7 @@
         var key = Math.floor(p.x / 4) + ',' + Math.floor(p.y / 4) + ',' + (p.ground ? 1 : 0) + ',' + (m.a ? 1 : 0) + ',' + (p.vx > 0.4 ? 1 : p.vx < -0.4 ? 2 : 0) + ',' + Math.floor(G.tick / 20) % 16;
         if (seen[key]) continue;
         seen[key] = 1;
-        var f = Math.abs(target - p.x) + (ty === null ? 0 : Math.abs(ty - p.y - p.h));
+        var f = Math.abs(target - p.x) + (ty === null ? 0 : Math.max(0, p.y + p.h - ty));
         if (aimUp) f = (p.y + p.h - up) * 1.5;
         hp.push({ s: snap(), f: f + (node.d + 1) * 0.15, heldA: !!m.a, d: node.d + 1 });
       }
@@ -379,7 +381,7 @@
     }
     keysOf.forEach(function (sk) {
       var x = +sk.split(',')[0], target = Math.min(W * T2 - 48, (x + 24) * T2, gateX + 32);
-      var fr = floorAt(BB.game.G(), Math.floor(target / T2)), ty = fr < 0 ? null : fr * T2;
+      var fr = floorAt(BB.game.G(), Math.floor(target / T2)), ty = fr < 0 || G.water || fr * T2 >= +sk.split(',')[1] * T2 ? null : fr * T2;
       far = Math.max(far, x);
       var ok = false;
       for (var bi = 0, all = false; bi < BUDGETS.length && !ok && !all; bi++) {
