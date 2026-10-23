@@ -362,21 +362,26 @@
   })();
 
   /* ---- Luke -----------------------------------------------------------------
-     From the portrait: a big mop of curly ginger-brown hair, a moustache
-     and a short stubbly beard, fair skin and a warm smile; the cream shirt
-     with the bold black squiggles; light-blue denim shorts with a frayed
-     hem; white socks and white trainers on gum soles. */
+     From the portrait and the Disney day: tight ginger-brown curls in a
+     curly crop (the volume on top, a loose fringe tumbling forward, short
+     and close at the back and sides), a full ginger moustache and no
+     beard, fair skin, a warm smile and a small silver hoop in his ear; the
+     cream shirt with the bold black squiggles; light-blue denim shorts
+     with a frayed hem; white socks and white trainers on gum soles. His
+     hair is the player's own (art.js, A.lukeHair), moved onto this head. */
   (function () {
-    var cx = 26, cy = 19.5, HAIR = '12345';
+    var cx = 26, cy = 19.5;
     var pal = merge(SKIN, EYES, {
-      1: '#4a2412', 2: '#74391a', 3: '#9c5a2a', 4: '#c47e40', 5: '#e8b070',
-      b: '#e8b08e', B: '#d29470', m: '#a8404c', h: '#ffffff',
+      1: '#341608', 2: '#5c2a12', 3: '#8a451e', 4: '#ba6a2c', 5: '#e6964a',
+      m: '#a8404c', h: '#ffffff',
       v: '#f5e8d0', V: '#c9b48e', Z: '#25202e',
       j: '#a3c3df', J: '#6c8db4', x: '#e8f0f8',
       W: '#ffffff', X: '#d6daea',
-      z: '#f2f2f6', Y: '#c48a4c', N: '#9ca0b4'
+      z: '#f2f2f6', Y: '#c48a4c', N: '#9ca0b4',
+      // the hoop in his ear: silver
+      o: '#eef2f8', O: '#8e96aa'
     });
-    var noLight = '12345stuqESwIcbBmhZYx';
+    var noLight = '12345stuqESwIcmhZYxoO';
     // the shirt's print: bold black blobs and dashes, set out on a loose grid
     var TILE = [
       '............',
@@ -403,41 +408,14 @@
       neck: [26, 26, 25.6, 31.5], neckR: 2.6,
       top: 'v', topLine: 'V', topTex: shirtTex
     };
-    // his hair: a big mop of curls. The silhouette is a cloud of round
-    // bumps; inside, each curl is a small ring, lit on its upper left and
-    // shaded round its lower right, over the light falling on the whole mop
-    var core = { x: 24.8, y: 9.6, rx: 11.4, ry: 6 }, CURLS = [], i;
-    for (i = 0; i < 11; i++) {
-      var th = (172 + i * 196 / 10) * Math.PI / 180;
-      CURLS.push([core.x + core.rx * Math.cos(th) * 0.92, core.y + core.ry * Math.sin(th) * 0.9, i & 1 ? 2.8 : 3.2]);
-    }
-    // ringlets falling over his forehead, a little of it showing between them
-    CURLS.push([19.2, 11.8, 2.1], [23.4, 12.2, 2.1], [27.6, 12, 2], [31.6, 11.6, 2]);
-    var mopF = or(both(ell(core.x, core.y, core.rx, core.ry), function (x, y) { return y < 12.5; }), or.apply(null, CURLS.map(function (c) { return ell(c[0], c[1], c[2], c[2]); })));
-    // the back of his head, behind his ear: shorter curls
-    var backF = ell(17.4, 15.6, 4.4, 5.6);
-    CURLS.push([15.6, 15.4, 2.3], [17.6, 18.6, 2]);
-    // inside, more curls on a staggered grid
-    for (var gy = 4.5; gy < 12; gy += 3.2) for (var gx = 15 + (Math.round(gy) % 2) * 2; gx < 35; gx += 4) {
-      if (ell(core.x, core.y, core.rx - 2, core.ry - 1.2)(gx, gy)) CURLS.push([gx, gy, 2.3]);
-    }
-    var mopLit = orb(22.5, 7.5, 14.5, 10, HAIR);
-    var mopTex = function (x, y) {
-      var X = x + 0.5, Y = y + 0.5, t = mopLit(x, y), best = null, bd = 1e9;
-      CURLS.forEach(function (c) { var d = ((X - c[0]) * (X - c[0]) + (Y - c[1]) * (Y - c[1])) / (c[2] * c[2]); if (d < bd) { bd = d; best = c; } });
-      var dx = X - best[0], dy = Y - best[1], r = Math.sqrt(bd), a = Math.atan2(dy, dx);
-      // each curl: a darker ring round its lower right, a lit top left
-      if (r > 0.62 && a > -0.5 && a < 2.6) return step(HAIR, t, -1);
-      if (r < 0.5 && dx < 0.3 && dy < 0.3) return step(HAIR, t, 1);
-      return t;
-    };
+    // his hair, the player's own, 2.5 right and 3 lower (his face here is
+    // a little longer, so the fringe falls to his brows just as it does there)
+    var hair = A.lukeHair(2.5, 3);
     var faceF = function (x, y) {
       var ry = 9.4, rx = 8.6 * (y > cy + 1.5 ? 1 - 0.22 * Math.min(1, (y - cy - 1.5) / (ry - 1.5)) : 1);
       var dx = (x - cx) / rx, dy = (y - cy) / ry;
       return dx * dx + dy * dy <= 1;
     };
-    // the beard: short stubble along his jaw and round his chin
-    var beardAt = function (x, y) { return y > cy + 3 - Math.max(0, 22 - x) * 0.4 + Math.max(0, x - 31) * 0.4 || (x < 20.6 && y > cy - 0.5); };
     var LUKE = {
       H: 80, pal: pal, noLight: noLight, body: body,
       shorts: function () {
@@ -462,15 +440,16 @@
       },
       head: function () {
         return [
-          P('2', backF, mopTex, '1'),
+          hair.back,
           P('s', ell(17.8, 20.2, 2.1, 2.8), function (x, y) { return x < 17.5 && y > 18.5 && y < 21.5 ? 'u' : 's'; }, 'q'),
           P('s', faceF, function (x, y) {
-            // stubble: a fine stipple of two close tones, thicker on his chin
-            if (beardAt(x + 0.5, y + 0.5)) return y > cy + 6.5 && x > 22 && x < 30 ? 'B' : (x + y) & 1 ? 'B' : 'b';
-            if (y < 14.5 || x < 20) return 't';
+            // in the shadow of his fringe, and on the far side
+            if (hair.at(x + 0.5, y - 0.5) || hair.at(x + 0.5, y - 1.5) || x < 20) return 't';
             return 's';
           }, 'q'),
-          P('3', mopF, mopTex, '1')
+          hair.top,
+          // the little silver hoop at his earlobe
+          P('o', ell(17.4, 23.6, 1.2, 1.5), null, 'O')
         ];
       },
       face: function (rows, kind) {
@@ -479,8 +458,10 @@
         stamp(rows, 22, 16, eye); stamp(rows, 28, 16, eye);
         stamp(rows, 21, 14, ['222']); stamp(rows, 28, 14, ['222']);
         stamp(rows, 27, 20, ['t']);
-        // the moustache, then the smile under it
-        stamp(rows, 23, 22, ['.333.', '23332']);
+        // the moustache: a full ginger one over his top lip, bushy along its
+        // top, its corners turning down just past the corners of his mouth
+        // (no lower — under the mouth is clean); then the smile
+        stamp(rows, 21, 22, ['.4554443.', '344444443']);
         var mouth = kind === 'cheer' ? [23, 24, ['mmmmm', 'mhhhm', '.mmm.']] : kind === 'wave' ? [23, 24, ['mhhhm', '.mmm.']] : [22, 24, ['m.....m', '.mmmmm.']];
         stamp(rows, mouth[0], mouth[1], mouth[2]);
       }
@@ -669,7 +650,7 @@
       y: '#d8343a', Y: '#ff8a7c', z: '#8a1c26',
       // the family, seen through the glass
       s: '#f6cfb4', S: '#d99c80', q: '#a8604c', E: '#22224e', w: '#ffffff',
-      a: '#a0582c', A: '#6c3518', b: '#e0a684',
+      a: '#8a451e', A: '#4a200c', f: '#c8743a',
       c: '#8a5534', C: '#5a3420', n: '#211a26',
       v: '#f2e4cc', V: '#25202e', u: '#e2709f',
       h: '#f4c862', H: '#d99a40', i: '#fff2c0', j: '#3a6cf4', J: '#1f40a8', m: '#a8404c', p: '#ffb2a8'
@@ -729,6 +710,8 @@
         }, 'R')
       ];
     };
+    // Luke's curls, seen small: three over the crown, one falling forward
+    var CROP = [[81, 14.6, 1.8, 1.8], [83.2, 13.2, 1.9, 1.6], [85.8, 13.5, 1.8, 1.6], [87.7, 15.6, 1.4, 1.4]];
     // the family in the car, drawn small and clipped to the glass
     var family = function () {
       var inside = function (f) { return both(f, inGlass); };
@@ -747,14 +730,17 @@
         P('c', inside(or(ell(70.6, 18.2, 4.8, 4.6), rrect(65.6, 18, 75.4, 26.6, 2))), function (x) { return x + 0.5 < 67.8 ? 'C' : 'c'; }, 'C'),
         P('s', inside(ell(72, 20, 3.6, 4)), function (x) { return x < 69.6 ? 'S' : 's'; }, 'q'),
         P('c', inside(function (x, y) { return ell(70.6, 18.2, 4.8, 4.6)(x, y) && y < 17.2 + Math.max(0, 70.6 - x) * 0.5 + Math.max(0, x - 73) * 0.4; }), null, 'C'),
-        // Luke, at the wheel: curly ginger-brown hair, beard, cream shirt
+        // Luke, at the wheel: his curly crop (short at the back, the curls
+        // on top tumbling forward), his moustache, the cream shirt
         P('v', inside(rrect(77.4, 24.4, 92, 32, 3)), function (x, y) { return (x * 3 + y * 5) % 7 === 0 ? 'V' : 'v'; }, 'V'),
-        P('s', inside(ell(84.4, 20, 3.8, 4.3)), function (x, y) {
-          if (y + 0.5 > 21.8 || (x < 81.4 && y > 19)) return 'b';
-          return x < 82 ? 'S' : 's';
-        }, 'q'),
-        P('a', inside(or(ell(83.2, 15.8, 4.8, 2.9), ell(80, 18, 2.2, 2.6), ell(86.8, 15.4, 2.2, 1.8), ell(80, 14.6, 1.8, 1.8), ell(83, 13.2, 2.2, 1.6), ell(85.6, 13.8, 1.6, 1.4))), function (x, y) {
-          return (Math.floor(x * 0.9 + y * 1.3) % 3 === 0) ? 'A' : 'a';
+        P('A', inside(both(ell(82.4, 17.6, 2.2, 3), function (x, y) { return x < 83; })), function (x, y) { return (x + y) % 3 ? 'A' : 'a'; }, 'A'),
+        P('s', inside(ell(84.4, 20, 3.8, 4.3)), function (x) { return x < 82 ? 'S' : 's'; }, 'q'),
+        P('a', inside(or(both(ell(84.2, 16.2, 4.3, 3.2), function (x, y) { return y < 17.2; }), or.apply(null, CROP.map(function (c) { return ell(c[0], c[1], c[2], c[3]); })))), function (x, y) {
+          // each curl lit on its upper left, dark where it meets the next
+          var X = x + 0.5, Y = y + 0.5, best = CROP[0], bd = 9;
+          CROP.forEach(function (c) { var d = Math.hypot((X - c[0]) / c[2], (Y - c[1]) / c[3]); if (d < bd) { bd = d; best = c; } });
+          var li = -(0.6 * (X - best[0]) / best[2] + 0.8 * (Y - best[1]) / best[3]);
+          return li > 0.25 ? 'f' : li < -0.5 || (bd > 1.1 && Y > 15.5) ? 'A' : 'a';
         }, 'A')
       ];
     };
@@ -763,8 +749,10 @@
       [47, 19, ['E', 'E']], [50, 19, ['E', 'E']], [46, 21, ['p']], [51, 21, ['p']], [48, 22, ['q..q', '.qq.']],
       // Lucy's glasses, eyes and smile
       [69, 18, ['nnnnnn', 'nwn.wn', 'nEn.En', 'nnn.nn']], [67, 18, ['nn']], [70, 22, ['q..q', '.qq.']],
-      // Luke's eyes, moustache and smile
-      [83, 19, ['E', 'E']], [86, 19, ['E', 'E']], [83, 22, ['AAAA']], [84, 23, ['mm']]
+      // Luke's eyes and his moustache: a ginger bar over his top lip, the
+      // line of his chin under it (nothing more there: at this size,
+      // anything under the moustache reads as a beard)
+      [83, 19, ['E', 'E']], [86, 19, ['E', 'E']], [83, 22, ['faaf']]
     ];
     var car = function (rot, full) {
       var parts = [
@@ -1188,6 +1176,11 @@
       ['idle', 'run1', 'run2', 'run3', 'jump', 'blink', 'dead', 'swim'].forEach(function (k, i) { list.push([i ? k : 'small', Q.s[k]]); });
       list.push([w[0] + ' head', Q.head], [w[0] + ' bike', B.b.ride[0]], ['', B.s.air], [w[0] + ' surf', S.b.ride], ['', S.s.wobble]);
     });
+    // Luke at the wheel, and all three in the skeleton onesie (kits.bones),
+    // in the colours the game dresses it in
+    list.push(['luke car', F.yeti.full[0]]);
+    var skel = BB.variant('sheet-bones', { b: '#24202e', B: '#141018', k: '#24202e', K: '#141018', y: '#f4f0e8', Y: '#c8c2b4' });
+    ['bonnie', 'lucy', 'luke'].forEach(function (w) { var K2 = A.player(w).kits.bones; list.push([w + ' bones', K2.b.cheer, skel], ['', K2.s.run1, skel]); });
     return list;
   } });
   (A.sheet = A.sheet || []).push(group);

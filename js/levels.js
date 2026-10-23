@@ -152,7 +152,8 @@
   /* Three golden medals hide in every level, to be found: one usually
      along the way but a little off it, the others behind a secret wall, up
      a balloon ride, over the top of something. x, row: the tile it's in. */
-  B.medal = function (x, row) { this.medalN = (this.medalN || 0) + 1; this.e('medal', x, row, { i: this.medalN - 1 }); };
+  // ({ hidden: true }: kept behind a trick-or-treat door till it opens)
+  B.medal = function (x, row, o) { this.medalN = (this.medalN || 0) + 1; this.e('medal', x, row, Object.assign({ i: this.medalN - 1 }, o || {})); };
   /* A secret wall: tiles that look solid (the world's ground, or with
      'hard' its blocks) but that Bonnie walks straight through — they go
      see-through while he's inside. Hide a medal or a room of stars in it. */

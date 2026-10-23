@@ -328,6 +328,63 @@
     return [{ c: 'w', f: function (x, y) { return y >= top && y < top + v && Math.abs(x - o - 16) < (top + v - y) * 0.8; }, line: 'B',
       tex: collar ? function (x, y) { return y < top + 2 ? 'W' : 'w'; } : undefined }];
   };
+  /* The skeleton costume (kits.bones, for Halloween): a onesie — long
+     sleeves, long legs, a plain crew neck — printed with a skeleton in y,
+     shaded Y on the bones' lower side, so the outfit's colours (black
+     b/B and k/K, white y/Y) make it black with white bones. The print
+     follows the puppet's joints, so the bones bend with every pose. */
+  var BONES = { sleeve: 0, bare: 0, jeans: 0.85, shorts: 0, fray: false, sock: false, neck: 'crew', rib: false, crest: false, print: null, bones: true };
+  // a bone along the joints pts, r thick, a round knob kr at each joint
+  // between (an elbow, a knee) and a smaller one at its far end
+  var bonePrint = function (pts, r, kr) {
+    var knobs = pts.slice(1, -1).map(function (p) { return [p[0], p[1], kr]; });
+    var end = pts[pts.length - 1];
+    knobs.push([end[0], end[1], kr * 0.8]);
+    var lit = function (ox, oy, rr) { return 0.6 * ox + 0.8 * oy > rr * 0.4 ? 'Y' : 'y'; };
+    return function (x, y) {
+      var X = x + 0.5, Y = y + 0.5, i;
+      for (i = 0; i < knobs.length; i++) { var dx = X - knobs[i][0], dy = Y - knobs[i][1]; if (dx * dx + dy * dy <= knobs[i][2] * knobs[i][2]) return lit(dx, dy, knobs[i][2]); }
+      for (i = 0; i < pts.length - 1; i++) {
+        var a = pts[i], b = pts[i + 1], ex = b[0] - a[0], ey = b[1] - a[1], L = ex * ex + ey * ey;
+        var t = L ? Math.max(0, Math.min(1, ((X - a[0]) * ex + (Y - a[1]) * ey) / L)) : 0, ox = X - a[0] - t * ex, oy = Y - a[1] - t * ey;
+        if (ox * ox + oy * oy <= r * r) return lit(ox, oy, r);
+      }
+      return null;
+    };
+  };
+  /* the ribcage over the top: a breastbone down the middle and pairs of
+     ribs curving out and down from it, then the spine below them in
+     little vertebrae. sz: BIG, SMALL or 'crouch'. */
+  var ribsPrint = function (o, top, sz) {
+    var R = sz === BIG ? [[3.4, 4.2], [5.8, 4.4], [8.2, 3.8]] : sz === SMALL ? [[3, 3], [5.3, 2.8]] : [[3.6, 4.6]];
+    var end = R[R.length - 1][0], spine = sz === BIG ? 14.6 : sz === SMALL ? 8 : 5.6;
+    return function (x, y) {
+      var X = x + 0.5 - (o + 16), Y = y + 0.5 - top, ax = Math.abs(X), i;
+      if (ax < 1) {
+        if (Y > 2 && Y < end + 0.8) return X > 0 ? 'Y' : 'y';
+        if (Y >= end + 0.8 && Y < spine) return Math.floor(Y - end) % 2 ? null : 'y';
+        return null;
+      }
+      for (i = 0; i < R.length; i++) {
+        if (ax > R[i][1] + 1) continue;
+        var vy = R[i][0] + 0.16 * (ax - 1) * (ax - 1);
+        if (Math.abs(Y - vy) < 0.62) return Y > vy + 0.1 ? 'Y' : 'y';
+      }
+      return null;
+    };
+  };
+  // on the bottoms, the spine runs on down to the waist (a pelvis, this
+  // small, only reads as a belt)
+  var hipsPrint = function (o, top, sz) {
+    if (sz !== BIG) return null;
+    return function (x, y) { var X = x + 0.5 - (o + 16), Y = y + 0.5 - top; return Math.abs(X) < 1 && Y < 18.6 && Math.floor(Y) % 2 === 0 ? 'y' : null; };
+  };
+  // a leg's bones: the thigh bone to the knee, the shin to just above the shoe
+  var legBones = function (hip, knee, foot, k) {
+    var sl = Math.hypot(foot[0] - knee[0], foot[1] - knee[1]) || 1, ankle = along(knee, foot, Math.max(0.2, 1 - 2.3 * k / sl));
+    var bone = bonePrint([hip, knee, ankle], 0.75 * k + 0.05, 1.15 * k);
+    return function (x, y) { return bone(x, y) || 'k'; };
+  };
   var bodyParts = function (B, pose, top, ch) {
     var o = HX, T = function (p) { return [o + p[0], top + p[1]]; }, lk = ch.look;
     var t = B.torso, parts = [];
@@ -338,7 +395,7 @@
       if (lk.jeans) {
         // long trousers: the shoe, then the leg of them down over its top
         parts.push(shoePart(foot, B.shoe, 1.55, lk));
-        parts.push({ c: 'k', f: limb([hip, knee, [foot[0], foot[1] - 0.9]], B.leg + lk.jeans), line: 'K' });
+        parts.push({ c: 'k', f: limb([hip, knee, [foot[0], foot[1] - 0.9]], B.leg + lk.jeans), line: 'K', tex: lk.bones ? legBones(hip, knee, foot, B === BIG ? 1 : 0.7) : undefined });
         return;
       }
       parts.push({ c: 's', f: limb([mid, knee, foot], B.leg), line: 'S' });
@@ -353,10 +410,12 @@
         } : null });
       } else parts.push({ c: 'k', f: cap(hip[0], hip[1], mid[0], mid[1], B.leg + 1.4), line: 'K' });
     });
+    var hips = lk.bones && hipsPrint(o, top, B);
     parts.push({ c: 'k', f: rrect(o + B.short[0], top + B.short[1], o + B.short[2], top + B.short[3], 1.2), line: 'K',
-      tex: function (x, y) { return x === o + 16 && y > top + B.short[1] + 2 ? 'K' : 'k'; } });
+      tex: function (x, y) { return (hips && hips(x, y)) || (x === o + 16 && y > top + B.short[1] + 2 ? 'K' : 'k'); } });
     // the jumper, its ribbed hem, the shirt's V and collar, the crest
-    parts.push({ c: 'b', f: rrect(o + t[0], top + t[1], o + t[2], top + t[3], 3), line: 'B', tex: topTex(o, top, B.hem, lk) });
+    var ribs = lk.bones && ribsPrint(o, top, B), tt = topTex(o, top, B.hem, lk);
+    parts.push({ c: 'b', f: rrect(o + t[0], top + t[1], o + t[2], top + t[3], 3), line: 'B', tex: ribs ? function (x, y) { return ribs(x, y) || 'b'; } : tt });
     parts = parts.concat(neckParts(o, top, B.v, lk, true));
     if (lk.crest === false) return parts;
     var cy = top + B.crest, csz = B === BIG ? 1.7 : 1.1;
@@ -373,8 +432,13 @@
         parts.push({ c: 's', f: limb([sh, el, hd], B.arm - (lk.bare || 0)), line: 'S' });
         var se = along(sh, el, Math.min(1, len / ul));
         parts.push({ c: 'b', f: cuffed(sh, se, B.arm + 0.35), line: 'B', tex: lk.print ? function (x, y) { return !KIT && lk.print(x - o + 3, y - top + 3) ? 'y' : 'b'; } : null });
-      } else parts.push({ c: 'b', f: limb([sh, el, hd], B.arm), line: 'B',
-        tex: function (x, y) { var dx = x + 0.5 - hd[0], dy = y + 0.5 - hd[1]; return dx * dx + dy * dy < (B.arm + 1.2) * (B.arm + 1.2) ? 'B' : 'b'; } });
+      } else {
+        // the arm's bones, the upper one to the elbow and the forearm to the cuff
+        var k = B === BIG ? 1 : 0.75, fl = Math.hypot(hd[0] - el[0], hd[1] - el[1]) || 1;
+        var bones = lk.bones && bonePrint([sh, el, along(el, hd, Math.max(0.2, 1 - (B.arm + 1.4) / fl))], 0.75 * k + 0.05, 1.15 * k);
+        parts.push({ c: 'b', f: limb([sh, el, hd], B.arm), line: 'B',
+          tex: function (x, y) { var dx = x + 0.5 - hd[0], dy = y + 0.5 - hd[1]; return (bones && bones(x, y)) || (dx * dx + dy * dy < (B.arm + 1.2) * (B.arm + 1.2) ? 'B' : 'b'); } });
+      }
       var hand = ell(hd[0], hd[1] + (up ? -0.6 : 0.8), B.hand + (up ? 0.3 : 0), B.hand);
       if (up) {
         // fingers spread wide
@@ -392,7 +456,7 @@
       var hip = [o + L[0], top + L[1]], knee = [o + L[2], top + L[3]], foot = [o + L[4], top + L[5]];
       if (lk.jeans) {
         parts.push(shoePart(foot, 3, 1.5, lk));
-        parts.push({ c: 'k', f: limb([hip, knee, [foot[0], foot[1] - 0.9]], 1.9 + lk.jeans), line: 'K' });
+        parts.push({ c: 'k', f: limb([hip, knee, [foot[0], foot[1] - 0.9]], 1.9 + lk.jeans), line: 'K', tex: lk.bones ? legBones(hip, knee, foot, 0.8) : undefined });
         return;
       }
       parts.push({ c: 's', f: limb([hip, knee, foot], 1.9), line: 'S' });
@@ -400,7 +464,8 @@
       if (lk.shorts) parts.push({ c: 'k', f: cuffed(hip, along(hip, knee, lk.shorts), 3.2), line: 'K' });
     });
     parts.push({ c: 'k', f: rrect(o + 9, top + 5.5, o + 23, top + 8.6, 1.4), line: 'K' });
-    parts.push({ c: 'b', f: rrect(o + 8.5, top, o + 23.5, top + 6.5, 3), line: 'B', tex: lk.print || lk.rib === false ? function (x, y) {
+    var ribs = lk.bones && ribsPrint(o, top, 'crouch');
+    parts.push({ c: 'b', f: rrect(o + 8.5, top, o + 23.5, top + 6.5, 3), line: 'B', tex: ribs ? function (x, y) { return ribs(x, y) || 'b'; } : lk.print || lk.rib === false ? function (x, y) {
       return lk.print && !KIT && lk.print(x - o, y - top) ? 'y' : 'b';
     } : function (x, y) { return y >= top + 4.5 ? ((x & 1) ? 'b' : 'B') : 'b'; } });
     parts = parts.concat(neckParts(o, top, 3.6, lk, false));
@@ -409,7 +474,10 @@
       if (lk.sleeve) {
         parts.push({ c: 's', f: limb([s0, hd], 2.4 - (lk.bare || 0)), line: 'S' });
         parts.push({ c: 'b', f: cuffed(s0, along(s0, hd, 0.45), 2.6), line: 'B' });
-      } else parts.push({ c: 'b', f: limb([s0, hd], 2.4), line: 'B' });
+      } else {
+        var bones = lk.bones && bonePrint([s0, along(s0, hd, 0.6)], 0.7, 0.9);
+        parts.push({ c: 'b', f: limb([s0, hd], 2.4), line: 'B', tex: bones ? function (x, y) { return bones(x, y) || 'b'; } : undefined });
+      }
       parts.push({ c: 's', f: ell(hd[0], hd[1] + 1, 2, 2), line: 'S' });
     });
     return parts;
@@ -419,6 +487,7 @@
      coordinates) — see A.bonnie.pose. ch: who (BON, or one of THE FAMILY's). */
   var frame = function (size, poseName, kind, ch) {
     ch = ch || BON;
+    if (KIT === 'bones') ch = onesie(ch);
     var B = size === 'b' ? BIG : SMALL, top = HEAD_H, H2 = top + B.h, pose = typeof poseName === 'string' ? POSES[size][poseName] : poseName;
     var parts, neck = { c: 's', f: cap(HX + 17, 21, HX + 16.5, top + 1.5, size === 'b' ? 2.5 : 2.1), line: 'q' };
     var behind = ch.behind ? ch.behind() : [];
@@ -431,6 +500,15 @@
     return sp;
   };
   var BON = { pal: BPAL, noLight: NOLIGHT, head: headParts, face: face, look: {} };
+  // ch in the skeleton onesie: the same head, face and colours, its look
+  // the onesie's (the shoes stay their own)
+  var onesie = function (ch) {
+    if (ch.onesie) return ch.onesie;
+    var lk = {}, k;
+    for (k in ch.look) lk[k] = ch.look[k];
+    for (k in BONES) lk[k] = BONES[k];
+    return (ch.onesie = { pal: ch.pal, noLight: ch.noLight, head: ch.head, face: ch.face, behind: ch.behind, look: lk });
+  };
   // every frame a player has, built for ch
   var frameSet = function (ch) {
     var S = { s: {}, b: {} };
@@ -446,14 +524,22 @@
   };
   var P = A.bonnie = frameSet(BON);
   /* A set of every frame, built again with a pattern on the jumper: the
-     PSG kit's stripe. (Liverpool's all-red kit is colours alone.) */
+     PSG kit's stripe (Liverpool's all-red kit is colours alone) — or as
+     the skeleton onesie, its bones printed on. */
   var kitSet = function (kit, ch) {
     KIT = kit;
     var K2 = frameSet(ch);
     KIT = null;
     return K2;
   };
-  P.kits = { stripe: kitSet('stripe', BON) };
+  /* A player's kits: kits.stripe, and kits.bones — built the first time
+     it's worn, so loading the game costs nothing more. */
+  var kitsFor = function (ch) {
+    var K = { stripe: kitSet('stripe', ch) }, bones = null;
+    Object.defineProperty(K, 'bones', { enumerable: true, get: function () { return bones || (bones = kitSet('bones', ch)); } });
+    return K;
+  };
+  P.kits = kitsFor(BON);
   /* Bonnie in a pose of your own, for things he does now and then (riding
      his bike, surfing): size 's' or 'b'; pose { arms: [[elbow, hand(, up)], ×2],
      legs: [[knee, foot], ×2] } in body coordinates (see POSES); kind is the
@@ -541,28 +627,6 @@
         var t = lit > 0.45 ? '4' : lit > -0.3 ? '3' : '2';
         if (Math.abs(across + 0.1) < 0.18 && n.t > 0.25) t = hairStep(t, -1);
         if (n.t > 0.86) t = hairStep(t, -1);
-        return t;
-      } };
-  };
-  /* Curls, for Dad: a cloud of round curls, the outline bumpy where they
-     meet the sky. Inside, each is a small ring — lit on its upper left,
-     shaded round its lower right — over the light falling on the whole mop. */
-  var curls = function (list, lit, mass) {
-    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-    list.forEach(function (c) { x0 = Math.min(x0, c[0] - c[2]); y0 = Math.min(y0, c[1] - c[2]); x1 = Math.max(x1, c[0] + c[2]); y1 = Math.max(y1, c[1] + c[2]); });
-    return { c: '3', line: '1',
-      f: function (x, y) {
-        if (mass && mass(x, y)) return true;
-        if (x < x0 || x > x1 || y < y0 || y > y1) return false;
-        for (var i = 0; i < list.length; i++) { var c = list[i], dx = x - c[0], dy = y - c[1]; if (dx * dx + dy * dy <= c[2] * c[2]) return true; }
-        return false;
-      },
-      tex: function (x, y) {
-        var X = x + 0.5, Y = y + 0.5, t = lit(x, y), best = null, bd = 1e9;
-        list.forEach(function (c) { var d = ((X - c[0]) * (X - c[0]) + (Y - c[1]) * (Y - c[1])) / (c[2] * c[2]); if (d < bd) { bd = d; best = c; } });
-        var dx = X - best[0], dy = Y - best[1], r = Math.sqrt(bd), a = Math.atan2(dy, dx);
-        if (r > 0.72 && a > -0.5 && a < 2.4) return hairStep(t, -1);
-        if (r < 0.55 && dx < 0.4 && dy < 0.4) return hairStep(t, 1);
         return t;
       } };
   };
@@ -672,38 +736,62 @@
   })();
 
   /* ---- Dad -----------------------------------------------------------------
-     Luke: a big mop of curly ginger-brown hair, a moustache and short
-     stubble along his jaw, fair skin and a warm smile; the cream shirt
-     with bold black squiggles, open at the neck; denim shorts to above
-     the knee, frayed at the hem; white socks; white trainers on gum soles. */
+     Luke, from the photos (the studio portrait and the Disney day): tight
+     ginger-brown curls cut in a curly crop, a full ginger moustache and
+     no beard, fair skin, a warm smile and a small silver hoop in his ear;
+     the cream shirt with bold black squiggles, open at the neck; denim
+     shorts to above the knee, frayed at the hem; white socks; white
+     trainers on gum soles. (He asked, 23 Oct: "I have a moustache but not
+     a beard, and my hair is a bit cooler — you are making me look like Bob
+     Ross." The round mop and the stubble were that.) */
+  /* His hair, shared with his cameo in family.js (A.lukeHair): the volume
+     on top, tumbling forward over his forehead in a loose fringe, and the
+     back and sides short and close to his head — so it stands taller than
+     it's wide, never wider than his head. Placed on the player's head; ox,
+     oy move it onto another (the cameo's is 2.5 right and 4 lower).
+     back: the short back and sides, drawn behind his ear; top: the curls,
+     drawn over his face; at(x, y): whether a point is under the curls. */
+  var lukeHair = function (ox, oy) {
+    var T = function (c) { return [c[0] + ox, c[1] + oy, c[2]]; };
+    // tight curls, packed in rows: piled high over the crown (its outline
+    // bumpy where they meet the sky), then a fringe of them hanging forward
+    // over his forehead; none down the sides, which are cut short
+    var list = [
+      [16.6, 3.4, 1.9], [19.8, 1.9, 1.9], [23.2, 1.6, 1.9], [26.6, 2.1, 1.9], [29.4, 3.9, 1.8],
+      [14.8, 6.4, 1.8], [17.9, 5.2, 1.8], [21.3, 4.8, 1.8], [24.7, 4.9, 1.8], [28, 5.7, 1.8], [30.2, 6.8, 1.4],
+      [19.6, 8.2, 1.6], [22.9, 8.9, 1.7], [26.1, 8.5, 1.6], [28.9, 8.4, 1.4]
+    ].map(T);
+    var fill = ell(22.4 + ox, 5.2 + oy, 7.6, 3.6);
+    var top = { c: '3', line: '1',
+      f: function (x, y) {
+        if (fill(x, y) && y < 8 + oy) return true;
+        for (var i = 0; i < list.length; i++) { var c = list[i], dx = x - c[0], dy = y - c[1]; if (dx * dx + dy * dy <= c[2] * c[2]) return true; }
+        return false;
+      },
+      tex: function (x, y) {
+        var X = x + 0.5, Y = y + 0.5, d1 = 9, d2 = 9, best = list[0];
+        list.forEach(function (c) { var d = Math.hypot(X - c[0], Y - c[1]) / c[2]; if (d < d1) { d2 = d1; d1 = d; best = c; } else if (d < d2) d2 = d; });
+        // deep brown in the gaps between the curls
+        if (d2 - d1 < 0.24 || d1 > 1.1) return '1';
+        // the light on the whole crop, brightest at its top left; each curl
+        // lit on its upper left (copper there), shaded on its lower right
+        var s = (X - ox - 14) * 0.14 + (Y - oy) * 0.34, t = s < 2.6 ? '4' : s < 4.6 ? '3' : '2';
+        var li = -(0.6 * (X - best[0]) + 0.8 * (Y - best[1])) / best[2];
+        if (li > 0.45) return hairStep(t, 1);
+        if (li < -0.35) return hairStep(t, -1);
+        return t;
+      } };
+    // the back and sides: cut short and close to his head, in shadow,
+    // flecked with tight curls
+    var skull = ell(21.6 + ox, 12.6 + oy, 10.1, 9.2);
+    var back = { c: '2', line: '1',
+      f: function (x, y) { return skull(x, y) && x < 21 + ox && y < 17.4 + oy - Math.max(0, x - 13.4 - ox) * 0.8; },
+      tex: function (x, y) { var u = ((x * 3 + y * 5) % 7 + 7) % 7; return u === 0 ? '3' : u === 3 || u === 5 ? '1' : '2'; } };
+    return { back: back, top: top, at: function (x, y) { return top.f(x, y); } };
+  };
+  A.lukeHair = lukeHair;
   var LUKE = (function () {
-    var C = [], i;
-    // the mop: one big soft mass over the top of his head and down behind
-    // his ear, its edge a ring of round curls, and curls all over inside
-    var top = ell(21.2, 8.2, 11, 6.8), back = ell(12.6, 13, 3.9, 6);
-    var mass = function (x, y) { return (top(x, y) && (y < 8.6 || x < HX + 11)) || back(x, y); };
-    for (i = 0; i < 13; i++) {
-      var th = (150 + i * 232 / 12) * Math.PI / 180;
-      C.push([21.2 + 10.2 * Math.cos(th), 8.6 + 5.6 * Math.sin(th), i & 1 ? 2.6 : 3]);
-    }
-    // down behind his ear, and ringlets over his forehead
-    C.push([10.6, 13.4, 2.6], [11.2, 16.8, 2.3], [13.4, 18.4, 1.6]);
-    C.push([18.6, 8.6, 2.1], [22.4, 8.4, 2.1], [26.2, 8.2, 2], [29.8, 8.2, 1.9]);
-    for (var gy = 3.6; gy < 8; gy += 2.6) for (var gx = 12.4 + (Math.round(gy) % 2) * 1.8; gx < 32; gx += 3.6) C.push([gx, gy, 2]);
-    C.push([13.8, 11.2, 2]);
-    var mop = curls(C, function (x, y) {
-      // the light on the whole mop: brightest at its top left
-      var dx = (x + 0.5 - 16) / 15, dy = (y + 0.5 - 2) / 13, i = -0.5 * dx - 0.62 * dy + 0.6 * Math.sqrt(Math.max(0, 1 - dx * dx - dy * dy));
-      return i > 0.62 ? '5' : i > 0.3 ? '4' : i > -0.05 ? '3' : i > -0.36 ? '2' : '1';
-    }, mass);
-    var hairAt = function (x, y) { return mop.f(x, y); };
-    var cx = HX + 17.5, cy = 15.4;
-    // stubble: a fine stipple of two close tones round his jaw and chin, up to his ear
-    var stubble = function (x, y) {
-      var X = x + 0.5, Y = y + 0.5, d = Math.hypot((X - cx) / 8.3, (Y - cy) / 8.7);
-      if ((d > 0.7 && Y > cy + 1.6) || (X < HX + 12 && Y > cy - 1) || (Y > cy + 5.8)) return Y > cy + 6.6 && Math.abs(X - cx) < 4 ? 'F' : (x + y) & 1 ? 'F' : 'f';
-      return null;
-    };
+    var hair = lukeHair(0, 0);
     // the shirt's print: bold black squiggles on a loose grid
     var TILE = [
       '.yy.....y...',
@@ -719,25 +807,34 @@
     };
     return {
       pal: merge(BPAL, {
-        1: '#4a2412', 2: '#74391a', 3: '#9c5a2a', 4: '#c47e40', 5: '#e8b070',
-        m: '#a8404c', f: '#e6a986', F: '#cf8f6c',
+        // deep brown curls, copper-ginger where the light catches them
+        1: '#341608', 2: '#5c2a12', 3: '#8a451e', 4: '#ba6a2c', 5: '#e6964a',
+        m: '#a8404c',
         b: '#f5e8d0', B: '#c9b48e', y: '#25202e', Y: '#25202e',
         k: '#9dbcdc', K: '#6585b0',
-        z: '#f2f2f6', Z: '#c48a4c'
+        z: '#f2f2f6', Z: '#c48a4c',
+        // the hoop in his ear: silver
+        o: '#eef2f8', D: '#8e96aa'
       }),
-      noLight: NOLIGHT.concat(['F', 'Z']),
+      noLight: NOLIGHT.concat(['Z', 'o', 'D']),
       look: { sleeve: 4.6, bare: 0.4, shorts: 0.9, fray: true, sole: true, shoeLine: 'W', neck: 'open', rib: false, crest: false, print: print },
-      head: function () { return [EAR(), { c: 's', f: adultFace, line: 'q', tex: faceTex(hairAt, stubble) }, mop]; },
+      head: function () {
+        return [hair.back, EAR(), { c: 's', f: adultFace, line: 'q', tex: faceTex(hair.at) }, hair.top,
+          // the little silver hoop at his earlobe
+          { c: 'o', f: ell(HX + 8.5, 19.4, 1.1, 1.4), line: 'D' }];
+      },
       face: function (rows, kind) {
         paint(rows, 19, 17, ['pp']); paint(rows, 28, 17, ['pp']);
         if (kind === 'hurt') { paint(rows, 20, 13, HURT); paint(rows, 27, 13, HURT); } else {
           var eye = kind === 'blink' ? SHUT : EYE;
           paint(rows, 21, 13, eye); paint(rows, 27, 13, eye);
         }
-        paint(rows, 20, 11, ['333']); paint(rows, 27, 11, ['333']);
+        paint(rows, 20, 11, ['222']); paint(rows, 27, 11, ['222']);
         paint(rows, 25, 17, ['t']);
-        // the moustache, then the smile under it
-        paint(rows, 22, 18, ['.3443.', '233332']);
+        // the moustache: a full ginger one over his top lip, bushy along
+        // its top, its corners turning down just past the corners of his
+        // mouth (no lower — under the mouth is clean); then the smile
+        paint(rows, 21, 18, ['.455443.', '34444443']);
         var mouth = {
           wheee: [23, 20, ['qmmq', '.qq.']],
           hurt: [24, 20, ['qmq', '.q.']],
@@ -749,7 +846,7 @@
   })();
 
   /* A.player(who): who is 'bonnie', 'lucy' or 'luke'. The same shape as
-     A.bonnie (s, b, kits.stripe, pose, head, red, rainbow, ghost), plus
+     A.bonnie (s, b, kits.stripe, kits.bones, pose, head, red, rainbow, ghost), plus
      look (how their clothes differ from Bonnie's, for family.js's bike).
      Mum and Dad are built the first time they're asked for, then kept. */
   var CAST = { lucy: LUCY, luke: LUKE }, PLAYERS = { bonnie: P };
@@ -759,7 +856,7 @@
     var ch = CAST.hasOwnProperty(who) && CAST[who];
     if (!ch) return P;
     var Q = frameSet(ch);
-    Q.kits = { stripe: kitSet('stripe', ch) };
+    Q.kits = kitsFor(ch);
     Q.pose = function (size, pose, kind) { return frame(size, pose, kind, ch); };
     Q.head = headOf(ch);
     Q.red = P.red; Q.rainbow = P.rainbow; Q.ghost = P.ghost;

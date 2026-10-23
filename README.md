@@ -21,6 +21,11 @@ designed by Bonnie himself.
 > Home again, Bonnie writes his One Day list — everything he'd love to do one
 > day. But Queen Bee's bees carry it off, and his wishes flutter out all over
 > the world. Fold a paper aeroplane and fly after them.
+>
+> Then it's autumn half term. At the pumpkin patch Bonnie finds the biggest
+> pumpkin ever — and that night a Witch swoops over the moon and magics it
+> away for her soup. Follow her trail, trick-or-treating all the way, up to
+> her crooked tower.
 
 ## Playing it
 
@@ -87,7 +92,7 @@ Keyboard → Keyboard Shortcuts).
 
 ## The game
 
-**Forty-five worlds in five lands**, each with its own look, music, enemies and trick.
+**Fifty-five worlds in six lands**, each with its own look, music, enemies and trick.
 The second island, the Magpie Isles, opens when Monsty is home: a boat
 route across the water on the map, and a short party scene to start it.
 The third land, the Big Trip, opens when the presents are back: a ferry
@@ -98,6 +103,11 @@ so is Brocco, Bonnie's broccoli soft toy. The fifth land, One Day…, opens
 when the holiday's over: Bonnie designed its ten levels himself (20 Oct,
 aged six) — things he'd like to do one day — and drew some of its cast. A
 paper aeroplane flies him across the map and waits at the end of each level.
+The sixth land, Half Term!, opens when Queen Bee's said sorry: autumn and a
+fun, never-scary Halloween (the Haunted Mansion and Nightmare Before
+Christmas were the feel Luke asked for, 23 Oct). Its levels are longer and
+a little trickier than the others, with more to find, and each ends at a
+crooked spooky-cute house where Bonnie knocks for a sweet.
 
 | | World | What's new |
 |---|---|---|
@@ -146,6 +156,16 @@ paper aeroplane flies him across the map and waits at the end of each level.
 | 43 | Chocolate Land | marshmallow springs, hot-chocolate geysers, biscuits that drop, a chocolate river |
 | 44 | Dinosaur Land | eggs that hatch babies who follow you, triceratops, a pterodactyl to ride — and the T. rex chase |
 | 45 | Bee Land | sticky honey, worker bees, flower springs, and Queen Bee: stomp her when she's stuck in her own honey |
+| 46 | Pumpkin Patch | leaf piles to jump in (one hides a medal), scarecrows hopping on their poles, pumpkins rolling down the hill (land on one — boing!), a corn rick with a secret way in, the hay cart |
+| 47 | Conker Woods | conker cases dropping from the chestnuts (pick up the conkers), hedgehogs to curl up and bowl, sleepy owls that flap you up into the treetops, a brook, sinking logs |
+| 48 | Windy Hill | gusts both ways, kites to hang from over the valleys, windmill sails to ride, sycamore seeds to float down on, runaway umbrellas |
+| 49 | Trick or Treat Street | step onto a doormat to knock: someone friendly answers with treats (a heart, a cupcake, a trick, a medal); trick-or-treaters, black cats, spiders, cobweb trampolines |
+| 50 | Pumpkin Town | the curly hill that unrolls into a road as you come, jolly skeletons that fall to bits and get up again, a green fountain to ride, the town hall's secret passage — and the ghost dog |
+| 51 | Graveyard Jamboree | ghost platforms that come and go to the beat, bouncing tombstones, a bone xylophone, three hitchhiking ghosts who tag along, the ghost band |
+| 52 | The Haunted Mansion | the stretching room, portraits whose eyes follow you, floating candelabras, organ pipes, swinging chandeliers, a buggy ride down the long gallery |
+| 53 | The Witch's Wood | will-o'-the-wisps that lead you to secrets, cauldron bubbles to ride up, toads — and the witch's broomstick to fly over the bramble chasm |
+| 54 | Firework Night | over the rooftops: firework rockets to hang on to (up, BOOM, and float down), catherine wheels, chimney smoke, the witch's apprentices |
+| 55 | The Witch's Tower | climb the tower to her kitchen, and the Witch: her potions turn you into a frog for a few seconds; stomp her hat when her broom sputters out |
 
 Bonnie drew these baddies himself: the **squirrel** that throws nuts, the
 walking **chocolate bar**, the cross **palm tree**, the **butterfly**, the
@@ -170,7 +190,8 @@ again. `HP_MAX` and `EXTRA_MAX` in `js/game.js` set both (2 a heart).
 
 **Bosses:** landing on top of a boss never hurts. At the right moment
 (Grumble any time, the Captain when he's landed, Rascal when he's dizzy,
-Queen Bee when she's stuck in her honey)
+Queen Bee when she's stuck in her honey, the Witch when she's bumped
+down dizzy after a swoop)
 it's a hit; at any other it's a bounce. A boss that's just been hit
 flashes, and can't hurt Bonnie until he stops. Only touching him from
 the side or below, or his fire, eggs and baguettes, costs the heart.
@@ -190,7 +211,9 @@ cap, and mouse ears for a day at the park, won by finishing levels 21,
 25 and 29; his two teams' kits — PSG (navy, the red stripe) and
 Liverpool (all red), no badges — won with 10 and 25 golden medals; and a
 Pokémon trainer's cap, a penguin suit, a dinosaur onesie and a bee
-costume, won by finishing levels 36, 40, 44 and 45. Its WHO'S PLAYING?
+costume, won by finishing levels 36, 40, 44 and 45; and wellies with a
+bobble hat, a pumpkin costume, a skeleton suit and the Witch's hat and
+cloak, won by finishing levels 46, 49, 51 and 55. Its WHO'S PLAYING?
 page lets you play as **Bonnie, Mum or Dad** (Bonnie asked for it): the
 other two cheer at the flags and wait at the end. Once the holiday's
 over there's a **Pokédex** page for the Pokémon caught in level 36.
@@ -203,6 +226,18 @@ land without finishing the one before: the lands before it count as won,
 its story still plays, and nothing else in the save changes. One land
 per tap. It's how Bonnie's iPad got to the new levels before he'd
 finished the holiday.
+
+**Half Term!'s friends and tricks.** The **ghost dog** with the glowing
+pumpkin nose is asleep in Pumpkin Town: wake him and he floats along
+behind Bonnie for the rest of the land, lighting the dark (a fall
+doesn't lose him). The three **hitchhiking ghosts** in the graveyard
+join the line behind him too. A **kite**, a **sycamore seed** or a
+**firework rocket** carries him hanging underneath (jump to let go of a
+kite); the **broomstick** flies — hold jump to climb, let go to glide —
+until its magic fizzles, never over a gap; a bump knocks him off it (no
+heart lost) and it flies home. The Witch's **potions** turn him into a
+frog for a few seconds instead of costing his heart (another splash
+just keeps him a frog for longer).
 
 **Power-ups** come out of the presents:
 
@@ -246,9 +281,11 @@ numbers in `POSES` in `js/art.js`.
 | `js/light.js` | sunbeams, dusk and glowing lights, shadows — and how Bonnie catches the light |
 | `js/music.js` | the soundtrack — all original tunes, written as note strings |
 | `js/levels.js` | the level builder, and the first land's ten levels |
-| `js/levels2.js` … `levels5.js` | the other lands' levels, one file each, built with the same kit |
+| `js/levels2.js` … `levels6.js` | the other lands' levels, one file each, built with the same kit |
 | `js/creatures5a.js`, `creatures5b.js` | the fifth land's cast: Bonnie's own designs, the Pokémon, Queen Bee, the dinosaurs, the rides, its scenery |
 | `js/backdrop5.js`, `js/music5.js` | the fifth land's ten worlds (themes and backgrounds) and its songs |
+| `js/creatures6a.js`, `creatures6b.js`, `creatures6c.js` | the sixth land's cast: autumn and trick-or-treat; the night's skeletons, ghosts and the Witch; its rides, springs, set pieces and scenery |
+| `js/backdrop6.js`, `js/music6.js`, `js/levels6.js` | the sixth land's ten worlds, its songs, and its levels |
 | `js/map.js` | the world map: two islands, France and the holiday coast, the boat, ferry and bridge between them, each world's landmark, all animated |
 | `js/ui.js` | the game's stationery: paper cards with a running stitch, ribbon banners, Monsty's head as the menu pointer |
 | `js/voice.js` | grown-ups' recorded voices: recording (MediaRecorder), keeping them on the device, playing them in the game |
@@ -271,8 +308,15 @@ Handy while editing:
   game's one heart, so a bump or a fall ends that try: a level it
   finishes can be finished without a single hit. It also checks every
   level has its three medals (`&medals=1` goes after each of them;
-  `&bear=1` goes and finds Bear). All forty-five pass (the whole run takes a few minutes; the boss
-  fights take longest). If one fails, it says how far it got.
+  `&bear=1` goes and finds Bear). All of 1–54 pass (the whole run takes a few minutes; the boss
+  fights take longest). If one fails, it says how far it got. The one it
+  can't do is the Witch (55): it climbs her tower and gets into her
+  kitchen, but her fight means waiting out a long flight with nothing to
+  aim at, and its search runs out first. She was beaten (23 Oct) by a
+  simple scripted player instead — wait on the middle shelf while she
+  loops and swoops, then hop down and stomp her when she's dizzy — and
+  her medals and Bear pass as usual. Ghost platforms keep a 160-frame bar
+  so they line up with the robot's 320-frame clock.
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).
 - `tools/icon.html` redraws the home-screen icons; save each into `icons/`.

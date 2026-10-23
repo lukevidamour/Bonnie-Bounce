@@ -26,6 +26,9 @@
 <script src="../js/creatures.js"></script>
 <script src="../js/creatures5a.js"></script>
 <script src="../js/creatures5b.js"></script>
+<script src="../js/creatures6a.js"></script>
+<script src="../js/creatures6b.js"></script>
+<script src="../js/creatures6c.js"></script>
 <script src="../js/family.js"></script>
 <script>
   var A = BB.ART, Z = +(/[?&]z=(\d+)/.exec(location.search) || [0, 5])[1];
@@ -38,12 +41,14 @@
   add('items', [['star', A.star[0]], ['', A.star[1]], ['', A.star[2]], ['cupcake', A.cupcake], ['ball', A.superball[0]], ['', A.superball[1]], ['lolly', A.lolly], ['heart', A.heart], ['thrown', A.thrown[0]], ['monsty', A.monsty], ['cage', A.cage]]);
   add('blocks', [['q', A.qblock[0]], ['used', A.used], ['pipe', A.pipeTop], ['spikes', A.spikes], ['spring', A.spring[0]], ['', A.spring[1]], ['shroom', A.shroom[0]], ['', A.shroom[1]], ['check', A.checkFlag[0]], ['', A.checkFlag[1]], ['goal', A.goalFlag]]);
   var en = [];
-  Object.keys(A.en).forEach(function (k) {
-    var v = A.en[k];
-    if (Array.isArray(v)) v.forEach(function (s, i) { en.push([i ? '' : k, s]); });
+  // (a creature can be a sprite, frames, a set of poses — or, like the trick-or-treaters, a set of sets)
+  var addEn = function (k, v) {
+    if (!v) return;
+    if (Array.isArray(v)) v.forEach(function (s, i) { addEn(i ? '' : k, s); });
     else if (v.rows) en.push([k, v]);
-    else Object.keys(v).forEach(function (j) { var s = v[j]; if (Array.isArray(s)) s.forEach(function (t) { en.push([k + j, t]); }); else en.push([k + j, s]); });
-  });
+    else Object.keys(v).forEach(function (j) { addEn(k + j, v[j]); });
+  };
+  Object.keys(A.en).forEach(function (k) { addEn(k, A.en[k]); });
   add('enemies', en);
   var de = [];
   Object.keys(A.deco).forEach(function (k) { var v = A.deco[k]; (Array.isArray(v) ? v : [v]).forEach(function (s, i) { de.push([i ? '' : k, s]); }); });
