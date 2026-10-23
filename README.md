@@ -341,9 +341,8 @@ Handy while editing:
   way on is back behind him (Windy Hill's second kite, a few tiles back
   from the edge) or a slow ride (the buggy coming back) it can run out of
   tries: a listed spot like that is worth checking by hand before it's
-  believed. Two are listed in land 6, both checked by hand: Windy Hill
-  323–330 (he walks back, takes the kite and is carried over) and the
-  Witch's Wood 87 (on along, a bubble up the cliff, five seconds).
+  believed. One is listed in land 6, checked by hand: Windy Hill
+  323–330 (he walks back, takes the kite and is carried over).
 - `index.html?touch` plays as a touch screen does, to check the phone and
   tablet layouts on a desktop (any window shape).
 - `tools/icon.html` redraws the home-screen icons; save each into `icons/`.
