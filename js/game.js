@@ -3549,6 +3549,15 @@
     if (p.rocket) { rocketStep(p); return; }
     if (p.carry) { carryStep(p); return; }
     if (p.mount === 'broom') { broomStep(p); return; }
+    /* Under his own steam his height is always a whole pixel. Landing on a
+       platform or a ledge is an exact match of his feet with its top, and a
+       ride sets his height from its own (a firework, a kite, a sycamore
+       seed, a pterodactyl; balloons stopping him at the top of the screen)
+       — so the fraction it left meant he fell straight through every
+       platform and ledge after it, for the rest of that life. Bonnie found
+       it on Firework Night: after the rocket, through the catherine wheel
+       (29 Oct). */
+    if (p.y !== Math.round(p.y)) p.y = Math.round(p.y);
     if (p.sticky) p.sticky--;
     var dir = (BB.key('right') ? 1 : 0) - (BB.key('left') ? 1 : 0);
     var run = BB.key('b') || BB.touchRun;

@@ -234,7 +234,10 @@ behind Bonnie for the rest of the land, lighting the dark (a fall
 doesn't lose him). The three **hitchhiking ghosts** in the graveyard
 join the line behind him too. A **kite**, a **sycamore seed** or a
 **firework rocket** carries him hanging underneath (jump to let go of a
-kite); the **broomstick** flies — hold jump to climb, let go to glide —
+kite — and once he's off any ride his height snaps back to a whole pixel:
+landing on a platform is an exact match of his feet with its top, and the
+fraction a ride left made him fall through the catherine wheel after
+Firework Night's rocket, 29 Oct); the **broomstick** flies — hold jump to climb, let go to glide —
 until its magic fizzles, never over a gap, and it won't sink out of
 sight into one (it skims the bottom); a bump knocks him off it (no
 heart lost) and it flies home. The Witch's **potions** turn him into a
